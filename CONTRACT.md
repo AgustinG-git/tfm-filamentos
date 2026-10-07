@@ -65,6 +65,10 @@ versiones que se quieran comparar.
   - **predicciones sin solapes entre sí**: el oficial contaría cada copia
     como un TP adicional;
   - el PQ propio coincide con `get_pq_score` (si no, error).
+- **Tabla de IoU:** se calcula con `pycocotools` directamente sobre los
+  RLE (`overlap_table`), sin decodificar cada máscara a 2048 × 2048. Un
+  test comprueba que coincide con `get_overlap_df` oficial. La
+  puntuación y los gráficos usan siempre las funciones oficiales.
 - Métricas adicionales (SQ, RQ, recuentos, definiciones propias de 1:n y
   n:1, bootstrap) son complementos y nunca sustituyen a las oficiales.
 

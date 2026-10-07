@@ -130,3 +130,38 @@ def test_filter_gt():
         ("luis-img1_1", rect(0, 10, 0, 10)),
     ])
     assert filter_gt(gt, ["luis-img1"])["filament_id"].tolist() == ["luis-img1_1"]
+
+
+def test_tabla_rapida_igual_que_la_oficial():
+    """overlap_table == get_overlap_df oficial (IoU y Dice)."""
+    from filseg.metrics import overlap_table
+    from filseg.official_metric import get_overlap_df
+
+    rng = np.random.default_rng(2)
+    gt_items, pred_items = [], []
+    for who in ("ana", "luis"):
+        for j in range(4):
+            r, c = rng.integers(0, 1900, 2)
+            gt_items.append((f"{who}-img1_{j + 1}", rect(r, r + 40, c, c + 60)))
+    for j in range(6):
+        r, c = rng.integers(0, 1900, 2)
+        pred_items.append((f"img1_{j + 1}", rect(r, r + 40, c, c + 60)))
+    pred_items.append(("img1_7", gt_items[0][1]))       # un TP exacto
+    gt, pred = frame(gt_items), frame(pred_items)
+
+    fast, official = overlap_table(gt, pred), get_overlap_df(gt, pred)
+    assert fast["annotator_image"].tolist() == official["annotator_image"].tolist()
+    for a, b in zip(fast.itertuples(), official.itertuples()):
+        assert (a.n_gt, a.n_pred) == (b.n_gt, b.n_pred)
+        np.testing.assert_allclose(np.asarray(a.iou_matrix), np.asarray(b.iou_matrix), atol=1e-6)
+        np.testing.assert_allclose(np.asarray(a.dice_matrix), np.asarray(b.dice_matrix), atol=1e-6)
+
+
+def test_mas_de_255_predicciones():
+    """pycocotools.area falla con >255 máscaras: el evaluador no."""
+    gt = frame([("ana-img1_1", rect(0, 10, 0, 10))])
+    pred = frame([(f"img1_{k + 1}", rect(20 + 3 * (k // 30), 21 + 3 * (k // 30),
+                                         3 * (k % 30), 3 * (k % 30) + 1)) for k in range(300)])
+    assert find_overlaps(pred) == []
+    res = evaluate(gt, pred)
+    assert counts(res) == (0, 300, 1)

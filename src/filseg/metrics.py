@@ -3,8 +3,12 @@
 Envuelve la métrica oficial (``official_metric``) sin modificarla:
 
 - comprueba ids y solapes antes de evaluar;
-- calcula PQ, SQ, RQ y recuentos con el mismo bucle que ``get_pq_score``
-  y verifica que el PQ coincide con el oficial;
+- calcula la tabla de IoU/Dice con pycocotools sobre los RLE, sin
+  decodificar (``overlap_table``). Es la misma tabla que
+  ``get_overlap_df`` (lo comprueba un test), pero sin decodificar cada
+  máscara a 2048 × 2048 en float32 (16 MB por máscara);
+- puntúa con ``get_pq_score`` oficial y verifica que coincide con el
+  bucle propio que además devuelve SQ, RQ y recuentos;
 - genera los tres gráficos de la rúbrica con las funciones oficiales.
 
 Todas las cifras del TFM salen de ``evaluate``.
@@ -17,11 +21,11 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import torch
 from pycocotools import mask as mask_utils
 
 from .contract import FULL_SIZE, IOU_THR, ContractError
 from .official_metric import (
-    get_overlap_df,
     get_pq_score,
     plot_distribution,
     plot_m2n_counts,
@@ -57,11 +61,47 @@ def find_overlaps(pred_df: pd.DataFrame, size=FULL_SIZE) -> list[str]:
     for img, grp in pred_df.groupby(image_of(pred_df["filament_id"])):
         if len(grp) < 2:
             continue
-        rles = [{"size": list(size), "counts": c.encode()} for c in grp["segmentation_rle"]]
+        rles = _rles(grp["segmentation_rle"], size)
         union = mask_utils.area(mask_utils.merge(rles, intersect=False))
-        if union < mask_utils.area(rles).sum():
-            out.append(img)
+        if union < sum(int(mask_utils.area(r)) for r in rles):  # de una en una:
+            out.append(img)                                      # >255 falla
     return out
+
+
+def _rles(counts, size=FULL_SIZE) -> list[dict]:
+    return [{"size": list(size), "counts": c.encode()} for c in counts]
+
+
+def overlap_table(gt_df: pd.DataFrame, pred_df: pd.DataFrame, size=FULL_SIZE) -> pd.DataFrame:
+    """Misma salida que ``get_overlap_df`` oficial, sin decodificar.
+
+    IoU exacta con ``mask_utils.iou`` sobre RLE; Dice = 2·IoU/(1+IoU),
+    que es idéntico a 2|A∩B|/(|A|+|B|). Mismo orden de filas y tensores
+    float32, para que las funciones oficiales de puntuación y gráficos
+    funcionen sin cambios.
+    """
+    gt_ai = image_of(gt_df["filament_id"])
+    preds = {
+        img: _rles(grp["segmentation_rle"], size)
+        for img, grp in pred_df.groupby(image_of(pred_df["filament_id"]))
+    }
+    rows = []
+    for ai in gt_ai.unique():
+        g = _rles(gt_df.loc[gt_ai == ai, "segmentation_rle"], size)
+        p = preds.get(ai.split("-", 1)[1], [])
+        iou = (
+            np.asarray(mask_utils.iou(g, p, [0] * len(p)), dtype=np.float64).reshape(len(g), len(p))
+            if g and p else np.zeros((len(g), len(p)))
+        )
+        dice = 2 * iou / (1 + iou)
+        rows.append({
+            "annotator_image": ai,
+            "iou_matrix": torch.from_numpy(iou.astype(np.float32)),
+            "dice_matrix": torch.from_numpy(dice.astype(np.float32)),
+            "n_gt": len(g),
+            "n_pred": len(p),
+        })
+    return pd.DataFrame(rows, columns=["annotator_image", "iou_matrix", "dice_matrix", "n_gt", "n_pred"])
 
 
 def pq_components(overlap_df: pd.DataFrame) -> dict:
@@ -158,7 +198,7 @@ def evaluate(
                 f"{len(overlapping)} imágenes con predicciones solapadas: {overlapping[:3]}"
             )
 
-    overlap_df = get_overlap_df(gt_df, pred_df)
+    overlap_df = overlap_table(gt_df, pred_df)
     metrics = pq_components(overlap_df)
     official = get_pq_score(overlap_df)
     if not np.isclose(metrics["pq"], official, rtol=0, atol=1e-9):
