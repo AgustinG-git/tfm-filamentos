@@ -76,3 +76,22 @@ def test_recuento_512_igual_que_el_oficial():
     m = evaluate(gt, pred).metrics
     assert (fast["tp"], fast["fp"], fast["fn"]) == (m["tp"], m["fp"], m["fn"])
     assert fast["sum_iou"] == pytest.approx(m["sum_iou"])
+
+
+def test_rejilla_elige_umbral_y_area():
+    """La rejilla descarta el ruido con el umbral y el área."""
+    from filseg.postrun import tune
+
+    prob = np.zeros((2048, 2048), np.float32)
+    prob[100:140, 100:180] = 0.9      # filamento real
+    prob[500:540, 500:580] = 0.55     # mancha dudosa
+    prob[900:902, 900:902] = 0.9      # punto de 4 px
+    gt = np.zeros((2048, 2048), bool)
+    gt[100:140, 100:180] = True
+    grid = tune({"img1": prob}, ["ana-img1"], {"ana-img1": [np.flatnonzero(gt)]},
+                umbrales=[0.5, 0.6], areas_512=[0, 1])
+    best = grid.iloc[0]
+    assert (best.umbral, best.area_min_512) == (0.6, 1)   # 1 px a 512 = 16 a 2048
+    assert best.pq == pytest.approx(1.0)
+    worst = grid.iloc[-1]
+    assert (worst.umbral, worst.area_min_512, worst.fp) == (0.5, 0, 2)

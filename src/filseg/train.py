@@ -115,6 +115,8 @@ def run(
     cfg_path = Path(config) if Path(config).is_absolute() else repo / config
     cfg = load_config(cfg_path)
     check_pieces(cfg)
+    if "ajuste" in cfg["post"]:
+        raise KeyError("Config con post.ajuste: usa filseg.postrun.run_post")
     humo = bool(cfg.get("humo", False))
     ent = cfg["entrenamiento"]
     epochs = 2 if humo else ent["epocas"]
@@ -229,7 +231,8 @@ def run(
     mA, mB = res_A.metrics, res_B.metrics
     if not humo:
         assert_valid_run(run_dir, split, split_path)
-        append_registry(repo / "registro.csv", out_dir / "registro.csv", {
+        reg = out_dir / "registro.csv"
+        append_registry(reg if reg.exists() else repo / "registro.csv", reg, {
             "run_id": run_id, "fecha": run_config["created_at"][:10],
             "config": cfg_path.name, "commit": commit[:7],
             "perdida": ent["perdida"], "etiquetas": cfg["pre"]["etiquetas"],
