@@ -1,0 +1,9 @@
+# B1 continuo: umbral ajustado en val_A con Optuna (TPE), sin área.
+# Sin reentrenar: filseg.postrun.run_post sobre la ejecución fuente.
+hereda: base.yaml
+nombre: b1-optuna
+post:
+  ajuste:
+    metodo: optuna
+    intentos: 40
+    umbral: [0.2, 0.9]

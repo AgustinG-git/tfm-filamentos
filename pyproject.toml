@@ -20,7 +20,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-train = ["segmentation-models-pytorch", "opencv-python-headless"]
+train = ["segmentation-models-pytorch", "opencv-python-headless", "optuna"]
 dev = ["pytest"]
 
 [tool.setuptools.packages.find]

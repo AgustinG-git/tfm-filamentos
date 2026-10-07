@@ -1,0 +1,10 @@
+# B2 continuo: umbral y área mínima ajustados en val_A con Optuna (TPE).
+# Sin reentrenar: filseg.postrun.run_post sobre la ejecución fuente.
+hereda: base.yaml
+nombre: b2-optuna
+post:
+  ajuste:
+    metodo: optuna
+    intentos: 60
+    umbral: [0.2, 0.9]
+    area_min_512: [0, 300]

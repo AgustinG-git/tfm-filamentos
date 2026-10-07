@@ -95,3 +95,20 @@ def test_rejilla_elige_umbral_y_area():
     assert best.pq == pytest.approx(1.0)
     worst = grid.iloc[-1]
     assert (worst.umbral, worst.area_min_512, worst.fp) == (0.5, 0, 2)
+
+
+def test_optuna_encuentra_umbral_y_area():
+    from filseg.postrun import tune_optuna
+
+    prob = np.zeros((2048, 2048), np.float32)
+    prob[100:140, 100:180] = 0.9
+    prob[500:540, 500:580] = 0.55
+    prob[900:902, 900:902] = 0.9
+    gt = np.zeros((2048, 2048), bool)
+    gt[100:140, 100:180] = True
+    res = tune_optuna({"img1": prob}, ["ana-img1"], {"ana-img1": [np.flatnonzero(gt)]},
+                      {"intentos": 25, "umbral": [0.3, 0.85], "area_min_512": [0, 10]})
+    best = res.iloc[0]
+    assert len(res) == 25
+    assert best.pq == pytest.approx(1.0)
+    assert 0.55 <= best.umbral < 0.9 and best.area_min_512 > 0.25

@@ -2,8 +2,11 @@
 
 Parte de los logits guardados de una ejecución (la "fuente"):
 
-1. Busca en val_A el mejor umbral y área mínima de la rejilla de la
-   config (``post.ajuste``), a 2048 y con las reglas oficiales.
+1. Busca en val_A el mejor umbral y área mínima (``post.ajuste``), a
+   2048 y con las reglas oficiales. Dos métodos:
+   - ``rejilla``: listas de valores, se prueban todas las combinaciones;
+   - ``optuna``: rangos continuos, búsqueda bayesiana (TPE) con un
+     número fijo de intentos y semilla fija.
 2. Aplica los parámetros elegidos a toda la validación y evalúa con la
    métrica oficial en val_A y val_B.
 3. Guarda una ejecución nueva con las salidas del contrato, su
@@ -68,22 +71,52 @@ def gt_idx_full(coco: dict, pairs) -> dict:
     return {ai: out[ai] for ai in pairs}
 
 
-def tune(probs_full: dict, pairs, gt_idx: dict, umbrales, areas_512) -> pd.DataFrame:
-    """PQ en ``pairs`` para cada combinación (umbral, área a 512).
+def score(probs_full: dict, pairs, gt_idx: dict, umbral: float, area_512: float) -> dict:
+    """PQ en ``pairs`` con un umbral y un área (a 512) concretos.
 
-    ``probs_full``: stem -> probabilidad ya reescalada a 2048.
     Usa ``postproc.umbral_cc``, el mismo código que la predicción final.
     """
     scale = FULL_SIZE[0] * FULL_SIZE[1] / contract.TRAIN_SIZE**2
-    rows = []
-    for u, a in tqdm(list(itertools.product(umbrales, areas_512)), desc="Rejilla"):
-        labels = {s: postproc.umbral_cc(p, umbral=u, area_min=a * scale) for s, p in probs_full.items()}
-        counts = [counts_from_labels(gt_idx[ai], *labels[ai.split("-", 1)[1]]) for ai in pairs]
-        rows.append({
-            "umbral": u, "area_min_512": a, "pq": pq_from_counts(counts),
-            **{k: sum(c[k] for c in counts) for k in ("tp", "fp", "fn")},
-        })
+    labels = {s: postproc.umbral_cc(p, umbral=umbral, area_min=area_512 * scale) for s, p in probs_full.items()}
+    counts = [counts_from_labels(gt_idx[ai], *labels[ai.split("-", 1)[1]]) for ai in pairs]
+    return {
+        "umbral": umbral, "area_min_512": area_512, "pq": pq_from_counts(counts),
+        **{k: sum(c[k] for c in counts) for k in ("tp", "fp", "fn")},
+    }
+
+
+def _sorted(rows: list[dict]) -> pd.DataFrame:
     return pd.DataFrame(rows).sort_values("pq", ascending=False, kind="stable").reset_index(drop=True)
+
+
+def tune(probs_full: dict, pairs, gt_idx: dict, umbrales, areas_512) -> pd.DataFrame:
+    """Rejilla: todas las combinaciones (umbral, área a 512)."""
+    combos = list(itertools.product(umbrales, areas_512))
+    return _sorted([score(probs_full, pairs, gt_idx, u, a) for u, a in tqdm(combos, desc="Rejilla")])
+
+
+def tune_optuna(probs_full: dict, pairs, gt_idx: dict, ajuste: dict, seed: int = 42) -> pd.DataFrame:
+    """Búsqueda bayesiana (TPE) en rangos continuos.
+
+    ``ajuste``: ``umbral: [min, max]``, ``area_min_512: [min, max]``
+    (si falta, área fija 0) e ``intentos``.
+    """
+    import optuna
+
+    optuna.logging.set_verbosity(optuna.logging.WARNING)
+    u_lo, u_hi = ajuste["umbral"]
+    a_lo, a_hi = ajuste.get("area_min_512", [0, 0])
+    rows = []
+
+    def objective(trial):
+        u = trial.suggest_float("umbral", u_lo, u_hi)
+        a = trial.suggest_float("area_min_512", a_lo, a_hi) if a_hi > a_lo else float(a_lo)
+        rows.append(score(probs_full, pairs, gt_idx, u, a))
+        return rows[-1]["pq"]
+
+    study = optuna.create_study(direction="maximize", sampler=optuna.samplers.TPESampler(seed=seed))
+    study.optimize(objective, n_trials=ajuste["intentos"], show_progress_bar=True)
+    return _sorted(rows)
 
 
 def run_post(
@@ -101,6 +134,9 @@ def run_post(
     ajuste = cfg["post"].get("ajuste")
     if not ajuste or cfg["post"]["metodo"] != "umbral_cc":
         raise KeyError("La config necesita post.metodo = umbral_cc y post.ajuste")
+    metodo = ajuste.get("metodo", "rejilla")
+    if metodo not in ("rejilla", "optuna"):
+        raise KeyError(f"post.ajuste.metodo '{metodo}' no existe: rejilla | optuna")
 
     src = read_run(source)
     stems, logits = src.logits()
@@ -121,16 +157,22 @@ def run_post(
         s: cv2.resize(sigmoid(logits[pos[s]]), (w, h), interpolation=cv2.INTER_LINEAR)
         for s in tqdm(stems_A, desc="Reescalar val_A")
     }
-    grid = tune(probs_A, A, gt_idx_full(coco, A), ajuste["umbrales"], ajuste["areas_min_512"])
+    gt_A = gt_idx_full(coco, A)
+    grid = (
+        tune_optuna(probs_A, A, gt_A, ajuste, seed=cfg.get("semilla", 42))
+        if metodo == "optuna"
+        else tune(probs_A, A, gt_A, ajuste["umbrales"], ajuste["areas_min_512"])
+    )
     best = grid.iloc[0]
     del probs_A
     post = {
         "metodo": "umbral_cc",
-        "umbral": float(best["umbral"]),
-        "area_min_512": int(best["area_min_512"]),
+        "umbral": float(best["umbral"]),          # exacto: el redondeo
+        "area_min_512": float(best["area_min_512"]),  # solo al mostrarlo
         "conectividad": cfg["post"].get("conectividad", 8),
     }
-    print(f"Elegido en val_A: umbral {post['umbral']} | área {post['area_min_512']} | PQ {best['pq']:.4f}")
+    print(f"Elegido en val_A ({metodo}): umbral {post['umbral']:.3f} | "
+          f"área {post['area_min_512']:.1f} | PQ {best['pq']:.4f}")
 
     # ── Predicciones y evaluación oficial ────────────────────────────
     preds = {
@@ -141,13 +183,13 @@ def run_post(
     res_A = evaluate(build_gt_df(coco, A), pred_df)
     res_B = evaluate(build_gt_df(coco, B), pred_df)
     if not np.isclose(res_A.metrics["pq"], best["pq"], atol=1e-6):
-        raise AssertionError(f"PQ de la rejilla {best['pq']} ≠ oficial {res_A.metrics['pq']}")
+        raise AssertionError(f"PQ de la búsqueda {best['pq']} ≠ oficial {res_A.metrics['pq']}")
 
     commit = git_commit(repo)
     run_id = make_run_id(cfg["nombre"], commit)
     run_dir = out_dir / "runs" / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
-    grid.to_csv(run_dir / "rejilla_val_A.csv", index=False)
+    grid.to_csv(run_dir / "busqueda_val_A.csv", index=False)
     plot_official(res_B.overlap_df, run_dir / "figuras", tag="val_B")
     shutil.copy(source / RUN_FILES["checkpoint"], run_dir / RUN_FILES["checkpoint"])
 
@@ -191,7 +233,7 @@ def run_post(
         "config": cfg_path.name, "commit": commit[:7],
         "perdida": src_cfg["entrenamiento"]["perdida"],
         "etiquetas": src_cfg["pre"]["etiquetas"], "aumentos": src_cfg["pre"]["aumentos"],
-        "post": f"umbral_cc u={post['umbral']} a={post['area_min_512']}",
+        "post": f"umbral_cc u={post['umbral']:.3f} a={post['area_min_512']:.1f}",
         "epoca": src.config["selection"]["best_epoch"],
         "pq_A": round(mA["pq"], 4), "pq_B": round(mB["pq"], 4),
         "sq_B": round(mB["sq"], 4), "rq_B": round(mB["rq"], 4),
