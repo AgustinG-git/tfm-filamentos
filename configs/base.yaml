@@ -1,0 +1,47 @@
+# Configuración base = la baseline.
+# Cada experimento hereda de aquí y cambia solo lo que estudia.
+# Lo que fija el contrato (split, selección del checkpoint, métrica)
+# NO va aquí: está en src/filseg/contract.py.
+
+nombre: base
+contrato: v1
+semilla: 42
+humo: false            # true = 2 épocas sobre 50 imágenes
+
+datos:
+  tam_entrenamiento: 512
+  canales: 3           # gris repetido a 3 canales
+  normalizacion: imagenet
+
+pre:
+  etiquetas: por_anotacion     # por_anotacion | media | mayoria
+  aumentos: geometricos        # flips H/V + afín (escala, traslación, giro)
+
+modelo:
+  arquitectura: unet
+  encoder: resnet34
+  pesos: imagenet
+
+entrenamiento:
+  perdida: bce_dice            # bce_dice | iou | cldice | cldice_sin_dice | topograph
+  perdida_args:
+    peso_bce: 0.5
+    peso_dice: 0.5
+  epocas: 30
+  batch: 8
+  lr: 3.0e-4
+  weight_decay: 1.0e-4
+  scheduler: coseno
+  amp: true
+  workers: 2
+
+post:
+  metodo: umbral_cc            # umbral_cc | persistencia
+  conectividad: 8
+  reescalado: bilineal_probabilidades
+  ajuste:                      # se ajusta en val_A (contrato)
+    umbrales: [0.30, 0.35, 0.40, 0.45, 0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 0.80]
+    areas_min_512: [0, 10, 25, 50, 100, 200]
+
+submission:
+  checkpoint: elegido_en_val_A  # sin reentreno con todo el train
