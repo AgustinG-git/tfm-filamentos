@@ -1,0 +1,4 @@
+# Prueba rápida del pipeline (no entra en el registro).
+hereda: base.yaml
+nombre: base
+humo: true
