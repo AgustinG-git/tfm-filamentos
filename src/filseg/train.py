@@ -23,6 +23,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import torch
+from scipy.special import expit
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
@@ -72,16 +73,16 @@ def check_pieces(cfg: dict) -> None:
 
 
 def sigmoid(x: np.ndarray) -> np.ndarray:
-    return 1.0 / (1.0 + np.exp(-x.astype(np.float32)))
+    return expit(x.astype(np.float32))  # sin avisos de overflow
 
 
 @torch.no_grad()
 def predict(model, images: list, cfg: dict, device: str) -> np.ndarray:
     """Logits (N, 512, 512) float32."""
     model.eval()
-    loader = DataLoader(
+    loader = DataLoader(  # sin workers: datos ya en memoria
         FilamentDataset(images), batch_size=cfg["entrenamiento"]["batch"],
-        shuffle=False, num_workers=cfg["entrenamiento"]["workers"],
+        shuffle=False, num_workers=0,
     )
     amp = cfg["entrenamiento"]["amp"] and device == "cuda"
     out = []
@@ -143,6 +144,7 @@ def run(
         batch_size=ent["batch"], shuffle=True, drop_last=True,
         num_workers=ent["workers"], pin_memory=True, worker_init_fn=_worker_init,
         generator=torch.Generator().manual_seed(cfg["semilla"]),
+        persistent_workers=ent["workers"] > 0,  # no recrea procesos
     )
     stems_A = sorted({ai.split("-", 1)[1] for ai in A})
     imgs_A = [cache.images[s] for s in stems_A]
