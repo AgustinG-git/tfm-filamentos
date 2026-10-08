@@ -79,10 +79,33 @@ def make_run_config(
 
 # ── Predicciones ─────────────────────────────────────────────────────
 def labels_to_rles(labels: np.ndarray, n: int) -> list[str]:
-    """Mapa de etiquetas (0 = fondo) -> RLE oficial por instancia."""
+    """Mapa de etiquetas (0 = fondo) -> RLE oficial por instancia.
+
+    Recorre la imagen una sola vez (no una por instancia): agrupa los
+    píxeles de cada etiqueta en orden columna y construye sus tramos.
+    """
+    h, w = labels.shape
+    flat = labels.ravel(order="F")             # orden COCO (columnas)
+    idx = np.flatnonzero(flat)
+    lab = flat[idx]
+    order = np.argsort(lab, kind="stable")      # estable: índices ordenados
+    idx, lab = idx[order], lab[order]
+    bounds = np.searchsorted(lab, np.arange(1, n + 2))
     out = []
-    for i in range(1, n + 1):
-        rle = mask_utils.encode(np.asfortranarray((labels == i).astype(np.uint8)))
+    for i in range(n):
+        p = idx[bounds[i]:bounds[i + 1]]
+        if p.size == 0:
+            counts = [h * w]
+        else:
+            brk = np.flatnonzero(np.diff(p) != 1) + 1
+            starts = np.r_[p[0], p[brk]]
+            ends = np.r_[p[brk - 1], p[-1]] + 1
+            runs = np.empty(2 * len(starts) + 1, dtype=np.int64)
+            runs[0::2][:-1] = starts - np.r_[0, ends[:-1]]  # ceros
+            runs[1::2] = ends - starts                      # unos
+            runs[-1] = h * w - ends[-1]
+            counts = runs.tolist() if runs[-1] else runs[:-1].tolist()  # COCO omite el 0 final
+        rle = mask_utils.frPyObjects({"counts": counts, "size": [h, w]}, h, w)
         out.append(rle["counts"].decode("utf-8"))
     return out
 

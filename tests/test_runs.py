@@ -82,3 +82,24 @@ def test_problemas_detectados(tmp_path, split_and_path):
     assert "solapadas" in problems
     with pytest.raises(ContractError):
         assert_valid_run(run_dir, split, path)
+
+
+def test_labels_to_rles_igual_que_codificar_una_a_una():
+    """La versión rápida da exactamente los mismos RLE."""
+    from pycocotools import mask as mask_utils
+    from filseg.postproc import umbral_cc
+
+    rng = np.random.default_rng(3)
+    prob = (rng.random((300, 200)) > 0.7).astype(np.float32)   # muchas manchas
+    prob[10:60, 20:25] = 1.0                                    # y una tira
+    labels, n = umbral_cc(prob)
+    assert n > 100
+    fast = labels_to_rles(labels, n)
+    slow = [
+        mask_utils.encode(np.asfortranarray((labels == i).astype(np.uint8)))["counts"].decode()
+        for i in range(1, n + 1)
+    ]
+    assert fast == slow
+    empty = np.zeros((5, 4), np.int32)
+    empty[0, 0] = 1
+    assert labels_to_rles(empty, 2)[1] == mask_utils.encode(np.zeros((5, 4), np.uint8, order="F"))["counts"].decode()
