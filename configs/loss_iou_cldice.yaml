@@ -1,0 +1,11 @@
+# Pérdida: 0,5·BCE + 0,25·IoU + 0,25·clDice (añade clDice a la variante IoU)
+hereda: base.yaml
+nombre: iou-cldice
+entrenamiento:
+  perdida: bce_iou_cldice
+  perdida_args:
+    peso_bce: 0.5
+    peso_dice: 0.0
+    peso_iou: 0.25
+    peso_cldice: 0.25
+    iters: 10

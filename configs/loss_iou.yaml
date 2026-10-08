@@ -1,0 +1,9 @@
+# Pérdida: 0,5·BCE + 0,5·IoU (cambia Dice por IoU)
+hereda: base.yaml
+nombre: iou
+entrenamiento:
+  perdida: bce_iou
+  perdida_args:
+    peso_bce: 0.5
+    peso_dice: 0.0
+    peso_iou: 0.5

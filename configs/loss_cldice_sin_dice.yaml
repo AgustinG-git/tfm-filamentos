@@ -1,0 +1,10 @@
+# Pérdida: 0,5·BCE + 0,5·clDice (cambia Dice por clDice)
+hereda: base.yaml
+nombre: cldice-sin-dice
+entrenamiento:
+  perdida: bce_cldice
+  perdida_args:
+    peso_bce: 0.5
+    peso_dice: 0.0
+    peso_cldice: 0.5
+    iters: 10

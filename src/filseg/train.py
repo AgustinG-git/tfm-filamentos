@@ -110,14 +110,18 @@ def run(
     repo_dir: str | Path,
     out_dir: str | Path = "/kaggle/working",
     nota: str = "",
+    humo: bool | None = None,
 ) -> dict:
+    """``humo=True`` hace la prueba rápida con cualquier config."""
     repo, data, out_dir = Path(repo_dir), Path(data_dir), Path(out_dir)
     cfg_path = Path(config) if Path(config).is_absolute() else repo / config
     cfg = load_config(cfg_path)
+    if humo is not None:
+        cfg["humo"] = humo
     check_pieces(cfg)
     if "ajuste" in cfg["post"]:
         raise KeyError("Config con post.ajuste: usa filseg.postrun.run_post")
-    humo = bool(cfg.get("humo", False))
+    humo = bool(cfg["humo"]) if "humo" in cfg else False
     ent = cfg["entrenamiento"]
     epochs = 2 if humo else ent["epocas"]
     device = "cuda" if torch.cuda.is_available() else "cpu"

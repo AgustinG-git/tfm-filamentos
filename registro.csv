@@ -1,1 +1,6 @@
 run_id,fecha,config,commit,perdida,etiquetas,aumentos,post,epoca,pq_A,pq_B,sq_B,rq_B,tp_B,fp_B,fn_B,nota
+20261007-1639_base_df8c991,2026-10-07,base.yaml,df8c991,bce_dice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,15,0.2818,0.2879,0.6427,0.4479,501,867,368,baseline
+20261007-1729_b1-umbral_c624f8c,2026-10-07,b1_umbral.yaml,c624f8c,bce_dice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,15,0.2818,0.2879,0.6427,0.4479,501,867,368,B1
+20261007-1736_b2-umbral-area_c624f8c,2026-10-07,b2_umbral_area.yaml,c624f8c,bce_dice,por_anotacion,ninguno,umbral_cc u=0.5 a=25,15,0.3531,0.36,0.6435,0.5594,485,380,384,B2
+20261007-1748_b1-optuna_ba6ab71,2026-10-07,b1_optuna.yaml,ba6ab71,bce_dice,por_anotacion,ninguno,umbral_cc u=0.528 a=0.0,15,0.2832,0.2916,0.6432,0.4533,505,854,364,B1 optuna
+20261007-1753_b2-optuna_ba6ab71,2026-10-07,b2_optuna.yaml,ba6ab71,bce_dice,por_anotacion,ninguno,umbral_cc u=0.520 a=33.3,15,0.3564,0.3654,0.6448,0.5668,469,317,400,B2 optuna
