@@ -1,0 +1,1 @@
+run_id,subset,annotator_image,date,n_gt,n_pred,tp,fp,fn,sum_iou,gt_1n,pred_n1,gt_1_0,pred_0_1

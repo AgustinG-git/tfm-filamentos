@@ -28,6 +28,7 @@ from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
 from . import contract, postproc
+from .compare import append_conteos, run_conteos
 from .config import load_config
 from .data import LABELS, FilamentDataset, load_cache, load_test_images
 from .gt import build_gt_df, build_meta, load_coco
@@ -235,6 +236,10 @@ def run(
     mA, mB = res_A.metrics, res_B.metrics
     if not humo:
         assert_valid_run(run_dir, split, split_path)
+        conteos = run_conteos(run_id, {"val_A": res_A, "val_B": res_B})
+        conteos.to_csv(run_dir / "conteos.csv", index=False)
+        dst = out_dir / "conteos.csv"
+        append_conteos(dst if dst.exists() else repo / "conteos.csv", dst, conteos)
         reg = out_dir / "registro.csv"
         append_registry(reg if reg.exists() else repo / "registro.csv", reg, {
             "run_id": run_id, "fecha": run_config["created_at"][:10],

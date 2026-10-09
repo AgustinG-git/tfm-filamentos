@@ -34,6 +34,7 @@ from scipy.special import expit
 from tqdm.auto import tqdm
 
 from . import contract, postproc
+from .compare import append_conteos, run_conteos
 from .config import load_config
 from .contract import FULL_SIZE, RUN_FILES
 from .gt import ann_to_mask, build_gt_df, load_coco
@@ -226,6 +227,10 @@ def run_post(
 
     # ── Validación y registro ────────────────────────────────────────
     assert_valid_run(run_dir, split, split_path)
+    conteos = run_conteos(run_id, {"val_A": res_A, "val_B": res_B})
+    conteos.to_csv(run_dir / "conteos.csv", index=False)
+    dst = out_dir / "conteos.csv"
+    append_conteos(dst if dst.exists() else repo / "conteos.csv", dst, conteos)
     mA, mB = res_A.metrics, res_B.metrics
     registry = out_dir / "registro.csv"
     append_registry(registry if registry.exists() else repo / "registro.csv", registry, {
