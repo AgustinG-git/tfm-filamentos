@@ -4,3 +4,12 @@ run_id,fecha,config,commit,perdida,etiquetas,aumentos,post,epoca,pq_A,pq_B,sq_B,
 20261007-1736_b2-umbral-area_c624f8c,2026-10-07,b2_umbral_area.yaml,c624f8c,bce_dice,por_anotacion,ninguno,umbral_cc u=0.5 a=25,15,0.3531,0.36,0.6435,0.5594,485,380,384,B2
 20261007-1748_b1-optuna_ba6ab71,2026-10-07,b1_optuna.yaml,ba6ab71,bce_dice,por_anotacion,ninguno,umbral_cc u=0.528 a=0.0,15,0.2832,0.2916,0.6432,0.4533,505,854,364,B1 optuna
 20261007-1753_b2-optuna_ba6ab71,2026-10-07,b2_optuna.yaml,ba6ab71,bce_dice,por_anotacion,ninguno,umbral_cc u=0.520 a=33.3,15,0.3564,0.3654,0.6448,0.5668,469,317,400,B2 optuna
+20261008-1435_iou_e499ca1,2026-10-08,loss_iou.yaml,e499ca1,bce_iou,por_anotacion,ninguno,umbral_cc u=0.5 a=0,10,0.2883,0.2916,0.6516,0.4475,471,765,398,loss_iou
+20261008-1454_cldice_e499ca1,2026-10-08,loss_cldice.yaml,e499ca1,bce_dice_cldice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,16,0.307,0.3094,0.6332,0.4887,474,597,395,loss_cldice
+20261008-1518_cldice-sin-dice_e499ca1,2026-10-08,loss_cldice_sin_dice.yaml,e499ca1,bce_cldice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,2,0.0428,0.0293,0.5802,0.0505,42,752,827,loss_cldice_sin_dice
+20261008-1542_iou-cldice_e499ca1,2026-10-08,loss_iou_cldice.yaml,e499ca1,bce_iou_cldice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,17,0.304,0.3125,0.6409,0.4875,478,614,391,loss_iou_cldice
+20261009-0650_b2-optuna_e499ca1,2026-10-09,b2_optuna.yaml,e499ca1,bce_iou,por_anotacion,ninguno,umbral_cc u=0.404 a=37.9,10,0.3602,0.3524,0.6542,0.5387,425,284,444,B2 optuna sobre iou
+20261009-0655_b2-optuna_e499ca1,2026-10-09,b2_optuna.yaml,e499ca1,bce_dice_cldice,por_anotacion,ninguno,umbral_cc u=0.548 a=42.0,16,0.3525,0.3465,0.6404,0.5411,434,301,435,B2 optuna sobre cldice
+20261009-0700_b2-optuna_e499ca1,2026-10-09,b2_optuna.yaml,e499ca1,bce_iou_cldice,por_anotacion,ninguno,umbral_cc u=0.639 a=30.5,17,0.3483,0.3549,0.6485,0.5473,469,376,400,B2 optuna sobre iou-cldice
+20261020-0929_base_64410ac,2026-10-20,base.yaml,64410ac,bce_dice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,9,0.2696,0.2773,0.6359,0.436,499,921,370,baseline (repetición)
+20261020-0953_b2-optuna_64410ac,2026-10-20,b2_optuna.yaml,64410ac,bce_dice,por_anotacion,ninguno,umbral_cc u=0.628 a=37.1,9,0.3486,0.349,0.6501,0.5369,429,300,440,B2 optuna sobre base (repetición)
