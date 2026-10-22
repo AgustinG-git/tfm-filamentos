@@ -7,9 +7,14 @@ Cada experimento cambia una sola cosa respecto a la baseline:
 - ``bce_dice_cldice``: 0,5·BCE + 0,25·Dice + 0,25·clDice
 - ``bce_cldice``:      0,5·BCE + 0,5·clDice
 - ``bce_iou_cldice``:  0,5·BCE + 0,25·IoU + 0,25·clDice
+- ``bce_dice_topo``:   0,5·BCE + 0,5·Dice + α·Topograph
 
 clDice: Shit et al., CVPR 2021, con su esqueleto blando iterativo.
+Topograph: Lux et al., ICLR 2025, código oficial (extensión C++).
 """
+
+import os
+import sys
 
 import segmentation_models_pytorch as smp
 import torch
@@ -63,6 +68,29 @@ def cldice_loss(prob, target, iters=10, smooth=1.0):
     return 1.0 - 2.0 * tprec * tsens / (tprec + tsens)
 
 
+# ── Topograph ────────────────────────────────────────────────────────
+_TOPO = None
+
+
+def topograph_loss(logits, target):
+    """Término de Topograph para una salida binaria de un canal.
+
+    Se importa al usarlo: el resto de pérdidas no necesita la
+    extensión compilada. Ruta del repo en ``TOPOGRAPH_PATH``.
+    """
+    global _TOPO
+    if _TOPO is None:
+        sys.path.insert(0, os.environ.get("TOPOGRAPH_PATH", "/kaggle/working/Topograph"))
+        from losses.topograph import TopographLoss
+        _TOPO = TopographLoss(
+            softmax=True, num_processes=1, include_background=False,
+            use_c=True, eight_connectivity=True,  # 8-conex., como el post
+        )
+    x2 = torch.cat([torch.zeros_like(logits), logits], dim=1)  # [1-σ, σ]
+    y2 = torch.cat([1 - target, target], dim=1)                # GT one-hot
+    return _TOPO(x2, y2)
+
+
 class Compuesta(nn.Module):
     """Suma ponderada de BCE, Dice, IoU y clDice, siempre en float32.
 
@@ -70,9 +98,11 @@ class Compuesta(nn.Module):
     ~2·10⁶ píxeles y el máximo de float16 es 65 504.
     """
 
-    def __init__(self, peso_bce=0.0, peso_dice=0.0, peso_iou=0.0, peso_cldice=0.0, iters=10):
+    def __init__(self, peso_bce=0.0, peso_dice=0.0, peso_iou=0.0, peso_cldice=0.0,
+                 peso_topo=0.0, iters=10):
         super().__init__()
-        self.w = {"bce": peso_bce, "dice": peso_dice, "iou": peso_iou, "cldice": peso_cldice}
+        self.w = {"bce": peso_bce, "dice": peso_dice, "iou": peso_iou,
+                  "cldice": peso_cldice, "topo": peso_topo}
         self.iters = iters
         self.bce = nn.BCEWithLogitsLoss()
         self.dice = smp.losses.DiceLoss(mode="binary", from_logits=True)
@@ -86,6 +116,7 @@ class Compuesta(nn.Module):
                 "dice": lambda: self.dice(logits, target),
                 "iou": lambda: self.iou(logits, target),
                 "cldice": lambda: cldice_loss(torch.sigmoid(logits), target, self.iters),
+                "topo": lambda: topograph_loss(logits, target),
             }
             return sum(w * terms[k]() for k, w in self.w.items() if w)
 
@@ -100,6 +131,7 @@ LOSSES = {
     "bce_dice_cldice": _compuesta(peso_bce=0.5, peso_dice=0.25, peso_cldice=0.25),
     "bce_cldice": _compuesta(peso_bce=0.5, peso_cldice=0.5),
     "bce_iou_cldice": _compuesta(peso_bce=0.5, peso_iou=0.25, peso_cldice=0.25),
+    "bce_dice_topo": _compuesta(peso_bce=0.5, peso_dice=0.5, peso_topo=0.5),
 }
 
 
