@@ -63,6 +63,42 @@ os.environ["FILSEG_COMMIT"] = subprocess.check_output(
 
 Para fijar una versión concreta del código, clona y haz `git checkout <commit>`.
 
+### En el servidor del grupo
+
+Todo vive en una carpeta propia (`~/agustin-tfm`), sin tocar el sistema:
+
+```
+~/agustin-tfm/
+├── activar.sh        # entorno + variables (no va a git: lleva el token)
+├── mamba/            # micromamba y el entorno «topo»
+├── tfm-filamentos/   # este repo
+├── Topograph/        # repo oficial, con la extensión C++ compilada
+├── data/MAGFiLO_1.0_Kaggle_2026/
+└── salidas/          # FILSEG_OUT: runs/, logs/, registro.csv, conteos.csv
+```
+
+`activar.sh` activa el entorno y define `FILSEG_DATA`, `FILSEG_OUT`,
+`TOPOGRAPH_PATH` y `KAGGLE_API_TOKEN`. Cada sesión empieza con:
+
+```bash
+source ~/agustin-tfm/activar.sh && cd ~/agustin-tfm/tfm-filamentos && git pull
+```
+
+Una ejecución, o varias en cola (siguen aunque se corte la conexión):
+
+```bash
+python scripts/entrenar.py configs/base.yaml --humo          # prueba rápida
+nohup bash scripts/cola.sh "servidor" configs/loss_iou.yaml configs/loss_cldice.yaml \
+    > "$FILSEG_OUT/logs/cola.log" 2>&1 &
+tail -f "$FILSEG_OUT/logs/cola.log"                          # Ctrl+C solo deja de mirar
+```
+
+**Qué va a git y qué no.** El código de cada ejecución queda identificado por
+su commit (en `run_config.json` y en la columna `commit` del registro), así
+que basta con lanzar siempre desde un commit subido. Al terminar, se copian
+`$FILSEG_OUT/registro.csv` y `$FILSEG_OUT/conteos.csv` sobre los del repo y se
+hace commit. Los checkpoints y logits se quedan en `salidas/`.
+
 ### Generar el split (una sola vez)
 
 ```python
