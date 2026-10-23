@@ -7,7 +7,10 @@ Cada experimento cambia una sola cosa respecto a la baseline:
 - ``bce_dice_cldice``: 0,5·BCE + 0,25·Dice + 0,25·clDice
 - ``bce_cldice``:      0,5·BCE + 0,5·clDice
 - ``bce_iou_cldice``:  0,5·BCE + 0,25·IoU + 0,25·clDice
-- ``bce_dice_topo``:   0,5·BCE + 0,5·Dice + α·Topograph
+- ``*_topo``:          cada una de las anteriores + α·Topograph
+
+Topograph se activa tras ``calentamiento`` épocas (α = 0 antes): con
+un modelo sin entrenar hay cientos de regiones críticas por imagen.
 
 clDice: Shit et al., CVPR 2021, con su esqueleto blando iterativo.
 Topograph: Lux et al., ICLR 2025, código oficial (extensión C++).
@@ -99,14 +102,20 @@ class Compuesta(nn.Module):
     """
 
     def __init__(self, peso_bce=0.0, peso_dice=0.0, peso_iou=0.0, peso_cldice=0.0,
-                 peso_topo=0.0, iters=10):
+                 peso_topo=0.0, iters=10, calentamiento=0):
         super().__init__()
         self.w = {"bce": peso_bce, "dice": peso_dice, "iou": peso_iou,
                   "cldice": peso_cldice, "topo": peso_topo}
         self.iters = iters
+        self.calentamiento = calentamiento
+        self.epoca = calentamiento + 1   # fuera de train: activa
         self.bce = nn.BCEWithLogitsLoss()
         self.dice = smp.losses.DiceLoss(mode="binary", from_logits=True)
         self.iou = smp.losses.JaccardLoss(mode="binary", from_logits=True)
+
+    def set_epoca(self, epoca: int) -> None:
+        """La llama train.py al empezar cada época."""
+        self.epoca = epoca
 
     def forward(self, logits, target):
         with torch.autocast(device_type="cuda", enabled=False):
@@ -118,7 +127,10 @@ class Compuesta(nn.Module):
                 "cldice": lambda: cldice_loss(torch.sigmoid(logits), target, self.iters),
                 "topo": lambda: topograph_loss(logits, target),
             }
-            return sum(w * terms[k]() for k, w in self.w.items() if w)
+            w = dict(self.w)
+            if self.epoca <= self.calentamiento:
+                w["topo"] = 0.0                  # calentamiento
+            return sum(v * terms[k]() for k, v in w.items() if v)
 
 
 def _compuesta(**defaults):
@@ -131,7 +143,14 @@ LOSSES = {
     "bce_dice_cldice": _compuesta(peso_bce=0.5, peso_dice=0.25, peso_cldice=0.25),
     "bce_cldice": _compuesta(peso_bce=0.5, peso_cldice=0.5),
     "bce_iou_cldice": _compuesta(peso_bce=0.5, peso_iou=0.25, peso_cldice=0.25),
-    "bce_dice_topo": _compuesta(peso_bce=0.5, peso_dice=0.5, peso_topo=0.5),
+    # Topograph: α y calentamiento fijados en configs/*_topograph.yaml
+    "bce_dice_topo": _compuesta(peso_bce=0.5, peso_dice=0.5, peso_topo=0.04),
+    "bce_iou_topo": _compuesta(peso_bce=0.5, peso_iou=0.5, peso_topo=0.04),
+    "bce_dice_cldice_topo": _compuesta(peso_bce=0.5, peso_dice=0.25, peso_cldice=0.25,
+                                       peso_topo=0.04),
+    "bce_cldice_topo": _compuesta(peso_bce=0.5, peso_cldice=0.5, peso_topo=0.04),
+    "bce_iou_cldice_topo": _compuesta(peso_bce=0.5, peso_iou=0.25, peso_cldice=0.25,
+                                      peso_topo=0.04),
 }
 
 

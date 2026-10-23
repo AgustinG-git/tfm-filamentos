@@ -168,6 +168,8 @@ def run(
     history, best_pq, best_epoch = [], -1.0, 0
     for epoch in range(1, epochs + 1):
         t0 = time.time()
+        if hasattr(criterion, "set_epoca"):   # calentamiento de Topograph
+            criterion.set_epoca(epoch)
         model.train()
         total = 0.0
         for x, y in tqdm(train_loader, desc=f"Época {epoch}", leave=False):

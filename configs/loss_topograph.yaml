@@ -1,4 +1,7 @@
-# Pérdida: 0,5·BCE + 0,5·Dice + α·Topograph (añade Topograph)
+# Pérdida: 0,5·BCE + 0,5·Dice + α·Topograph
+# α = 0.04: con el modelo entrenado, Topograph pesa como BCE+Dice
+# (scripts/medir_topograph.py: topo/bce_dice ≈ 27). Fijo, sin ajustar.
+# Topograph se activa a partir de la época 6 (calentamiento).
 hereda: base.yaml
 nombre: topograph
 entrenamiento:
@@ -6,4 +9,5 @@ entrenamiento:
   perdida_args:
     peso_bce: 0.5
     peso_dice: 0.5
-    peso_topo: 0.5
+    peso_topo: 0.04
+    calentamiento: 5

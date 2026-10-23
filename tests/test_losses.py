@@ -1,5 +1,8 @@
 """Se ejecutan donde haya torch y smp (Kaggle); si no, se saltan."""
 
+import os
+import sys
+
 import pytest
 
 smp = pytest.importorskip("segmentation_models_pytorch")
@@ -33,8 +36,10 @@ def test_cldice_perfecto_y_con_barba_perdida():
 
 @pytest.mark.parametrize("name", list(LOSSES))
 def test_todas_las_perdidas(name):
-    args = {"bce_dice": {}, "bce_iou": {}, "bce_dice_cldice": {"iters": 5}, "bce_cldice": {"iters": 5},
-            "bce_iou_cldice": {"iters": 5}}[name]
+    if name.endswith("_topo"):                     # necesita la extensión C++
+        sys.path.insert(0, os.environ.get("TOPOGRAPH_PATH", ""))
+        pytest.importorskip("Topograph")
+    args = {"iters": 5} if "cldice" in name else {}
     loss_fn = LOSSES[name](**args)
     y = filamento()
     logits = torch.randn(2, 1, 64, 64, requires_grad=True)
