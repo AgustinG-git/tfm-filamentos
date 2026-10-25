@@ -25,7 +25,7 @@ def test_config_base_del_repo():
     from pathlib import Path
     cfg = load_config(Path(__file__).parents[1] / "configs" / "humo.yaml")
     assert cfg["humo"] is True
-    assert cfg["entrenamiento"]["perdida"] == "bce_dice"
+    assert cfg["entrenamiento"]["perdida"] == "bce_dice_f32"
     assert cfg["post"] == {"metodo": "umbral_cc", "umbral": 0.5, "area_min_512": 0, "conectividad": 8}
 
 

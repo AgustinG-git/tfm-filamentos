@@ -1,0 +1,4 @@
+# Baseline + Topograph con otra semilla: variabilidad del entrenamiento.
+hereda: loss_topograph.yaml
+nombre: topograph-s43
+semilla: 43

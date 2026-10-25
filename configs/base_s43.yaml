@@ -1,0 +1,4 @@
+# Baseline con otra semilla: mide la variabilidad del entrenamiento.
+hereda: base.yaml
+nombre: base-s43
+semilla: 43

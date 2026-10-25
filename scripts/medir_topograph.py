@@ -56,7 +56,7 @@ def main():
     ckpt = run_dir / contract.RUN_FILES["checkpoint"]
     model.load_state_dict(torch.load(ckpt, map_location="cuda"))
     model.eval()
-    base = LOSSES["bce_dice"]()
+    base = LOSSES["bce_dice_f32"]()
 
     filas = []
     for x, y in loader:

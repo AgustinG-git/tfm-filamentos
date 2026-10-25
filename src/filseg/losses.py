@@ -2,7 +2,10 @@
 
 Cada experimento cambia una sola cosa respecto a la baseline:
 
-- ``bce_dice``:        0,5·BCE + 0,5·Dice (baseline)
+- ``bce_dice_f32``:    0,5·BCE + 0,5·Dice (baseline), en float32 como
+                       todas las demás
+- ``bce_dice``:        la misma, en precisión mixta (solo para reproducir
+                       ejecuciones antiguas: no es comparable con el resto)
 - ``bce_iou``:         0,5·BCE + 0,5·IoU
 - ``bce_dice_cldice``: 0,5·BCE + 0,25·Dice + 0,25·clDice
 - ``bce_cldice``:      0,5·BCE + 0,5·clDice
@@ -26,7 +29,7 @@ import torch.nn.functional as F
 
 
 class BCEDice(nn.Module):
-    """Baseline. Se deja exactamente como se entrenó."""
+    """Baseline antigua, en precisión mixta. La actual es ``bce_dice_f32``."""
 
     def __init__(self, peso_bce=0.5, peso_dice=0.5):
         super().__init__()
@@ -138,7 +141,8 @@ def _compuesta(**defaults):
 
 
 LOSSES = {
-    "bce_dice": BCEDice,
+    "bce_dice_f32": _compuesta(peso_bce=0.5, peso_dice=0.5),   # baseline
+    "bce_dice": BCEDice,                                        # antigua
     "bce_iou": _compuesta(peso_bce=0.5, peso_iou=0.5),
     "bce_dice_cldice": _compuesta(peso_bce=0.5, peso_dice=0.25, peso_cldice=0.25),
     "bce_cldice": _compuesta(peso_bce=0.5, peso_cldice=0.5),

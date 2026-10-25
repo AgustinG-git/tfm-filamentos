@@ -16,7 +16,7 @@ modelo:
   pesos: imagenet
 
 entrenamiento:
-  perdida: bce_dice
+  perdida: bce_dice_f32     # float32, como el resto de pérdidas
   perdida_args:
     peso_bce: 0.5
     peso_dice: 0.5
