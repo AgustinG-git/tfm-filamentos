@@ -9,6 +9,15 @@ con ``w = área / longitud(espina)`` el grosor medio del filamento. Se
 descartan trozos de menos de ``MIN_RAMA`` píxeles (ruido del esqueleto).
 Todo se mide a 2048, por anotación de val_B.
 
+Medidas (sumando píxeles de todas las anotaciones):
+- cobertura: fracción del esqueleto de barbas real que cubre la predicción;
+- precisión: fracción de las ramas predichas junto al filamento (esqueleto
+  de la predicción en la zona de barbas) que caen sobre una barba real. Lo
+  predicho en esa zona fuera de las barbas cuenta en contra;
+- F1 de las dos, y ramas inventadas por filamento.
+La zona de barbas es el entorno del filamento (``K_ZONA`` grosores) sin el
+tubo de la espina ni los demás filamentos de la misma anotación.
+
 Uso (con el entorno activado):
     python scripts/barbas.py gt     # estadísticas, techo a 512 y ejemplos
     python scripts/barbas.py runs   # cobertura de barbas y espina por ejecución
@@ -37,8 +46,8 @@ OUT, DATA = Path(os.environ["FILSEG_OUT"]), Path(os.environ["FILSEG_DATA"])
 DEST = OUT / "barbas"
 K_TUBO = 1.5    # radio del tubo: 1,5 × semigrosor
 MIN_RAMA = 6    # px de esqueleto mínimos por barba
+K_ZONA = 2.0    # alcance de la zona de barbas, en grosores
 TOL = 3         # tolerancia (px a 2048) al medir
-MARGEN = 20     # margen del recorte (px)
 
 
 def datos():
@@ -49,62 +58,113 @@ def datos():
     return [a for a in coco["annotations"] if str(a["image_id"]) in B], meta
 
 
-def partes(a, h, w):
-    """Máscara, espina y barbas de una anotación, recortadas a su caja."""
-    m = ann_to_mask(a, h, w).astype(bool)
+def disco(r):
+    return np.ones((2 * r + 1,) * 2, np.uint8)
+
+
+def ramas(sk):
+    """Componentes del esqueleto con al menos MIN_RAMA píxeles."""
+    n, lab, st, _ = cv2.connectedComponentsWithStats(sk.astype(np.uint8), connectivity=8)
+    keep = [i for i in range(1, n) if st[i, cv2.CC_STAT_AREA] >= MIN_RAMA]
+    return np.where(np.isin(lab, keep), lab, 0)
+
+
+def mascaras_por_imagen(anns, meta):
+    """Máscaras completas de cada anotación, agrupadas por par anotador-imagen."""
+    out = {}
+    for a in anns:
+        r = meta.loc[str(a["image_id"])]
+        out.setdefault(str(a["image_id"]), []).append(
+            (a, ann_to_mask(a, int(r.height), int(r.width)).astype(bool)))
+    return out
+
+
+def partes(a, m, otras):
+    """Espina, barbas y zona de barbas de una anotación, en su caja.
+
+    ``m``: su máscara completa; ``otras``: unión de los demás filamentos
+    de la misma anotación (se excluyen de la zona).
+    """
     pts = np.asarray(a.get("spine") or [], float).reshape(-1, 2)
     if not m.any() or len(pts) < 2:
         return None
+    h, w = m.shape
+    largo = np.linalg.norm(np.diff(pts, axis=0), axis=1).sum()
+    grosor = m.sum() / max(largo, 1.0)
+    margen = int(np.ceil(K_ZONA * grosor)) + 2 * TOL + 2
     ys, xs = np.nonzero(m)
-    y0, y1 = max(ys.min() - MARGEN, 0), min(ys.max() + MARGEN + 1, h)
-    x0, x1 = max(xs.min() - MARGEN, 0), min(xs.max() + MARGEN + 1, w)
+    y0, y1 = max(ys.min() - margen, 0), min(ys.max() + margen + 1, h)
+    x0, x1 = max(xs.min() - margen, 0), min(xs.max() + margen + 1, w)
     caja = (slice(y0, y1), slice(x0, x1))
     mc = m[caja]
     esp = np.zeros(mc.shape, np.uint8)
     cv2.polylines(esp, [np.round(pts - [x0, y0]).astype(np.int32)], False, 1, 1)
-    largo = np.linalg.norm(np.diff(pts, axis=0), axis=1).sum()
-    grosor = mc.sum() / max(largo, 1.0)
     dist = cv2.distanceTransform((1 - esp).astype(np.uint8), cv2.DIST_L2, 5)
-    sk = skeletonize(mc) & (dist > K_TUBO * grosor / 2)
-    n, lab, st, _ = cv2.connectedComponentsWithStats(sk.astype(np.uint8), connectivity=8)
-    keep = [i for i in range(1, n) if st[i, cv2.CC_STAT_AREA] >= MIN_RAMA]
-    return {"caja": caja, "completa": m, "mascara": mc, "espina": esp.astype(bool),
-            "barbas": np.isin(lab, keep), "lab": np.where(np.isin(lab, keep), lab, 0),
-            "grosor": grosor}
+    fuera_tubo = dist > K_TUBO * grosor / 2
+    lab = ramas(skeletonize(mc) & fuera_tubo)
+    zona = (
+        (cv2.dilate(mc.astype(np.uint8), disco(int(np.ceil(K_ZONA * grosor)))) > 0)
+        & fuera_tubo
+        & ~(cv2.dilate(otras[caja].astype(np.uint8), disco(TOL)) > 0)
+    )
+    return {"caja": caja, "mascara": mc, "espina": esp.astype(bool), "barbas": lab > 0,
+            "lab": lab, "zona": zona, "grosor": grosor}
 
 
 def medir(p, pred):
-    """Píxeles de barba/espina cubiertos por ``pred`` y barbas detectadas."""
-    pr = cv2.dilate(pred[p["caja"]].astype(np.uint8), np.ones((2 * TOL + 1,) * 2, np.uint8)) > 0
+    """Cobertura, precisión y ramas inventadas de ``pred`` en una anotación."""
+    pc = pred[p["caja"]]
+    pr = cv2.dilate(pc.astype(np.uint8), disco(TOL)) > 0
     ids = [i for i in np.unique(p["lab"]) if i]
-    det = sum((pr[p["lab"] == i]).mean() >= 0.5 for i in ids)
+    det = sum(pr[p["lab"] == i].mean() >= 0.5 for i in ids)
+    cerca = cv2.dilate(p["barbas"].astype(np.uint8), disco(TOL)) > 0
+    lab_p = ramas(skeletonize(pc) & p["zona"])          # ramas predichas
+    ids_p = [i for i in np.unique(lab_p) if i]
+    inventadas = sum(not cerca[lab_p == i].any() for i in ids_p)
     return {
         "barbas_px": int(p["barbas"].sum()), "barbas_cub": int((p["barbas"] & pr).sum()),
         "espina_px": int(p["espina"].sum()), "espina_cub": int((p["espina"] & pr).sum()),
         "n_barbas": len(ids), "barbas_det": int(det),
+        "pred_px": int((lab_p > 0).sum()), "pred_ok": int(((lab_p > 0) & cerca).sum()),
+        "inventadas": int(inventadas),
     }
 
 
 def resumen(df):
     s = df.sum(numeric_only=True)
+    cob = s.barbas_cub / max(s.barbas_px, 1)
+    prec = s.pred_ok / max(s.pred_px, 1)
     return pd.Series({
-        "cob_barbas": s.barbas_cub / max(s.barbas_px, 1),
-        "cob_espina": s.espina_cub / max(s.espina_px, 1),
+        "cob_barbas": cob,
+        "prec_barbas": prec,
+        "f1_barbas": 2 * cob * prec / max(cob + prec, 1e-12),
         "barbas_det": s.barbas_det / max(s.n_barbas, 1),
+        "inventadas_fil": s.inventadas / max(len(df), 1),
+        "cob_espina": s.espina_cub / max(s.espina_px, 1),
     })
+
+
+def recorrer(anns, meta):
+    """(stem, h, w, partes) de cada anotación de val_B con espina."""
+    for img, lista in mascaras_por_imagen(anns, meta).items():
+        for k, (a, m) in enumerate(lista):
+            otras = np.zeros_like(m)
+            for j, (_, mj) in enumerate(lista):
+                if j != k:
+                    otras |= mj
+            p = partes(a, m, otras)
+            yield img.split("-", 1)[1], m, a, p
 
 
 def modo_gt(anns, meta):
     import matplotlib.pyplot as plt
     filas, ejemplos = [], []
-    for a in anns:
-        r = meta.loc[str(a["image_id"])]
-        h, w = int(r.height), int(r.width)
-        p = partes(a, h, w)
+    for _, m, a, p in recorrer(anns, meta):
         if p is None:
             filas.append({"sin_espina": 1})
             continue
-        small = resize_mask(p["completa"])                    # lo que ve el modelo
+        h, w = m.shape
+        small = resize_mask(m)                                # lo que ve el modelo
         up = cv2.resize(small.astype(np.float32), (w, h), interpolation=cv2.INTER_LINEAR) >= 0.5
         filas.append({**medir(p, up), "grosor": p["grosor"], "sin_espina": 0})
         if p["barbas"].any():
@@ -138,14 +198,7 @@ def modo_runs(anns, meta):
     runs |= {r: (nombre(c["fuente"]), "B2") for r, c in cfg.items()
              if c.get("config_post", {}).get("nombre") == "b2-optuna"}
 
-    gt = []
-    for a in anns:
-        r = meta.loc[str(a["image_id"])]
-        h, w = int(r.height), int(r.width)
-        p = partes(a, h, w)
-        if p is not None:
-            p.pop("completa")
-            gt.append((str(a["image_id"]).split("-", 1)[1], h, w, p))
+    gt = [(stem, *m.shape, p) for stem, m, _, p in recorrer(anns, meta) if p is not None]
 
     filas = []
     for rid, (ent, post) in sorted(runs.items()):
