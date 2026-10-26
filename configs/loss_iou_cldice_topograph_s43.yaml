@@ -1,0 +1,4 @@
+# BCE+IoU+clDice + Topograph con semilla 43: variabilidad.
+hereda: loss_iou_cldice_topograph.yaml
+nombre: iou-cldice-topograph-s43
+semilla: 43

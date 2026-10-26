@@ -1,0 +1,4 @@
+# BCE+clDice sin Dice + Topograph con semilla 43: variabilidad.
+hereda: loss_cldice_sin_dice_topograph.yaml
+nombre: cldice-sin-dice-topograph-s43
+semilla: 43

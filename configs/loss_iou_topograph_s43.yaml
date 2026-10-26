@@ -1,0 +1,4 @@
+# Baseline IoU + Topograph con semilla 43: variabilidad.
+hereda: loss_iou_topograph.yaml
+nombre: iou-topograph-s43
+semilla: 43
