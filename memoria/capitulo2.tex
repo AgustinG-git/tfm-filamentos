@@ -53,18 +53,27 @@ observatorios terrestres repartidos en longitud para observar el Sol de
 forma casi continua~\cite{harvey1996}: Big Bear (B), Cerro Tololo (C),
 Learmonth (L), Mauna Loa (M), El Teide (T) y Udaipur (U). La letra entre
 paréntesis es la que identifica la estación en el nombre de cada fichero.
-Las imágenes H-alfa de disco completo tienen $2048\times2048$
-píxeles~\cite{kaggle2026}. Al ser observaciones terrestres, están
+Al ser observaciones terrestres, están
 afectadas por la turbulencia atmosférica, las nubes y artefactos
 instrumentales, y su calidad varía entre estaciones y días.
 
-% TODO: figura con una imagen H-alfa completa y sus anotaciones.
-% \begin{figure}[ht]
-%   \centering
-%   \includegraphics[width=0.6\textwidth]{figuras/halpha_ejemplo.png}
-%   \caption{Observación H-alfa de GONG con los filamentos anotados.}
-%   \label{fig:halpha}
-% \end{figure}
+\begin{figure}[ht]
+\centering
+\begin{minipage}[t]{0.46\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figuras/fragmentado_hueco_real.png}
+\caption*{Fragmentado con hueco real.}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.46\textwidth}
+\centering
+\includegraphics[width=\textwidth]{figuras/fusionado.png}
+\caption*{Fusionado.}
+\end{minipage}
+\caption{Dos errores típicos de segmentación sobre observaciones H-alfa de
+GONG. A la izquierda, un filamento partido en trozos separados por un hueco
+real; a la derecha, dos filamentos unidos en una única predicción.}
+\label{fig:errores-ejemplo}
+\end{figure}
 
 % ------------------------------------------------------------
 \section{El conjunto de datos MAGFiLO}
@@ -81,10 +90,13 @@ de segmentación, la caja contenedora mínima, la espina y la quiralidad.
 La anotación supuso más de $1\,000$ horas-persona, con un proceso de
 revisión doble ciego. Cada observación fue anotada por hasta tres
 anotadores independientes y revisada después por expertos. El acuerdo
-entre anotadores, medido con el estadístico $\kappa$, es de
-$0{,}66$~\cite{ahmadzadeh2024}. Es un acuerdo sustancial pero lejos del
-perfecto: la propia referencia humana es ruidosa, y esto condiciona
-tanto el entrenamiento como la interpretación de las métricas.
+entre anotadores se mide con el estadístico $\kappa$ de Cohen~\cite{cohen1960},
+que compara el acuerdo observado con el que se esperaría por azar: $\kappa=0$
+equivale a acuerdo azaroso y $\kappa=1$ a acuerdo perfecto. El valor obtenido,
+$\kappa=0{,}66$~\cite{ahmadzadeh2024}, se considera «sustancial» según la
+escala de Landis y Koch~\cite{landis1977}. Es un acuerdo claro, pero lejos del
+perfecto: la propia referencia humana es ruidosa, y esto condiciona tanto el
+entrenamiento como la interpretación de las métricas.
 
 \paragraph{Subconjunto de la competición.} La competición usa solo las
 máscaras de segmentación~\cite{kaggle2026}. El conjunto de entrenamiento
@@ -111,7 +123,8 @@ partir del fichero de anotaciones.}
 \label{tab:datos}
 \end{table}
 
-Las seis estaciones están representadas de forma equilibrada, entre 102 y
+Las imágenes son de disco completo, de $2048\times2048$
+píxeles~\cite{kaggle2026}. Las seis estaciones están representadas de forma equilibrada, entre 102 y
 127 imágenes cada una. La distribución temporal no lo está: la mayoría de
 las imágenes son de 2011--2017, y los años 2018--2022 aportan pocas
 observaciones. Además, de un mismo día suele haber varias observaciones,
@@ -183,10 +196,15 @@ En la competición, $Y$ e $\hat Y$ contienen los segmentos de
 el conjunto antes de dividir, y no se promedia imagen a
 imagen~\cite{kaggle2026}. Como unidad de evaluación se usa el par
 anotador--imagen: las predicciones de una imagen se comparan por separado
-con la anotación de cada anotador.
+con la anotación de cada anotador. Por ejemplo, si una imagen tiene tres
+anotaciones, el mismo modelo se evalúa tres veces sobre esa imagen, una por
+cada anotador, y cada comparación aporta sus propios TP, FP y FN. Así, la
+evaluación no favorece a ningún anotador concreto, pero el desacuerdo entre
+ellos se traslada directamente a la métrica.
 
-Como referencia de escala, los organizadores indicaron que cualquier
-puntuación PQ superior a $0{,}35$ les resulta de gran valor~\cite{kaggle2026}.
+Como referencia de escala, los organizadores consideran que un PQ superior a
+$0{,}35$ es un resultado de gran valor~\cite{kaggle2026}. Es, por tanto, el
+umbral con el que conviene comparar nuestros resultados.
 
 \paragraph{Rúbrica.} La clasificación en el \emph{leaderboard} es solo una
 parte de la evaluación final~\cite{kaggle2026}:
@@ -260,7 +278,8 @@ fragmentación y la fusión. Este es el hueco que aborda este trabajo.
 % ------------------------------------------------------------
 
 Los propios organizadores señalan tres dificultades
-principales~\cite{kaggle2026}, a las que añadimos dos más:
+principales~\cite{kaggle2026} (ítems 1 a 3), a las que añadimos dos más
+(ítems 4 y 5):
 
 \begin{enumerate}
   \item \textbf{Estructuras finas.} Las barbas tienen pocos píxeles de
@@ -275,21 +294,23 @@ principales~\cite{kaggle2026}, a las que añadimos dos más:
   \item \textbf{Desacuerdo entre anotadores.} Con $\kappa=0{,}66$, los
   anotadores no coinciden siempre en dónde empieza y acaba un filamento,
   ni en si dos trozos forman uno o dos filamentos. Esto fija un techo a lo
-  que puede conseguir cualquier modelo frente a una anotación concreta.
+  que puede conseguir cualquier modelo frente a una anotación concreta. Lo
+  cuantificamos con el PQ de un anotador frente a otro sobre la misma imagen,
+  que es el techo humano de la métrica.
   \item \textbf{Desequilibrio de clases.} Los filamentos ocupan una
   fracción muy pequeña de cada imagen, de modo que una pérdida píxel a
   píxel está dominada por el fondo.
 \end{enumerate}
 
 Las dificultades 1 y 3 son, en el fondo, \emph{topológicas}. Si las
-instancias se obtienen como componentes conexas de una máscara binaria,
-el número de filamentos predichos es exactamente el número de Betti
-$\beta_0$ de esa máscara. Un filamento partido en dos aumenta $\beta_0$
-y puede convertir un acierto en un falso negativo y dos falsos positivos,
-aunque solo falten unos pocos píxeles. Dos filamentos unidos por un puente de píxeles lo
-reducen y provocan el error contrario. Una barba perdida, en cambio, apenas
-cambia el IoU. Métricas como Dice o el propio IoU, que cuentan píxeles,
-son poco sensibles a estos errores, mientras que PQ y la rúbrica los
-penalizan con fuerza. Esta discrepancia entre lo que optimiza una pérdida
+instancias se obtienen como componentes conexas de una máscara binaria, el
+número de filamentos predichos es el número de componentes conexas, es decir,
+el número de Betti $\beta_0$ de esa máscara. Un filamento partido en dos
+aumenta $\beta_0$: un acierto se convierte en un falso negativo y en dos falsos
+positivos, aunque falten solo unos pocos píxeles. Dos filamentos unidos por un
+puente de píxeles hacen el error contrario. Una barba perdida, en cambio, apenas
+cambia el IoU. Métricas como Dice o el propio IoU, que cuentan píxeles, son
+poco sensibles a estos errores, mientras que PQ y la rúbrica los penalizan con
+fuerza. Esta discrepancia entre lo que optimiza una pérdida
 de solapamiento y lo que mide la evaluación es la motivación para
 aplicar a este caso las herramientas topológicas del Capítulo~\ref{cap:fundamentos}.

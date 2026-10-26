@@ -40,20 +40,42 @@ adaptada a imágenes.
 
 \subsection{Complejos simpliciales}
 
-Sean $u_0,\dots,u_k\in\mathbb{R}^d$ puntos afínmente independientes, es
-decir, tales que los vectores $u_i-u_0$, $1\le i\le k$, son linealmente
+Sean $u_0,\dots,u_p\in\mathbb{R}^d$ puntos afínmente independientes, es
+decir, tales que los vectores $u_i-u_0$, $1\le i\le p$, son linealmente
 independientes.
 
 \begin{definicion}[{\cite[§III.1]{edelsbrunner2010}}]
-Un \emph{$k$-símplice} es la envolvente convexa
-$\sigma=\operatorname{conv}\{u_0,\dots,u_k\}$ de $k+1$ puntos afínmente
-independientes; su \emph{dimensión} es $\dim\sigma=k$. Una \emph{cara} de
+Un \emph{$p$-símplice} es la envolvente convexa
+$\sigma=\operatorname{conv}\{u_0,\dots,u_p\}$ de $p+1$ puntos afínmente
+independientes; su \emph{dimensión} es $\dim\sigma=p$. Una \emph{cara} de
 $\sigma$ es la envolvente convexa de un subconjunto no vacío de los $u_i$;
 escribimos $\tau\le\sigma$.
 \end{definicion}
 
 Los símplices de dimensión $0,1,2$ y $3$ son vértices, aristas, triángulos
 y tetraedros.
+
+\begin{figure}[ht]
+\centering
+\begin{minipage}[c]{0.4\textwidth}
+\centering
+\begin{tikzpicture}[scale=1.4]
+  \fill[yellow!30] (0,0) -- (2.2,0) -- (0.9,1.6) -- cycle;
+  \draw[thick] (0,0) -- (2.2,0) -- (0.9,1.6) -- cycle;
+  \fill (0,0) circle (1.5pt) node[below left] {$u_0$};
+  \fill (2.2,0) circle (1.5pt) node[below right] {$u_1$};
+  \fill (0.9,1.6) circle (1.5pt) node[above] {$u_2$};
+\end{tikzpicture}
+\end{minipage}
+\begin{minipage}[c]{0.55\textwidth}
+Versión abstracta:
+\[
+  \bigl\{\{u_0\},\{u_1\},\{u_2\},\{u_0,u_1\},\{u_0,u_2\},\{u_1,u_2\},\{u_0,u_1,u_2\}\bigr\}
+\]
+\end{minipage}
+\caption{Un 2-símplice geométrico (izquierda) y su versión abstracta, la familia de sus caras (derecha).}
+\label{fig:simplice}
+\end{figure}
 
 \begin{definicion}[{\cite[§III.1]{edelsbrunner2010}}]
 Un \emph{complejo simplicial} es una colección finita $K$ de símplices tal
@@ -188,7 +210,8 @@ hueco no puede rellenarse, y por tanto no es borde de nada.
 \subsection{Grupos de homología y números de Betti}
 
 \begin{definicion}[{\cite[§IV.1]{edelsbrunner2010}}]
-El \emph{$p$-ésimo grupo de homología} de $K$ es el cociente
+El \emph{$p$-ésimo grupo de homología} de $K$ (sobre $\mathbb{F}_2$, en
+realidad un $\mathbb{F}_2$-espacio vectorial) es el cociente
 \[
   H_p(K)=Z_p(K)/B_p(K),
 \]
@@ -221,30 +244,25 @@ la \emph{homología reducida} $\tilde H_p$, con $\tilde\beta_0=\beta_0-1$ y
 $\tilde\beta_p=\beta_p$ para $p\ge1$.
 \end{observacion}
 
-\subsection{Aplicaciones inducidas}
+\subsection{Inclusiones inducidas}
 
-La homología no solo actúa sobre espacios, también sobre aplicaciones. Una
-aplicación simplicial $f:K\to L$ envía cada $p$-símplice a un símplice de
-$L$. Esto induce $f_\#:C_p(K)\to C_p(L)$, que manda $\sigma$ a $f(\sigma)$
-si conserva la dimensión y a $0$ en otro caso. Se cumple
-$f_\#\circ\partial_K=\partial_L\circ f_\#$, de modo que $f_\#$ lleva ciclos
-en ciclos y bordes en bordes. Por tanto pasa al cociente y define la
-\emph{aplicación inducida en homología}
+Sea $K'\subseteq K$ un subcomplejo. La \emph{inclusión} $\iota:K'\hookrightarrow K$
+deja cada símplice en su lugar. Como las caras de un símplice de $K'$ también
+están en $K'$, la inclusión lleva cadenas en cadenas,
+$\iota_\#:C_p(K')\to C_p(K)$, y conmuta con el operador borde. Por tanto lleva
+ciclos en ciclos y bordes en bordes, y pasa al cociente:
 \[
-  f_*:H_p(K)\to H_p(L).
+  \iota_*:H_p(K')\to H_p(K).
 \]
-El caso más importante para nosotros es la \emph{inclusión} de un
-subcomplejo $K'\subseteq K$. La aplicación inducida dice qué clases de $K'$
-sobreviven en $K$ y cuáles se vuelven triviales o se identifican entre sí.
-
-Al ser una aplicación lineal, $f_*$ queda descrita por su núcleo y su
-conúcleo,
+Esta aplicación dice qué clases de $K'$ sobreviven en $K$ y cuáles se vuelven
+triviales o se identifican entre sí. Al ser lineal, queda descrita por su
+núcleo y su conúcleo,
 \[
-  \ker f_*=\{x : f_*(x)=0\},\qquad
-  \operatorname{coker} f_*=H_p(L)/\operatorname{im} f_*.
+  \ker\iota_*=\{x : \iota_*(x)=0\},\qquad
+  \operatorname{coker}\iota_*=H_p(K)/\operatorname{im}\iota_*.
 \]
-En nuestro contexto, $\dim\ker f_*$ cuenta las clases que \emph{mueren} al
-pasar de $K'$ a $K$ y $\dim\operatorname{coker} f_*$ las clases de $K$ que
+En nuestro contexto, $\dim\ker\iota_*$ cuenta las clases que \emph{mueren} al
+pasar de $K'$ a $K$, y $\dim\operatorname{coker}\iota_*$ las clases de $K$ que
 \emph{no proceden} de $K'$. Esta pareja reaparecerá en las métricas de la
 Sección~\ref{sec:topo-segmentacion}.
 
@@ -260,18 +278,6 @@ Euler--Poincaré
 \]
 \end{teorema}
 
-\begin{observacion}[{Homología relativa \cite[§IV.3]{edelsbrunner2010}}]
-Dado un subcomplejo $K_0\subseteq K$, los cocientes
-$C_p(K,K_0)=C_p(K)/C_p(K_0)$ definen la \emph{homología relativa}
-$H_p(K,K_0)$, que estudia $K$ «ignorando» lo que ocurre dentro de $K_0$.
-Se relaciona con las homologías absolutas mediante la sucesión exacta larga
-\[
-  \cdots\to H_p(K_0)\to H_p(K)\to H_p(K,K_0)\to H_{p-1}(K_0)\to\cdots
-\]
-No la usaremos directamente, pero subyace a
-los argumentos de dualidad de la Sección~\ref{sec:topograph}.
-\end{observacion}
-
 \subsection{Cálculo mediante reducción matricial}
 
 La homología se calcula con álgebra lineal sobre $\mathbb{F}_2$. Fijado un
@@ -286,8 +292,10 @@ generan $B_{p-1}$ y las nulas generan $Z_p$, de modo que
   \dim B_{p-1}=\operatorname{rank}\partial_p,\qquad
   \dim Z_p=n_p-\operatorname{rank}\partial_p,
 \]
-con $n_p$ el número de $p$-símplices. De ahí
-$\beta_p=\dim Z_p-\dim B_p$. El coste es como mucho cúbico en el número de
+con $n_p$ el número de $p$-símplices. De ahí, usando $\dim B_p=\operatorname{rank}\partial_{p+1}$,
+\[
+  \beta_p=n_p-\operatorname{rank}\partial_p-\operatorname{rank}\partial_{p+1}.
+\] El coste es como mucho cúbico en el número de
 símplices~\cite[§IV.2]{edelsbrunner2010}.
 
 % ------------------------------------------------------------
@@ -303,7 +311,7 @@ que persisten mucho se consideran significativas; las efímeras, ruido.
 
 \subsection{Intuición: la regla del mayor}
 
-Sea $f:X\to\mathbb{R}$ una función continua sobre un espacio conexo, por
+Sea $f:X\to\mathbb{R}$ una función continua, por
 ejemplo la intensidad de una imagen, y consideremos sus conjuntos de
 subnivel $X_a=f^{-1}(-\infty,a]$. Al aumentar el umbral $a$ las componentes
 de $X_a$ aparecen (en los mínimos locales) y se fusionan, pero nunca se
@@ -335,6 +343,27 @@ Para una imagen con la construcción V, la función monótona es exactamente
 la extensión por máximos de la Sección~\ref{sec:imagenes-complejos}. En
 Edelsbrunner--Harer esta construcción recibe el nombre de \emph{filtración
 lower star}~\cite[§VII.2]{edelsbrunner2010}.
+
+\begin{ejemplo}
+Sea $K$ el complejo con vértices $a,b,c$ y aristas $ab$ y $bc$, y sea $f$ dada
+por $f(a)=1$, $f(c)=2$, $f(b)=3$ y $f(ab)=f(bc)=3$. La función es monótona:
+cada cara tiene un valor no mayor que el de la arista que la contiene. Sus
+conjuntos de subnivel son $K_1=\{a\}$, $K_2=\{a,c\}$ y $K_3=K$. $K_2$ es un
+subcomplejo aunque $a$ y $c$ no estén conectados: no contiene aristas.
+\end{ejemplo}
+
+\begin{ejemplo}
+Sea $I$ una imagen de $1\times4$ píxeles con intensidades $0,5,1,4$ de
+izquierda a derecha, con la construcción V sobre un camino de cuatro vértices.
+Al subir el umbral $a$ se van añadiendo píxeles y aristas, y cada
+componente de $\{I\le a\}$ se registra al nacer y al fusionarse. El píxel de
+intensidad $0$ nace en $a=0$, y el de intensidad $1$ en $a=1$. Al llegar a
+$a=5$, el píxel central de intensidad $5$ une ambas regiones; por la regla del
+mayor, la componente de intensidad $1$, la más joven, muere en $5$. Así,
+$\operatorname{Dgm}_0=\{(0,\infty),(1,5)\}$ más la diagonal. Los píxeles de
+intensidad $4$ se unen a su vecino en el mismo paso en que nacen, así que no
+aportan puntos con persistencia positiva.
+\end{ejemplo}
 
 \begin{observacion}[{Filtraciones de supernivel \cite[§3]{stucki2023}}]
 En segmentación interesa el primer plano, es decir, los píxeles con
@@ -485,6 +514,15 @@ $\operatorname{Dgm}_1$ se obtiene con \emph{union-find}. Es la misma idea,
 la dualidad entre agujeros del primer plano y componentes del fondo, que
 explota Topograph (Sección~\ref{sec:topograph}).
 
+\paragraph{Relación con los árboles de fusión~\cite[§VII.2]{edelsbrunner2010}.} Para una función
+sobre una superficie, el diagrama de dimensión $0$ codifica el \emph{árbol de
+fusión} (\emph{merge tree}): las componentes de los subniveles se fusionan en
+un árbol cuyas ramas empiezan en los mínimos, y cada punto $(a,b)$ es una rama
+que termina en el valor $b$. Esta estructura tiene esta forma solo en
+dimensión $0$, porque las componentes únicamente se unen y nunca se dividen.
+Con dimensiones superiores, los ciclos pueden nacer y morir en cualquier
+orden, y su historia ya no forma un árbol.
+
 % ------------------------------------------------------------
 \section{Distancias entre diagramas y estabilidad}
 \label{sec:distancias}
@@ -511,12 +549,12 @@ Para funciones $f,g$ sobre el mismo complejo,
 $d_B(\operatorname{Dgm}_p(f),\operatorname{Dgm}_p(g))\le\|f-g\|_\infty$.
 \end{teorema}
 
-La estabilidad justifica el uso de la persistencia con datos ruidosos:
-perturbaciones pequeñas de la imagen producen cambios pequeños en el
-diagrama. Existe una versión algebraica en términos de módulos de
-persistencia, el \emph{teorema de estabilidad algebraica}~\cite{chazal2009},
-cuya demostración constructiva da lugar a los emparejamientos inducidos de
-Bauer y Lesnick~\cite{bauer2015}.
+Intuitivamente, el teorema dice que pequeños cambios en la imagen producen
+pequeños cambios en la función monótona y, por tanto, pequeños cambios en el
+diagrama de persistencia: la persistencia es robusta al ruido. Existe una
+versión algebraica, el teorema de estabilidad algebraica~\cite{chazal2009},
+que es la base de los emparejamientos inducidos de Bauer y
+Lesnick~\cite{bauer2015} de la Sección~\ref{sec:betti-matching}.Bauer y Lesnick~\cite{bauer2015}.
 
 \begin{observacion}
 El emparejamiento óptimo de $d_B$ o $W_q$ solo mira las \emph{coordenadas}
@@ -655,18 +693,11 @@ colapsa.
 
 En esta sección denotamos por $L\in[0,1]^{m\times n}$ el mapa de
 probabilidades que predice la red, por $P\in\{0,1\}^{m\times n}$ su
-binarización y por $G\in\{0,1\}^{m\times n}$ la segmentación de referencia.
-
-\subsection{Error de números de Betti}
-
-La métrica topológica más sencilla compara cuántas características tiene
-cada imagen~\cite[App.~K]{stucki2023}:
-\[
-  \beta_p^{\mathrm{err}}(P,G)=|\beta_p(P)-\beta_p(G)|.
-\]
-Es fácil de calcular e interpretar, pero ignora la localización. Una
-predicción con el número correcto de componentes, todas en el lugar
-equivocado, obtiene error cero.
+binarización y por $G\in\{0,1\}^{m\times n}$ la segmentación de referencia. El error de números
+de Betti, $|\beta_p(P)-\beta_p(G)|$, es la métrica más sencilla~\cite[App.~K]{stucki2023},
+pero ignora la localización: una predicción con el número correcto de
+componentes, todas en el lugar equivocado, obtiene error cero. Por eso
+pasamos directamente a métricas que sí consideran la posición.
 
 \subsection{Pérdida de Wasserstein}
 
@@ -682,12 +713,32 @@ Sección~\ref{sec:distancias}: $\gamma^*$ puede emparejar un agujero de la
 predicción con otro de la referencia situado en una zona distinta de la
 imagen~\cite{stucki2023}.
 
+Por ejemplo, si la predicción tiene un agujero cerca de la esquina superior
+izquierda y la referencia uno cerca de la inferior derecha, ambos con la misma
+persistencia, el emparejamiento de Wasserstein puede unirlos aunque no
+correspondan al mismo objeto: el diagrama no contiene ninguna información
+sobre la posición.
+
 \subsection{Betti matching}
 \label{sec:betti-matching}
 
 Stucki et al.~\cite{stucki2023} resuelven este problema construyendo un
 emparejamiento que respeta la posición espacial. La herramienta son los
 \emph{emparejamientos inducidos}.
+
+\begin{definicion}[{\cite{bauer2015}}]
+Un \emph{morfismo} de módulos de persistencia $\Phi:M\to N$ es una familia de
+aplicaciones lineales $\Phi_t:M_t\to N_t$, una por cada valor $t$ del
+parámetro, que conmuta con las aplicaciones de transición:
+$N_{s\le t}\circ\Phi_s=\Phi_t\circ M_{s\le t}$ para todo $s\le t$. Su
+\emph{módulo imagen} es $\operatorname{im}\Phi$, con
+$(\operatorname{im}\Phi)_t=\operatorname{im}\Phi_t\subseteq N_t$ y las
+transiciones restringidas de $N$.
+\end{definicion}
+
+El módulo imagen es un submódulo de $N$: contiene las clases de $M$ que
+sobreviven a través de $\Phi$. Es precisamente lo que relaciona el teorema
+siguiente con los códigos de barras de $M$ y $N$.
 
 \paragraph{Emparejamientos inducidos.} Un morfismo $\Phi:M\to N$ entre
 módulos de persistencia determina un emparejamiento entre sus códigos de
@@ -754,6 +805,9 @@ característica. Topograph~\cite{lux2025} sustituye la persistencia por un
 grafo de componentes conexas, que da garantías más fuertes y se calcula en
 tiempo casi lineal.
 
+En lo que sigue, $P$ y $G$ son la predicción binaria y la referencia de la
+Sección~\ref{sec:topo-segmentacion}.
+
 \paragraph{Grafo de componentes~\cite[§2.1]{lux2025}.} Se modela la imagen binaria con la
 construcción T y se añade una celda de fondo exterior $c^\star$ pegada al
 borde, con lo que el complejo resultante $\tilde{C}$ es homeomorfo a la
@@ -768,6 +822,23 @@ números de Betti del primer plano:
 \]
 En la segunda fórmula, cada fondo vecino de $F_i$ salvo el exterior es un
 agujero de $F_i$.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[every node/.style={draw, circle, minimum size=8mm, inner sep=1pt, font=\small}]
+  \node[fill=yellow!40] (F1) at (0,1) {$F_1$};
+  \node[fill=yellow!40] (F2) at (0,-1) {$F_2$};
+  \node[fill=blue!15] (B0) at (3,0) {$c^\star$};
+  \node[fill=blue!15] (B1) at (3,2) {$B_1$};
+  \draw (F1) -- (B0);
+  \draw (F1) -- (B1);
+  \draw (F2) -- (B0);
+\end{tikzpicture}
+\caption{Grafo de componentes de un ejemplo con dos componentes de primer plano.
+$F_1$ tiene un agujero ($B_1$) y $F_2$ no, así que $\beta_0(F)=2$ y
+$\beta_1(F)=(2-1)+(1-1)=1$. Ilustración propia.}
+\label{fig:grafo-componentes}
+\end{figure}
 
 \paragraph{Grafo combinado~\cite[§2.1]{lux2025}.} Superponiendo $P$ y $G$, el plano se cubre con
 cuatro regiones: verdaderos positivos (TP), verdaderos negativos (TN),

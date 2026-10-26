@@ -48,3 +48,19 @@ Depósito: 6 nov 2026. Marca con [x] lo que vayas cerrando.
 - [ ] Resumen / abstract
 - [ ] Verificar las referencias Dice (1945) y Sørensen (1948) añadidas en refs.bib: escritas de memoria, revisar volumen y páginas.
 - [ ] Capítulo 3: sección «Dice y clDice» nueva. Comprobar las definiciones de clDice y del esqueleto blando frente a Shit et al. (2021), Sec. 3.
+
+## Revisión de Manuel y nitro sobre el capítulo de topología (v1 anotada)
+
+- [ ] Figura del grafo combinado (grafo de componentes ya hecho; falta el combinado, Lux et al. §2.1).
+- [ ] Verificar la cita \cite[§VII.2]{edelsbrunner2010} de los árboles de fusión (merge tree): la sección exacta no está confirmada.
+- [ ] Verificar la definición de morfismo y módulo imagen contra Bauer y Lesnick (2015).
+- [ ] Ejemplo de la imagen 1D con umbral (intensidades 0,5,1,4): recalcular a mano el diagrama antes de entregar.
+- [ ] Error de números de Betti: reducido a una frase en la introducción de la sección (interpretación del comentario «quitaría este caso»). Confirmar con Manuel.
+- [ ] Comentario sin resolver de nitro en la página 18 del PDF («¿Qué es esto? Habría que definirlo»): no se distingue el término en el render.
+- [ ] Referencias 19, 20 y 21 (filamentos): leer las fuentes antes de dejarlas.
+
+## Revisión de Manuel y nitro sobre el capítulo de contexto
+
+- [ ] Figura de errores: las imágenes de `figuras/` se copiaron de «Imagenes de problemas» (02 y 04). Comprobar que muestran lo que indica el pie.
+- [ ] Referencias 19, 20 y 21 y las de conceptos básicos de filamentos (martin1998, mackay2010, parenti2014, schwenn2006): Manuel pide una única referencia para los conceptos básicos. Hay que leerlas antes de decidirla; no las he podido consultar.
+- [ ] Verificar cohen1960 y landis1977 (añadidas de memoria) y el uso de la escala de Landis y Koch.
