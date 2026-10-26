@@ -64,3 +64,9 @@ Depósito: 6 nov 2026. Marca con [x] lo que vayas cerrando.
 - [ ] Figura de errores: las imágenes de `figuras/` se copiaron de «Imagenes de problemas» (02 y 04). Comprobar que muestran lo que indica el pie.
 - [ ] Referencias 19, 20 y 21 y las de conceptos básicos de filamentos (martin1998, mackay2010, parenti2014, schwenn2006): Manuel pide una única referencia para los conceptos básicos. Hay que leerlas antes de decidirla; no las he podido consultar.
 - [ ] Verificar cohen1960 y landis1977 (añadidas de memoria) y el uso de la escala de Landis y Koch.
+
+## Comentarios de topología sin resolver del todo
+
+- [ ] «Esto lo quitaría, y añadiría en la 2.5.4 solo lo necesario» (pág. 11 del PDF): no se identifica el fragmento resaltado. Confirmar con nitro.
+- [ ] «¿Qué es esto? Habría que definirlo» (pág. 18): no se identifica el término resaltado. Confirmar con nitro.
+- [ ] Ilustraciones de la filtración 1D y del grafo combinado: son esquemas propios. Revisar las etiquetas y la escala.

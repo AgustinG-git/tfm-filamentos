@@ -365,6 +365,32 @@ intensidad $4$ se unen a su vecino en el mismo paso en que nacen, así que no
 aportan puntos con persistencia positiva.
 \end{ejemplo}
 
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}
+  % arriba: intensidades; 0,25 cm por unidad
+  \foreach \x/\v in {0/0, 1/5, 2/1, 3/4} {
+    \fill[gray!40] (\x-0.3,0) rectangle (\x+0.3,0.25*\v);
+    \node[above] at (\x,0.25*\v+0.05) {\small \v};
+  }
+  \draw (-0.5,0) -- (3.5,0);
+  % abajo: código de barras H_0 sobre el eje de umbrales (0,5 cm por unidad)
+  \draw[very thick] (0,-1.0) -- (3.2,-1.0) node[right] {\small $[0,\infty)$};
+  \draw[very thick] (0.5,-1.6) -- (2.5,-1.6) node[right] {\small $[1,5)$};
+  \draw[->] (-0.2,-2.2) -- (2.9,-2.2) node[right] {\small $a$};
+  \foreach \v in {0,1,2,3,4,5} {
+    \draw (0.5*\v,-2.25) -- (0.5*\v,-2.15);
+    \node[below] at (0.5*\v,-2.25) {\scriptsize \v};
+  }
+\end{tikzpicture}
+\caption{Arriba, las intensidades del ejemplo anterior en orden de izquierda
+a derecha. Abajo, el código de barras de $H_0$ sobre el eje de umbrales $a$:
+el intervalo $[0,\infty)$ corresponde a la componente que nunca muere, y
+$[1,5)$ a la que nace en la intensidad $1$ y muere al unirse en $a=5$. Los
+puntos de la diagonal se omiten. Ilustración propia.}
+\label{fig:filtracion-1d}
+\end{figure}
+
 \begin{observacion}[{Filtraciones de supernivel \cite[§3]{stucki2023}}]
 En segmentación interesa el primer plano, es decir, los píxeles con
 probabilidad \emph{alta}. Por eso se usan conjuntos de \emph{supernivel}
@@ -738,7 +764,8 @@ transiciones restringidas de $N$.
 
 El módulo imagen es un submódulo de $N$: contiene las clases de $M$ que
 sobreviven a través de $\Phi$. Es precisamente lo que relaciona el teorema
-siguiente con los códigos de barras de $M$ y $N$.
+siguiente con los códigos de barras de $M$ y $N$. Sus intervalos aparecen como
+intervalos de $M$ y de $N$ a la vez, en el sentido del teorema siguiente.
 
 \paragraph{Emparejamientos inducidos.} Un morfismo $\Phi:M\to N$ entre
 módulos de persistencia determina un emparejamiento entre sus códigos de
@@ -848,6 +875,26 @@ $\varepsilon$ y $2\varepsilon$. Las componentes conexas de las cuatro
 regiones son los vértices del \emph{grafo combinado} $\mathcal{G}(P,G)$, con
 aristas entre regiones adyacentes. Es bipartito: las aristas unen siempre
 una región correcta (TP o TN) con una errónea (FP o FN).
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[every node/.style={draw, rounded corners, minimum width=2.2cm,
+  minimum height=0.9cm, font=\small}]
+  \node[fill=green!25] (TP) at (0,2) {TP};
+  \node[fill=gray!20] (TN) at (4,2) {TN};
+  \node[fill=red!25] (FP) at (0,0) {FP};
+  \node[fill=orange!25] (FN) at (4,0) {FN};
+  \draw (TP) -- (FP);
+  \draw (TP) -- (FN);
+  \draw (TN) -- (FP);
+  \draw (TN) -- (FN);
+\end{tikzpicture}
+\caption{Esquema del grafo combinado con sus cuatro tipos de región. Las
+aristas unen siempre una región correcta (TP o TN) con una errónea (FP o FN).
+En una imagen real hay muchas componentes de cada tipo, y el grafo tiene un
+vértice por cada una. Ilustración propia.}
+\label{fig:grafo-combinado}
+\end{figure}
 
 \paragraph{Vértices regulares y críticos~\cite[§2.2--2.3]{lux2025}.} Un vértice erróneo
 $v\in V_F$ es \emph{regular} si tiene exactamente un vecino TP y
