@@ -28,7 +28,7 @@ from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
 from . import contract, postproc
-from .compare import append_conteos, run_conteos
+from .compare import append_conteos, medidas, run_conteos
 from .config import load_config
 from .data import LABELS, FilamentDataset, load_cache, load_test_images
 from .gt import build_gt_df, build_meta, load_coco
@@ -252,7 +252,8 @@ def run(
                     f"a={cfg['post'].get('area_min_512', 0)}",
             "epoca": best_epoch, "pq_A": round(mA["pq"], 4), "pq_B": round(mB["pq"], 4),
             "sq_B": round(mB["sq"], 4), "rq_B": round(mB["rq"], 4),
-            "tp_B": mB["tp"], "fp_B": mB["fp"], "fn_B": mB["fn"], "nota": nota,
+            "tp_B": mB["tp"], "fp_B": mB["fp"], "fn_B": mB["fn"],
+            **medidas(conteos[conteos["subset"] == "val_B"]), "nota": nota,
         })
 
     print(f"✔ {run_id} | época {best_epoch} | PQ A {mA['pq']:.4f} | PQ B {mB['pq']:.4f}")

@@ -34,7 +34,7 @@ from scipy.special import expit
 from tqdm.auto import tqdm
 
 from . import contract, postproc
-from .compare import append_conteos, run_conteos
+from .compare import append_conteos, medidas, run_conteos
 from .config import load_config
 from .contract import FULL_SIZE, RUN_FILES
 from .gt import ann_to_mask, build_gt_df, load_coco
@@ -243,6 +243,7 @@ def run_post(
         "pq_A": round(mA["pq"], 4), "pq_B": round(mB["pq"], 4),
         "sq_B": round(mB["sq"], 4), "rq_B": round(mB["rq"], 4),
         "tp_B": mB["tp"], "fp_B": mB["fp"], "fn_B": mB["fn"],
+        **medidas(conteos[conteos["subset"] == "val_B"]),
         "nota": nota or f"post sobre {src.run_id}",
     })
     print(f"✔ {run_id} | PQ A {mA['pq']:.4f} | PQ B {mB['pq']:.4f}")

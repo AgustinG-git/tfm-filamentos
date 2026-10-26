@@ -137,9 +137,24 @@ def asignaciones(conteos: pd.DataFrame, run_ids: list[str], subset: str = "val_B
         .assign(
             pct_gt_fragmentados=lambda d: (100 * d["gt_1n"] / d["n_gt"]).round(1),
             pct_pred_fusiones=lambda d: (100 * d["pred_n1"] / d["n_pred"]).round(1),
+            partidos_unidos=lambda d: d["gt_1n"] + d["pred_n1"],
+            sin_contacto=lambda d: d["gt_1_0"] + d["pred_0_1"],
         )
         .reset_index()
     )
+
+
+def medidas(conteos_B: pd.DataFrame) -> dict:
+    """Medidas personalizadas de una ejecución (val_B), para el registro.
+
+    - ``partidos_unidos_B``: filamentos partidos + predicciones unidas.
+    - ``sin_contacto_B``: filamentos sin predicción + predicciones sin filamento.
+    """
+    s = conteos_B[["gt_1n", "pred_n1", "gt_1_0", "pred_0_1"]].sum()
+    return {
+        "partidos_unidos_B": int(s["gt_1n"] + s["pred_n1"]),
+        "sin_contacto_B": int(s["gt_1_0"] + s["pred_0_1"]),
+    }
 
 
 def conteos_desde_input(

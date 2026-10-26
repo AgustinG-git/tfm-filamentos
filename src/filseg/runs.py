@@ -235,7 +235,7 @@ def validate_run(
 # ── Registro de ejecuciones ──────────────────────────────────────────
 REGISTRY_COLUMNS = [
     "run_id", "fecha", "config", "commit", "perdida", "etiquetas", "aumentos",
-    "post", "epoca", "pq_A", "pq_B", "sq_B", "rq_B", "tp_B", "fp_B", "fn_B", "nota",
+    "post", "epoca", "pq_A", "pq_B", "sq_B", "rq_B", "tp_B", "fp_B", "fn_B", "partidos_unidos_B", "sin_contacto_B", "nota",
 ]
 
 
