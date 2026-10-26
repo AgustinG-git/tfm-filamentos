@@ -1,0 +1,295 @@
+% ============================================================
+% Capítulo 2 — Contexto del problema
+% ============================================================
+
+\chapter{Contexto del problema}
+\label{cap:contexto}
+
+El objetivo central del trabajo es estudiar qué aporta la topología a la
+segmentación de estructuras finas: cómo se miden las formas, cómo se usan
+como funciones de pérdida y qué mejoran frente a las pérdidas de
+solapamiento. Para ponerlas a prueba necesitamos un caso práctico con
+estructuras finas y errores topológicos claros. Este capítulo presenta ese
+caso: la detección de filamentos solares. Describimos primero qué son los
+filamentos y por qué interesa detectarlos (Sección~\ref{sec:filamentos}),
+después el conjunto de datos MAGFiLO (Sección~\ref{sec:magfilo}) y la
+competición en la que se enmarca el trabajo, con su métrica de evaluación
+(Sección~\ref{sec:competicion}), y revisamos los trabajos previos de
+detección automática (Sección~\ref{sec:estado-arte}). Terminamos con las
+dificultades específicas del problema (Sección~\ref{sec:dificultades}), que
+son en buena parte topológicas.
+
+% ------------------------------------------------------------
+\section{Filamentos solares}
+\label{sec:filamentos}
+% ------------------------------------------------------------
+
+Los filamentos son nubes de plasma relativamente frío y denso suspendidas
+en la corona solar por el campo magnético, sobre las líneas de inversión
+de polaridad de la fotosfera~\cite{martin1998,mackay2010}. Vistos sobre el
+disco solar en la línea H-alfa ($656{,}3$~nm), absorben la radiación del
+fondo y aparecen como estructuras oscuras y alargadas. Cuando se observan
+en el limbo, sobre el fondo oscuro del espacio, aparecen brillantes y
+reciben el nombre de \emph{protuberancias}~\cite{parenti2014}.
+
+Morfológicamente, un filamento consta de un cuerpo principal alargado, la
+\emph{espina}, del que salen estructuras finas laterales llamadas
+\emph{barbas}. La orientación de las barbas respecto a la espina permite
+inferir la \emph{quiralidad} del filamento (dextrógira o levógira), que
+refleja la configuración de su campo magnético~\cite{martin1998}.
+
+Su interés práctico es el clima espacial. Los filamentos pueden
+desestabilizarse y entrar en erupción, y están en el origen de eyecciones
+de masa coronal, fulguraciones y tormentas de partículas
+energéticas~\cite{schwenn2006}. Una eyección dirigida hacia la Tierra
+puede dañar la red eléctrica, alterar los sistemas GPS y suponer un riesgo
+de radiación para tripulaciones y astronautas~\cite{kaggle2026}. Detectar
+y caracterizar los filamentos de forma automática y precisa es, por tanto,
+un paso previo para su seguimiento y para la predicción de erupciones.
+
+\paragraph{Observaciones GONG.} Las imágenes proceden de la red GONG
+(\emph{Global Oscillation Network Group}), un conjunto de seis
+observatorios terrestres repartidos en longitud para observar el Sol de
+forma casi continua~\cite{harvey1996}: Big Bear (B), Cerro Tololo (C),
+Learmonth (L), Mauna Loa (M), El Teide (T) y Udaipur (U). La letra entre
+paréntesis es la que identifica la estación en el nombre de cada fichero.
+Las imágenes H-alfa de disco completo tienen $2048\times2048$
+píxeles~\cite{kaggle2026}. Al ser observaciones terrestres, están
+afectadas por la turbulencia atmosférica, las nubes y artefactos
+instrumentales, y su calidad varía entre estaciones y días.
+
+% TODO: figura con una imagen H-alfa completa y sus anotaciones.
+% \begin{figure}[ht]
+%   \centering
+%   \includegraphics[width=0.6\textwidth]{figuras/halpha_ejemplo.png}
+%   \caption{Observación H-alfa de GONG con los filamentos anotados.}
+%   \label{fig:halpha}
+% \end{figure}
+
+% ------------------------------------------------------------
+\section{El conjunto de datos MAGFiLO}
+\label{sec:magfilo}
+% ------------------------------------------------------------
+
+MAGFiLO (\emph{Manually Annotated GONG Filaments in H-alpha
+Observations}) es un conjunto de datos de filamentos anotados
+manualmente sobre observaciones H-alfa de GONG~\cite{ahmadzadeh2024}.
+Su versión 1.0 contiene $10\,244$ filamentos anotados en $1\,593$
+observaciones entre 2011 y 2022. Para cada filamento incluye la máscara
+de segmentación, la caja contenedora mínima, la espina y la quiralidad.
+
+La anotación supuso más de $1\,000$ horas-persona, con un proceso de
+revisión doble ciego. Cada observación fue anotada por hasta tres
+anotadores independientes y revisada después por expertos. El acuerdo
+entre anotadores, medido con el estadístico $\kappa$, es de
+$0{,}66$~\cite{ahmadzadeh2024}. Es un acuerdo sustancial pero lejos del
+perfecto: la propia referencia humana es ruidosa, y esto condiciona
+tanto el entrenamiento como la interpretación de las métricas.
+
+\paragraph{Subconjunto de la competición.} La competición usa solo las
+máscaras de segmentación~\cite{kaggle2026}. El conjunto de entrenamiento
+público está organizado por \emph{pares anotador--imagen}: cada imagen
+aparece tantas veces como anotadores la hayan etiquetado, cada vez con su
+propio conjunto de filamentos. La Tabla~\ref{tab:datos} resume sus
+características.
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{@{}lr@{}}
+\toprule
+Imágenes distintas & 707\\
+Pares anotador--imagen & 1\,154\\
+\quad imágenes con 1 / 2 / 3 anotadores & 411 / 145 / 151\\
+Filamentos anotados (sumando anotadores) & 8\,199\\
+Filamentos por par (media) & 7{,}1\\
+Periodo & 2011--2022\\
+Resolución & $2048\times2048$\\
+\bottomrule
+\end{tabular}
+\caption{Conjunto de entrenamiento público de la competición, calculado a
+partir del fichero de anotaciones.}
+\label{tab:datos}
+\end{table}
+
+Las seis estaciones están representadas de forma equilibrada, entre 102 y
+127 imágenes cada una. La distribución temporal no lo está: la mayoría de
+las imágenes son de 2011--2017, y los años 2018--2022 aportan pocas
+observaciones. Además, de un mismo día suele haber varias observaciones,
+tomadas desde estaciones distintas, que muestran prácticamente el mismo
+Sol. Este hecho obliga a separar entrenamiento y validación por fecha y
+no por imagen, como se explica en el capítulo de metodología.
+
+El conjunto de test es oculto. Solo se dispone de sus imágenes, y las
+predicciones se evalúan en la plataforma.
+
+% ------------------------------------------------------------
+\section{La competición \emph{Solar Filament Segmentation Challenge 2026}}
+\label{sec:competicion}
+% ------------------------------------------------------------
+
+El trabajo se enmarca en el \emph{Solar Filament Segmentation Challenge
+2026}, una competición de Kaggle organizada dentro de la IEEE BigData Cup
+2026 y patrocinada por el National Solar Observatory~\cite{kaggle2026}.
+Se lanzó el 10 de julio de 2026 y el plazo de entrega final es el 15 de
+noviembre de 2026.
+
+\paragraph{Tarea.} Se pide generar una máscara de segmentación para cada
+filamento \emph{individual}, que capture toda su extensión, incluidas las
+estructuras finas como las barbas, y que incluya el menor número posible
+de píxeles ajenos al filamento~\cite{kaggle2026}. Se trata, por tanto, de
+un problema de \emph{segmentación de instancias} de una sola clase. El
+envío es un fichero con una fila por filamento predicho, que contiene el
+identificador de la imagen y la máscara codificada en RLE a resolución
+original.
+
+\paragraph{Métrica.} La métrica principal es la \emph{calidad
+panóptica} (\emph{Panoptic Quality}, PQ)~\cite{kirillov2019}. Inicialmente
+la competición usaba el coeficiente Dice, pero los organizadores lo
+sustituyeron por PQ el 7 de agosto de 2026~\cite{kaggle2026}.
+
+\begin{definicion}[{\cite{kirillov2019}}]
+Sean $Y$ el conjunto de segmentos de referencia e $\hat Y$ el de segmentos
+predichos. Un par $(y,\hat y)\in Y\times\hat Y$ es un \emph{verdadero
+positivo} si $\operatorname{IoU}(y,\hat y)>0{,}5$, donde
+\[
+  \operatorname{IoU}(y,\hat y)=\frac{|y\cap\hat y|}{|y\cup\hat y|}.
+\]
+Los segmentos predichos sin pareja son \emph{falsos positivos} (FP) y los
+de referencia sin pareja, \emph{falsos negativos} (FN). La calidad
+panóptica es
+\[
+  \mathrm{PQ}=\frac{\sum_{(y,\hat y)\in \mathit{TP}}\operatorname{IoU}(y,\hat y)}
+                   {|\mathit{TP}|+\tfrac12|\mathit{FP}|+\tfrac12|\mathit{FN}|}.
+\]
+\end{definicion}
+
+El umbral $\operatorname{IoU}>0{,}5$ tiene una consecuencia importante. Si
+los segmentos predichos no se solapan entre sí, cada segmento de
+referencia puede emparejarse como mucho con uno predicho, y viceversa. El
+emparejamiento es, por tanto, único y no requiere ningún algoritmo de
+asignación~\cite{kirillov2019}. Además, PQ se factoriza como
+\[
+  \mathrm{PQ}=
+  \underbrace{\frac{\sum_{\mathit{TP}}\operatorname{IoU}}{|\mathit{TP}|}}_{\mathrm{SQ}}
+  \times
+  \underbrace{\frac{|\mathit{TP}|}{|\mathit{TP}|+\tfrac12|\mathit{FP}|+\tfrac12|\mathit{FN}|}}_{\mathrm{RQ}},
+\]
+donde la \emph{calidad de segmentación} SQ mide lo bien delimitados que
+están los aciertos y la \emph{calidad de reconocimiento} RQ es una
+medida $F_1$ de detección~\cite{kirillov2019}.
+
+En la competición, $Y$ e $\hat Y$ contienen los segmentos de
+\emph{todas} las imágenes. Es decir, se suman TP, FP, FN e IoU sobre todo
+el conjunto antes de dividir, y no se promedia imagen a
+imagen~\cite{kaggle2026}. Como unidad de evaluación se usa el par
+anotador--imagen: las predicciones de una imagen se comparan por separado
+con la anotación de cada anotador.
+
+Como referencia de escala, los organizadores indicaron que cualquier
+puntuación PQ superior a $0{,}35$ les resulta de gran valor~\cite{kaggle2026}.
+
+\paragraph{Rúbrica.} La clasificación en el \emph{leaderboard} es solo una
+parte de la evaluación final~\cite{kaggle2026}:
+\begin{itemize}
+  \item \textbf{Comparación cuantitativa (70\,\%):} PQ y las
+  distribuciones de Dice, de IoU y de relaciones uno-a-varios y
+  varios-a-uno entre segmentos predichos y de referencia. Estas últimas
+  penalizan la \emph{fragmentación} (un filamento predicho en varios
+  trozos) y la \emph{fusión} (varios filamentos predichos como uno).
+  \item \textbf{Comparación cualitativa (30\,\%):} la descripción del
+  pipeline completo, la morfología aparente de las predicciones y la
+  calidad del código.
+\end{itemize}
+El \emph{leaderboard} público se calcula con aproximadamente la mitad del
+conjunto de test; la otra mitad solo la ven los organizadores.
+
+% ------------------------------------------------------------
+\section{Detección automática de filamentos: trabajos previos}
+\label{sec:estado-arte}
+% ------------------------------------------------------------
+
+La detección automática de filamentos en imágenes H-alfa tiene una
+trayectoria de más de dos décadas. Podemos distinguir dos etapas.
+
+\paragraph{Métodos clásicos.} Los primeros métodos se basan en que los
+filamentos son más oscuros que su entorno. Shih y Kowalski~\cite{shih2003}
+extraen los filamentos con umbrales locales adaptativos y operaciones
+morfológicas. Qu et al.~\cite{qu2005} combinan umbralización, crecimiento
+de regiones y un clasificador SVM para descartar las manchas solares, que
+también son oscuras. Bernasconi et al.~\cite{bernasconi2005} desarrollan
+un sistema completo que detecta, sigue y caracteriza filamentos, incluida
+su quiralidad a partir de las barbas. Hao et al.~\cite{hao2013} usan un
+umbral adaptativo basado en el método de Otsu y aplican el método a un
+ciclo solar completo de datos H-alfa. Estos métodos son interpretables y
+rápidos, pero dependen de umbrales ajustados a mano, son sensibles a las
+condiciones de observación y tienden a confundir filamentos con manchas
+solares y otras regiones oscuras~\cite{diercke2024}.
+
+\paragraph{Aprendizaje profundo.} Con las redes convolucionales, el
+problema se ha abordado como segmentación semántica o de instancias.
+Zhu et al.~\cite{zhu2019} entrenan una U-Net~\cite{ronneberger2015} sobre
+imágenes H-alfa del observatorio de Big Bear con máscaras obtenidas de
+forma semiautomática. Ahmadzadeh et al.~\cite{ahmadzadeh2019} usan Mask
+R-CNN, que segmenta instancias, entrenada con máscaras derivadas de
+detecciones automáticas previas en lugar de anotaciones manuales.
+Guo et al.~\cite{guo2022} detectan y clasifican filamentos con una red de
+segmentación de instancias. Diercke et al.~\cite{diercke2024} proponen un
+método semisupervisado: un detector YOLOv5 entrenado con cajas anotadas a
+mano genera etiquetas aproximadas sobre el archivo de GONG, y con ellas
+entrenan una U-Net.
+
+Un rasgo común de estos trabajos es la escasez de anotaciones manuales a
+nivel de píxel: la mayoría entrena con máscaras obtenidas por
+umbralización o por otros detectores, que heredan sus errores. MAGFiLO
+cubre precisamente esta carencia~\cite{ahmadzadeh2024}. Sobre MAGFiLO,
+Solomon et al.~\cite{solomon2025} proponen EdgeAttNet, una U-Net con
+atención guiada por bordes en el cuello de botella, orientada a capturar
+mejor las barbas, y la comparan con una U-Net estándar entrenada con
+BCE + Dice.
+
+Hasta donde conocemos, estos trabajos optimizan pérdidas de solapamiento
+píxel a píxel y se evalúan con métricas de solapamiento (precisión,
+exhaustividad, IoU). Ninguno incorpora restricciones topológicas al
+entrenamiento ni al post-procesado. Tampoco se habían evaluado con una
+métrica de instancias como PQ, que penaliza explícitamente la
+fragmentación y la fusión. Este es el hueco que aborda este trabajo.
+
+% ------------------------------------------------------------
+\section{Dificultades del problema}
+\label{sec:dificultades}
+% ------------------------------------------------------------
+
+Los propios organizadores señalan tres dificultades
+principales~\cite{kaggle2026}, a las que añadimos dos más:
+
+\begin{enumerate}
+  \item \textbf{Estructuras finas.} Las barbas tienen pocos píxeles de
+  anchura y contraste débil. Son las primeras en perderse, y su
+  orientación es justo la que aporta información física.
+  \item \textbf{Ruido e imagen terrestre.} Distinguir el material del
+  filamento de otras regiones oscuras (manchas, ruido, artefactos) no es
+  trivial en observaciones afectadas por la atmósfera.
+  \item \textbf{Continuidad estructural.} Los algoritmos tienden a
+  devolver filamentos \emph{fragmentados} o a agrupar regiones oscuras
+  cercanas en «islas», con resultados físicamente incoherentes.
+  \item \textbf{Desacuerdo entre anotadores.} Con $\kappa=0{,}66$, los
+  anotadores no coinciden siempre en dónde empieza y acaba un filamento,
+  ni en si dos trozos forman uno o dos filamentos. Esto fija un techo a lo
+  que puede conseguir cualquier modelo frente a una anotación concreta.
+  \item \textbf{Desequilibrio de clases.} Los filamentos ocupan una
+  fracción muy pequeña de cada imagen, de modo que una pérdida píxel a
+  píxel está dominada por el fondo.
+\end{enumerate}
+
+Las dificultades 1 y 3 son, en el fondo, \emph{topológicas}. Si las
+instancias se obtienen como componentes conexas de una máscara binaria,
+el número de filamentos predichos es exactamente el número de Betti
+$\beta_0$ de esa máscara. Un filamento partido en dos aumenta $\beta_0$
+y puede convertir un acierto en un falso negativo y dos falsos positivos,
+aunque solo falten unos pocos píxeles. Dos filamentos unidos por un puente de píxeles lo
+reducen y provocan el error contrario. Una barba perdida, en cambio, apenas
+cambia el IoU. Métricas como Dice o el propio IoU, que cuentan píxeles,
+son poco sensibles a estos errores, mientras que PQ y la rúbrica los
+penalizan con fuerza. Esta discrepancia entre lo que optimiza una pérdida
+de solapamiento y lo que mide la evaluación es la motivación para
+aplicar a este caso las herramientas topológicas del Capítulo~\ref{cap:fundamentos}.

@@ -1,0 +1,59 @@
+% ============================================================
+% TFM — Máster MULCIA (Universidad de Sevilla)
+% Overleaf: Menu > Compiler = pdfLaTeX, Main document = main.tex
+% ============================================================
+\documentclass[11pt,a4paper,oneside]{report}
+
+% --- Idioma y codificación ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-tabla,es-noshorthands]{babel}
+\usepackage{lmodern}
+\usepackage{microtype}
+
+% --- Página ---
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{setspace}
+\onehalfspacing
+
+% --- Matemáticas ---
+\usepackage{amsmath,amssymb,amsthm}
+
+% --- Tablas, figuras ---
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usepackage{caption}
+
+% --- Enlaces (cargar al final) ---
+\usepackage[hidelinks]{hyperref}
+
+% --- Entornos de teoremas ---
+\newtheorem{teorema}{Teorema}[chapter]
+\newtheorem{lema}[teorema]{Lema}
+\newtheorem{proposicion}[teorema]{Proposición}
+\theoremstyle{definition}
+\newtheorem{definicion}[teorema]{Definición}
+\newtheorem{ejemplo}[teorema]{Ejemplo}
+\theoremstyle{remark}
+\newtheorem{observacion}[teorema]{Observación}
+
+% --- Datos ---
+\title{Título del TFM}
+\author{Agustín Galiana}
+\date{Noviembre de 2026}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+% \include{capitulo1}
+\include{capitulo3}
+\include{capitulo2}
+\include{capitulo4}
+
+\bibliographystyle{plain}
+\bibliography{refs}
+
+\end{document}
