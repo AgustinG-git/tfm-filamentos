@@ -9,20 +9,31 @@
 \chapter{Fundamentos de topología computacional}
 \label{cap:fundamentos}
 
-Segmentar bien no consiste solo en acertar píxel a píxel: un objeto partido
-en dos o unido a otro mediante un puente espurio apenas penaliza una métrica
-de solapamiento, pero altera la \emph{forma} del objeto segmentado. Este
-capítulo, núcleo teórico del trabajo, reúne las herramientas
-matemáticas que permiten cuantificar esa forma. Seguimos principalmente a
-Edelsbrunner y Harer~\cite{edelsbrunner2010}: los complejos
+El análisis topológico de datos (TDA, por sus siglas en inglés) estudia
+la \emph{forma} de los datos: cuántas componentes tienen, si presentan
+agujeros o cavidades y cómo se conectan entre sí. Su herramienta central
+es la homología, que asigna a cada espacio invariantes algebraicos
+computables. Su aportación principal es la homología persistente, que
+extiende esos invariantes a familias de espacios y permite distinguir la
+estructura robusta del ruido. Este capítulo, núcleo teórico del trabajo,
+presenta estas herramientas siguiendo principalmente a Edelsbrunner y
+Harer~\cite{edelsbrunner2010}: los complejos
 (Sección~\ref{sec:complejos}), la homología
 (Sección~\ref{sec:homologia}) y la homología persistente
-(Sección~\ref{sec:persistencia}). Después introducimos las distancias entre
-diagramas de persistencia (Sección~\ref{sec:distancias}) y, por último,
-describimos cómo estas ideas se convierten en métricas y funciones de
-pérdida para segmentación (Sección~\ref{sec:topo-segmentacion}), con
-especial atención a \emph{Betti matching}~\cite{stucki2023} y
-\emph{Topograph}~\cite{lux2025}.
+(Sección~\ref{sec:persistencia}). Después introducimos las distancias
+entre diagramas de persistencia, que permiten compararlos de forma
+estable (Sección~\ref{sec:distancias}).
+
+La segunda parte del capítulo lleva estas ideas a la segmentación de
+imágenes, donde la forma importa tanto como la precisión: un objeto
+partido en dos o unido a otro por un puente espurio apenas penaliza una
+métrica de solapamiento, pero cambia su topología. Presentamos primero el
+coeficiente de Dice y clDice (Sección~\ref{sec:dice-cldice}), que miden
+el solapamiento de los píxeles y de los esqueletos, respectivamente. Después
+describimos las métricas y funciones de pérdida basadas en topología
+(Sección~\ref{sec:topo-segmentacion}), con especial atención a
+\emph{Topograph}~\cite{lux2025}. El Capítulo~\ref{cap:contexto} presenta el
+problema concreto al que se aplican: la segmentación de filamentos solares.
 
 Trabajamos siempre con coeficientes en el cuerpo $\mathbb{F}_2=\{0,1\}$,
 donde $1+1=0$. Esta elección simplifica los cálculos (no hay signos ni
@@ -70,7 +81,10 @@ y tetraedros.
 \begin{minipage}[c]{0.55\textwidth}
 Versión abstracta:
 \[
-  \bigl\{\{u_0\},\{u_1\},\{u_2\},\{u_0,u_1\},\{u_0,u_2\},\{u_1,u_2\},\{u_0,u_1,u_2\}\bigr\}
+  \begin{aligned}
+  \bigl\{&\{u_0\},\{u_1\},\{u_2\},\{u_0,u_1\},\\
+         &\{u_0,u_2\},\{u_1,u_2\},\{u_0,u_1,u_2\}\bigr\}
+  \end{aligned}
 \]
 \end{minipage}
 \caption{Un 2-símplice geométrico (izquierda) y su versión abstracta, la familia de sus caras (derecha).}
@@ -98,7 +112,7 @@ así que ambos puntos de vista son equivalentes.
 Una imagen es una rejilla de píxeles, y triangularla añade diagonales
 artificiales. Por eso los métodos que estudiamos usan \emph{complejos
 cúbicos}, cuyas celdas son cuadrados alineados con la rejilla. Toda la
-teoría de esta sección se traslada sin cambios esenciales a este
+teoría de esta sección se traslada sin cambios importantes a este
 contexto~\cite{kaczynski2004}.
 
 \begin{definicion}[{\cite[cap.~2]{kaczynski2004}}]
@@ -106,14 +120,58 @@ Un \emph{intervalo elemental} es un intervalo $[k,k+1]$ (no degenerado) o
 $[k,k]$ (degenerado) con $k\in\mathbb{Z}$. Un \emph{cubo elemental} en
 $\mathbb{R}^2$ es un producto $Q=I_1\times I_2$ de intervalos elementales;
 su dimensión es el número de factores no degenerados. Así, los cubos de
-dimensión $0,1,2$ son vértices, aristas y cuadrados. Una \emph{cara} de
-$Q$ es un cubo elemental contenido en $Q$. Un \emph{complejo cúbico} es una
-colección finita de cubos elementales cerrada por caras.
+dimensión $0,1,2$ son vértices, aristas y cuadrados. Una \emph{cara} de $Q$
+es un cubo elemental $Q'$ con $Q'\subseteq Q$; lo denotamos $Q'\le Q$, como
+en el caso simplicial. Un \emph{complejo cúbico} es una colección finita $K$
+de cubos elementales tal que
+\[
+  Q\in K\ \text{y}\ Q'\le Q\ \Longrightarrow\ Q'\in K,
+\]
+es decir, cerrada por caras.
 \end{definicion}
+
+\begin{observacion}
+A diferencia de los complejos simpliciales, aquí no hace falta exigir que
+dos celdas se corten en una cara común: se cumple automáticamente. La
+intersección de dos intervalos elementales es vacía o un intervalo
+elemental. Como $(I_1\times I_2)\cap(J_1\times J_2)=(I_1\cap J_1)\times(I_2\cap J_2)$,
+la intersección de dos cubos elementales es vacía o un cubo elemental, que
+es cara de ambos.
+\end{observacion}
 
 El ejemplo fundamental es el \emph{complejo de rejilla}
 $K^{m,n}$, formado por todos los cubos elementales contenidos en
-$[1,m]\times[1,n]$.
+$[1,m]\times[1,n]$ (Figura~\ref{fig:rejilla}).
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[scale=1.3]
+  % cuadrados (dim 2)
+  \fill[blue!12] (1,1) rectangle (4,3);
+  \fill[blue!35] (2,2) rectangle (3,3);
+  % aristas (dim 1)
+  \foreach \y in {1,2,3} \draw[thick] (1,\y) -- (4,\y);
+  \foreach \x in {1,2,3,4} \draw[thick] (\x,1) -- (\x,3);
+  \draw[line width=2.4pt, red!80!black] (1,3) -- (2,3);
+  % vértices (dim 0)
+  \foreach \x in {1,2,3,4} \foreach \y in {1,2,3}
+    \fill (\x,\y) circle (1.6pt);
+  \fill[orange!90!black] (4,1) circle (3pt);
+  % ejes
+  \foreach \x in {1,2,3,4} \node[below=3pt] at (\x,1) {\small $\x$};
+  \foreach \y in {1,2,3} \node[left=3pt] at (1,\y) {\small $\y$};
+  % etiquetas
+  \node[blue!60!black] at (2.5,2.5) {\small $Q$};
+  \node[red!80!black, above=3pt] at (1.5,3) {\small $[1,2]\times[3,3]$};
+  \node[orange!90!black, right=4pt] at (4,1) {\small $[4,4]\times[1,1]$};
+  \node[blue!60!black, right=4pt] at (4,2.5) {\small $Q=[2,3]\times[2,3]$};
+\end{tikzpicture}
+\caption{Complejo de rejilla $K^{4,3}$: los cubos elementales contenidos en
+$[1,4]\times[1,3]$. Tiene 12 vértices, 17 aristas y 6 cuadrados. Se
+destacan un cuadrado $Q$, una arista y un vértice. Su característica de
+Euler es $12-17+6=1$, la de un disco.}
+\label{fig:rejilla}
+\end{figure}
 
 \subsection{Imágenes como complejos filtrados}
 \label{sec:imagenes-complejos}
@@ -136,14 +194,81 @@ En ambos casos la función $f_I:K\to\mathbb{R}$ resultante es
 Esta propiedad será clave en la Sección~\ref{sec:persistencia}, porque
 garantiza que los conjuntos de subnivel son subcomplejos.
 
+\begin{ejemplo}
+Consideremos la imagen $2\times2$
+\[
+  I=\begin{pmatrix}1&4\\3&2\end{pmatrix}
+\]
+con la construcción V. Los cuatro píxeles son los vértices de un cuadrado y
+reciben su intensidad. Cada arista recibe el máximo de sus dos vértices:
+la superior vale $\max(1,4)=4$, la inferior $\max(3,2)=3$, la izquierda
+$\max(1,3)=3$ y la derecha $\max(4,2)=4$. El cuadrado recibe el máximo de
+los cuatro, $4$. La función es monótona: el valor de cada arista es al
+menos el de sus vértices, y el del cuadrado, al menos el de sus aristas.
+
+Los conjuntos de subnivel $K_r=f_I^{-1}(-\infty,r]$ son subcomplejos
+(Figura~\ref{fig:subnivel}):
+\begin{itemize}
+  \item $K_2$ contiene solo los vértices de valor $1$ y $2$. Son píxeles
+  diagonales y ninguna arista los une, así que $K_2$ tiene dos
+  componentes conexas.
+  \item $K_3$ añade el vértice de valor $3$ y las dos aristas de valor
+  $3$. Ambas tienen sus extremos en $K_3$, y las dos componentes
+  anteriores quedan unidas en un camino.
+  \item $K_4$ es el complejo completo.
+\end{itemize}
+Si, en cambio, asignáramos a la arista inferior el valor $1$, la función
+dejaría de ser monótona y $K_1$ contendría esa arista pero no sus
+extremos, de valores $3$ y $2$: no sería un subcomplejo.
+\end{ejemplo}
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[scale=1.5,
+    v/.style={circle, fill, inner sep=1.6pt},
+    lbl/.style={font=\small}]
+  \foreach \r/\dx in {2/0, 3/2.3, 4/4.6} {
+    \begin{scope}[xshift=\dx cm]
+      \draw[gray!35, dashed] (0,0) rectangle (1,1);
+      \ifnum\r>3 \fill[blue!20] (0,0) rectangle (1,1); \fi
+      \ifnum\r>2 \draw[thick] (0,0) -- (1,0); \draw[thick] (0,0) -- (0,1); \fi
+      \ifnum\r>3 \draw[thick] (0,1) -- (1,1); \draw[thick] (1,0) -- (1,1); \fi
+      \node[v] at (0,1) {}; \node[lbl, above left] at (0,1) {$1$};
+      \node[v] at (1,0) {}; \node[lbl, below right] at (1,0) {$2$};
+      \ifnum\r>2 \node[v] at (0,0) {}; \node[lbl, below left] at (0,0) {$3$};
+      \else \node[circle, draw, gray!50, inner sep=1.6pt] at (0,0) {}; \fi
+      \ifnum\r>3 \node[v] at (1,1) {}; \node[lbl, above right] at (1,1) {$4$};
+      \else \node[circle, draw, gray!50, inner sep=1.6pt] at (1,1) {}; \fi
+      \node at (0.5,-0.55) {$K_{\r}$};
+    \end{scope}
+  }
+\end{tikzpicture}
+\caption{Conjuntos de subnivel de la construcción V de la imagen
+$\left(\begin{smallmatrix}1&4\\3&2\end{smallmatrix}\right)$. En $K_2$ los
+dos píxeles diagonales forman dos componentes; en $K_3$ quedan unidos; en
+$K_4$ está el complejo completo.}
+\label{fig:subnivel}
+\end{figure}
+
 \begin{observacion}
-La elección de construcción fija la conectividad del primer plano. En la
-construcción V dos píxeles diagonales no comparten arista, de modo que el
-primer plano se conecta con \emph{4-conectividad}. En la construcción T
-dos píxeles diagonales comparten un vértice, y el primer plano se conecta
-con \emph{8-conectividad}. Para estructuras finas y oblicuas, como las barbas
-de un filamento, esta diferencia cambia el número de componentes
-detectadas.
+La elección de construcción fija qué píxeles se consideran conectados.
+Dos píxeles pueden ser vecinos por un lado (\emph{4-conectividad}) o
+también por una esquina (\emph{8-conectividad}). En la construcción V los
+píxeles son vértices y solo los unen aristas horizontales y verticales,
+así que dos píxeles diagonales quedan separados: el primer plano se
+conecta con 4-conectividad (como en $K_2$ del ejemplo anterior). En la
+construcción T los píxeles son cuadrados y dos cuadrados diagonales
+comparten el vértice de la esquina: el primer plano se conecta con
+8-conectividad. La diferencia es relevante para estructuras finas y
+oblicuas. Una línea diagonal de tres píxeles,
+\[
+  \begin{smallmatrix} \blacksquare & \square & \square\\
+                      \square & \blacksquare & \square\\
+                      \square & \square & \blacksquare \end{smallmatrix}
+\]
+forma tres componentes con 4-conectividad y una sola con 8-conectividad.
+En este trabajo se usa la 8-conectividad, es decir, la construcción T,
+para no fragmentar artificialmente las barbas de los filamentos.
 \end{observacion}
 
 % ------------------------------------------------------------
@@ -210,14 +335,21 @@ hueco no puede rellenarse, y por tanto no es borde de nada.
 \subsection{Grupos de homología y números de Betti}
 
 \begin{definicion}[{\cite[§IV.1]{edelsbrunner2010}}]
-El \emph{$p$-ésimo grupo de homología} de $K$ (sobre $\mathbb{F}_2$, en
-realidad un $\mathbb{F}_2$-espacio vectorial) es el cociente
+El \emph{$p$-ésimo grupo de homología} de $K$ es el cociente
 \[
   H_p(K)=Z_p(K)/B_p(K),
 \]
 y el \emph{$p$-ésimo número de Betti} es su dimensión,
 $\beta_p(K)=\dim H_p(K)=\dim Z_p(K)-\dim B_p(K)$.
 \end{definicion}
+
+\begin{observacion}
+Sobre $\mathbb{F}_2$, estos «grupos» son en realidad espacios vectoriales.
+Como $\partial_p$ es lineal, $Z_p(K)$ y $B_p(K)$ son subespacios de
+$C_p(K)$, y su cociente $H_p(K)$ es un espacio vectorial con una dimensión
+bien definida. Por eso la homología puede calcularse con álgebra lineal
+(Sección~\ref{sec:reduccion}).
+\end{observacion}
 
 Los elementos de $H_p(K)$ son clases $c+B_p(K)$ de ciclos que difieren en un
 borde; dos ciclos de la misma clase se llaman \emph{homólogos}. En el plano,
@@ -233,8 +365,51 @@ que es el caso que nos ocupa, solo interesan dos números de Betti:
 Si $K$ triangula un disco, $\beta_0=1$ y $\beta_p=0$ para $p\ge1$. Si
 triangula un anillo (o un círculo), $\beta_0=\beta_1=1$. Para el toro,
 $\beta_0=1$, $\beta_1=2$ y $\beta_2=1$: los dos generadores de $H_1$ dan la
-vuelta al «brazo» y al «agujero» del toro.
+vuelta al «brazo» y al «agujero» del toro (Figura~\ref{fig:betti}).
 \end{ejemplo}
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[line width=0.8pt]
+  % --- Disco ---
+  \begin{scope}
+    \fill[blue!15] (0,0) circle (1);
+    \draw (0,0) circle (1);
+    \node at (0,-1.55) {Disco};
+    \node[font=\small] at (0,-2.05) {$\beta_0=1,\ \beta_1=0$};
+  \end{scope}
+  % --- Anillo ---
+  \begin{scope}[xshift=3.4cm]
+    \fill[blue!15, even odd rule] (0,0) circle (1) (0,0) circle (0.45);
+    \draw (0,0) circle (1);
+    \draw (0,0) circle (0.45);
+    \draw[red!80!black, line width=1.3pt, dashed] (0,0) circle (0.72);
+    \node at (0,-1.55) {Anillo};
+    \node[font=\small] at (0,-2.05) {$\beta_0=1,\ \beta_1=1$};
+  \end{scope}
+  % --- Toro ---
+  \begin{scope}[xshift=7.6cm]
+    \fill[blue!15] (0,0) ellipse (1.8 and 0.95);
+    \draw (0,0) ellipse (1.8 and 0.95);
+    \fill[white] (-0.75,0.08) .. controls (-0.3,-0.25) and (0.3,-0.25) .. (0.75,0.08)
+                 .. controls (0.3,0.28) and (-0.3,0.28) .. (-0.75,0.08);
+    \draw (-0.95,0.15) .. controls (-0.4,-0.3) and (0.4,-0.3) .. (0.95,0.15);
+    \draw (-0.75,0.08) .. controls (-0.3,0.28) and (0.3,0.28) .. (0.75,0.08);
+    % generador alrededor del agujero
+    \draw[red!80!black, line width=1.3pt, dashed] (0,-0.05) ellipse (1.32 and 0.6);
+    % generador alrededor del brazo
+    \draw[green!50!black, line width=1.3pt] (0,-0.2) .. controls (-0.17,-0.45) and (-0.17,-0.8) .. (0,-0.95);
+    \draw[green!50!black, line width=1.3pt, dashed] (0,-0.2) .. controls (0.17,-0.45) and (0.17,-0.8) .. (0,-0.95);
+    \node at (0,-1.55) {Toro};
+    \node[font=\small] at (0,-2.05) {$\beta_0=1,\ \beta_1=2,\ \beta_2=1$};
+  \end{scope}
+\end{tikzpicture}
+\caption{Números de Betti de tres espacios. En rojo discontinuo, un ciclo
+que rodea un agujero y genera $H_1$; en el toro, en verde, el segundo
+generador, que da la vuelta al brazo. En el disco todo ciclo es borde, y
+$H_1$ es trivial.}
+\label{fig:betti}
+\end{figure}
 
 \begin{observacion}[{Homología reducida \cite[§IV.1]{edelsbrunner2010}}]
 Que un disco tenga $\beta_0=1$ resulta incómodo si se interpreta $\beta_0$
@@ -263,12 +438,12 @@ núcleo y su conúcleo,
 \]
 En nuestro contexto, $\dim\ker\iota_*$ cuenta las clases que \emph{mueren} al
 pasar de $K'$ a $K$, y $\dim\operatorname{coker}\iota_*$ las clases de $K$ que
-\emph{no proceden} de $K'$. Esta pareja reaparecerá en las métricas de la
-Sección~\ref{sec:topo-segmentacion}.
+\emph{no proceden} de $K'$. Esta pareja reaparecerá en la métrica DIU de la
+Sección~\ref{sec:topograph}.
 
 \begin{teorema}[{Invariancia y Euler--Poincaré \cite[Cor.~2.11]{hatcher2002}, \cite[§IV.2]{edelsbrunner2010}}]
-La homología no depende de la triangulación elegida: espacios homotópicamente
-equivalentes tienen grupos de homología isomorfos. En
+La homología no depende de la triangulación elegida, esto es, espacios
+homotópicamente equivalentes tienen grupos de homología isomorfos. En
 particular, la \emph{característica de Euler}, definida como la suma
 alternada del número de símplices de cada dimensión, verifica la fórmula de
 Euler--Poincaré
@@ -279,24 +454,57 @@ Euler--Poincaré
 \end{teorema}
 
 \subsection{Cálculo mediante reducción matricial}
+\label{sec:reduccion}
 
-La homología se calcula con álgebra lineal sobre $\mathbb{F}_2$. Fijado un
-orden de los símplices, la \emph{matriz de borde} $\partial_p$ tiene una
-fila por cada $(p-1)$-símplice y una columna por cada $p$-símplice, con un
-$1$ en la posición $(i,j)$ si el $i$-ésimo $(p-1)$-símplice es cara del
-$j$-ésimo $p$-símplice. Con operaciones elementales de filas y columnas la
-matriz se lleva a su \emph{forma normal de Smith}: un bloque identidad en la
-esquina superior izquierda y ceros en el resto. Las columnas no nulas
-generan $B_{p-1}$ y las nulas generan $Z_p$, de modo que
+Como $Z_p=\ker\partial_p$ y $B_p=\operatorname{im}\partial_{p+1}$, los
+números de Betti dependen solo de los operadores borde. Si $n_p$ es el
+número de $p$-símplices, el teorema del rango da
+$\dim\ker\partial_p=n_p-\operatorname{rank}\partial_p$, y por tanto:
+
+\begin{proposicion}[{\cite[§IV.2]{edelsbrunner2010}}]
 \[
-  \dim B_{p-1}=\operatorname{rank}\partial_p,\qquad
-  \dim Z_p=n_p-\operatorname{rank}\partial_p,
+  \beta_p=\dim Z_p-\dim B_p
+         =n_p-\operatorname{rank}\partial_p-\operatorname{rank}\partial_{p+1}.
 \]
-con $n_p$ el número de $p$-símplices. De ahí, usando $\dim B_p=\operatorname{rank}\partial_{p+1}$,
+\end{proposicion}
+
+Para calcular la homología basta, pues, conocer los rangos de los
+operadores borde. Fijado un orden de los símplices, $\partial_p$ se
+representa por la \emph{matriz de borde}: una fila por cada
+$(p-1)$-símplice, una columna por cada $p$-símplice y un $1$ en la
+posición $(i,j)$ si el $i$-ésimo $(p-1)$-símplice es cara del $j$-ésimo
+$p$-símplice. Para obtener su rango es suficiente reducirla, por ejemplo,
+a su \emph{forma normal de Smith} mediante operaciones elementales de
+filas y columnas: un bloque identidad en la esquina superior izquierda y
+ceros en el resto. El rango es el tamaño de ese bloque. El coste es como
+mucho cúbico en el número de símplices~\cite[§IV.2]{edelsbrunner2010}.
+
+\begin{ejemplo}
+Sea $K$ el borde de un triángulo, con vértices $a,b,c$ y aristas
+$ab,bc,ac$. Su matriz de borde $\partial_1$ (filas $a,b,c$; columnas
+$ab,bc,ac$) es
 \[
-  \beta_p=n_p-\operatorname{rank}\partial_p-\operatorname{rank}\partial_{p+1}.
-\] El coste es como mucho cúbico en el número de
-símplices~\cite[§IV.2]{edelsbrunner2010}.
+  \partial_1=\begin{pmatrix}1&0&1\\1&1&0\\0&1&1\end{pmatrix}.
+\]
+Sumando a la tercera columna las dos primeras (en $\mathbb{F}_2$) se
+anula, porque $\partial_1(ab+bc+ac)=0$, mientras que las dos primeras son
+independientes. Por tanto $\operatorname{rank}\partial_1=2$. Como no hay
+triángulos, $\partial_2=0$, y $\partial_0=0$ por definición. Aplicando la
+fórmula anterior:
+\[
+  \beta_0=3-0-2=1,\qquad \beta_1=3-2-0=1.
+\]
+Es la homología de un círculo: una componente y un agujero, generado por
+el ciclo $ab+bc+ac$.
+
+Si añadimos el triángulo $abc$, su borde es la columna
+$\partial_2=(1,1,1)^{T}$, de rango $1$. Ahora
+\[
+  \beta_0=1,\qquad \beta_1=3-2-1=0,\qquad \beta_2=1-1-0=0,
+\]
+la homología de un disco: el ciclo $ab+bc+ac$ es el borde del triángulo y
+deja de ser un agujero.
+\end{ejemplo}
 
 % ------------------------------------------------------------
 \section{Homología persistente}
@@ -309,23 +517,86 @@ este problema estudiando una \emph{familia} de espacios y midiendo cuánto
 dura cada característica topológica a lo largo de ella. Las características
 que persisten mucho se consideran significativas; las efímeras, ruido.
 
-\subsection{Intuición: la regla del mayor}
+La idea se entiende mejor con un ejemplo en una dimensión. Pensemos en la
+gráfica de una función como en un paisaje que se va inundando: a medida
+que sube el nivel del agua $a$, el conjunto de subnivel
+$X_a=f^{-1}(-\infty,a]$ es la parte sumergida.
 
-Sea $f:X\to\mathbb{R}$ una función continua, por
-ejemplo la intensidad de una imagen, y consideremos sus conjuntos de
-subnivel $X_a=f^{-1}(-\infty,a]$. Al aumentar el umbral $a$ las componentes
-de $X_a$ aparecen (en los mínimos locales) y se fusionan, pero nunca se
-dividen. Cuando dos componentes se fusionan, decimos que \emph{muere} la más
-joven y sobrevive la más antigua:
+\begin{ejemplo}
+Sea $f$ la función lineal a trozos que toma los valores
+$4,\ 0,\ 6,\ 5,\ 8,\ 1,\ 10$ en siete puntos equiespaciados
+(Figura~\ref{fig:elder}). Al subir el nivel $a$:
+\begin{itemize}
+  \item En $a=0$ aparece una componente en el mínimo de valor $0$; en
+  $a=1$, otra en el mínimo de valor $1$; en $a=5$, una tercera. Cada
+  mínimo local \emph{hace nacer} una componente.
+  \item En $a=6$ el agua supera el collado que separa las componentes
+  nacidas en $0$ y en $5$, y ambas se funden en una. Decimos que
+  \emph{muere} la más joven, la nacida en $5$.
+  \item En $a=8$ se supera el segundo collado y se funden la componente
+  nacida en $0$ y la nacida en $1$. Muere de nuevo la más joven, la
+  nacida en $1$.
+  \item La componente nacida en $0$ no muere nunca.
+\end{itemize}
+Cada componente queda descrita por su par (nacimiento, muerte):
+$(0,\infty)$, $(1,8)$ y $(5,6)$.
+\end{ejemplo}
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[x=0.9cm, y=0.35cm]
+  % --- paisaje ---
+  \begin{scope}
+    \draw[->] (-0.3,0) -- (6.6,0);
+    \draw[->] (0,-0.6) -- (0,11) node[above] {\small $f$};
+    \fill[blue!12] (0,0) -- (0,4) -- (1,0) -- (2,6) -- (3,5) -- (4,8)
+          -- (5,1) -- (6,10) -- (6,0) -- cycle;
+    \draw[thick] (0,4) -- (1,0) -- (2,6) -- (3,5) -- (4,8) -- (5,1) -- (6,10);
+    \draw[dashed, gray] (0,6) -- (6.3,6) node[right] {\small $a=6$};
+    \draw[dashed, gray] (0,8) -- (6.3,8) node[right] {\small $a=8$};
+    \fill[red!80!black] (1,0) circle (2.2pt) node[below=2pt] {\small $0$};
+    \fill[green!50!black] (5,1) circle (2.2pt) node[right=2pt] {\small $1$};
+    \fill[orange!90!black] (3,5) circle (2.2pt) node[below=2pt] {\small $5$};
+    \node[above, font=\small] at (2,6) {collado};
+    \node[above, font=\small] at (4,8) {collado};
+  \end{scope}
+  % --- intervalos de vida ---
+  \begin{scope}[xshift=8.4cm, x=0.5cm]
+    \draw[->] (0,0) -- (10.6,0) node[right] {\small $a$};
+    \foreach \t in {0,2,4,6,8,10} \draw (\t,0.25) -- (\t,-0.25) node[below] {\small \t};
+    \draw[line width=3pt, red!80!black] (0,8) -- (10.2,8);
+    \draw[->, red!80!black, thick] (10,8) -- (10.6,8);
+    \draw[line width=3pt, green!50!black] (1,5.5) -- (8,5.5);
+    \draw[line width=3pt, orange!90!black] (5,3) -- (6,3);
+    \node[right, font=\small] at (10.6,8) {$(0,\infty)$};
+    \node[right, font=\small] at (8.2,5.5) {$(1,8)$};
+    \node[right, font=\small] at (6.2,3) {$(5,6)$};
+  \end{scope}
+\end{tikzpicture}
+\caption{Izquierda: una función en una dimensión; al subir el nivel $a$
+nacen componentes en los mínimos y se funden en los collados. Derecha:
+el intervalo de vida de cada componente. La componente naranja vive muy
+poco: es un mínimo poco profundo, típico del ruido.}
+\label{fig:elder}
+\end{figure}
+
+La decisión de qué componente muere en cada fusión sigue una regla
+fija~\cite[§VII.1]{edelsbrunner2010}:
 
 \begin{quote}
-\textbf{Regla del mayor} (\emph{elder rule}). En una fusión, la componente
-más antigua continúa y la más joven termina.
+\textbf{Regla del mayor} (\emph{elder rule}). Cuando dos componentes se
+funden, continúa la más antigua (la que nació antes) y termina la más
+joven.
 \end{quote}
 
-Cada componente queda así descrita por un par (nacimiento, muerte), y su
-\emph{persistencia} es la diferencia entre ambos valores. La homología
-persistente generaliza esta idea a todas las dimensiones.
+La \emph{persistencia} de una componente es la diferencia entre su muerte
+y su nacimiento. En el ejemplo, la componente nacida en $1$ persiste $7$
+unidades: es una estructura real del paisaje. La nacida en $5$ persiste
+solo $1$: es un pequeño hoyo que desaparece en cuanto el nivel sube un
+poco y, en una imagen, correspondería a ruido. Esta distinción entre lo
+que persiste y lo que no es la idea central de la homología persistente,
+que generaliza este procedimiento a todas las dimensiones (componentes,
+agujeros, etc.).
 
 \subsection{Filtraciones}
 
@@ -345,24 +616,26 @@ Edelsbrunner--Harer esta construcción recibe el nombre de \emph{filtración
 lower star}~\cite[§VII.2]{edelsbrunner2010}.
 
 \begin{ejemplo}
-Sea $K$ el complejo con vértices $a,b,c$ y aristas $ab$ y $bc$, y sea $f$ dada
-por $f(a)=1$, $f(c)=2$, $f(b)=3$ y $f(ab)=f(bc)=3$. La función es monótona:
-cada cara tiene un valor no mayor que el de la arista que la contiene. Sus
-conjuntos de subnivel son $K_1=\{a\}$, $K_2=\{a,c\}$ y $K_3=K$. $K_2$ es un
-subcomplejo aunque $a$ y $c$ no estén conectados: no contiene aristas.
+Sea $K$ el complejo con vértices $a,b,c$ y aristas $ab$ y $bc$, y sea $f$
+dada por $f(a)=1$, $f(c)=2$, $f(b)=3$ y $f(ab)=f(bc)=3$. La función es
+monótona: cada vértice tiene un valor no mayor que el de las aristas que lo
+contienen. Sus conjuntos de subnivel son $K_1=\{a\}$, $K_2=\{a,c\}$ y
+$K_3=K$. $K_2$ es un subcomplejo aunque $a$ y $c$ no estén conectados: no
+contiene aristas.
 \end{ejemplo}
 
 \begin{ejemplo}
 Sea $I$ una imagen de $1\times4$ píxeles con intensidades $0,5,1,4$ de
-izquierda a derecha, con la construcción V sobre un camino de cuatro vértices.
-Al subir el umbral $a$ se van añadiendo píxeles y aristas, y cada
+izquierda a derecha, con la construcción V sobre un camino de cuatro
+vértices. Al subir el umbral $a$ se van añadiendo píxeles y aristas, y cada
 componente de $\{I\le a\}$ se registra al nacer y al fusionarse. El píxel de
 intensidad $0$ nace en $a=0$, y el de intensidad $1$ en $a=1$. Al llegar a
-$a=5$, el píxel central de intensidad $5$ une ambas regiones; por la regla del
-mayor, la componente de intensidad $1$, la más joven, muere en $5$. Así,
-$\operatorname{Dgm}_0=\{(0,\infty),(1,5)\}$ más la diagonal. Los píxeles de
-intensidad $4$ se unen a su vecino en el mismo paso en que nacen, así que no
-aportan puntos con persistencia positiva.
+$a=5$, el píxel central de intensidad $5$ une ambas regiones; por la regla
+del mayor, la componente nacida en $1$, la más joven, muere en $5$. Así,
+$\operatorname{Dgm}_0=\{(0,\infty),(1,5)\}$ más la diagonal
+(Figura~\ref{fig:filtracion-1d}). El píxel de intensidad $4$ se une a su
+vecino en el mismo paso en que nace, así que no aporta ningún punto con
+persistencia positiva.
 \end{ejemplo}
 
 \begin{figure}[ht]
@@ -451,13 +724,12 @@ superior izquierdo con vértice $(a_k,a_l)$~\cite[§VII.1]{edelsbrunner2010}.
 \begin{observacion}[{Códigos de barras y módulos de persistencia \cite{crawleyboevey2015}, \cite[§2.3]{stucki2023}}]
 Una forma equivalente de representar el diagrama es el \emph{código de
 barras} (\emph{barcode}): cada punto $(b,d)$ se dibuja como un intervalo
-$[b,d)$. Algebraicamente, la familia de espacios $H_p(K_i)$ con las
-aplicaciones $f_p^{i,j}$ es un \emph{módulo de persistencia}. Todo módulo
-de persistencia de dimensión finita en cada punto se descompone de forma
-única como suma directa de módulos intervalo~\cite{crawleyboevey2015}; el
-multiconjunto de esos intervalos es su código de barras
-$\mathcal{B}(M)$. Este punto de vista algebraico es el que permite definir
-los emparejamientos inducidos de la Sección~\ref{sec:betti-matching}.
+$[b,d)$, como en las Figuras~\ref{fig:elder} y~\ref{fig:filtracion-1d}.
+Algebraicamente, la familia de espacios $H_p(K_i)$ con las aplicaciones
+$f_p^{i,j}$ es un \emph{módulo de persistencia}. Todo módulo de persistencia
+de dimensión finita en cada punto se descompone de forma única como suma
+directa de módulos intervalo~\cite{crawleyboevey2015}; el multiconjunto de
+esos intervalos es su código de barras.
 \end{observacion}
 
 \subsection{Algoritmo de reducción}
@@ -515,39 +787,66 @@ $\operatorname{Dgm}_0=\{(1,\infty),(2,4),(3,5)\}$ y
 $\operatorname{Dgm}_1=\{(6,7)\}$.
 \end{ejemplo}
 
-\subsection{Implementaciones eficientes en el plano}
+\subsection{Dimensión 0: árboles de fusión y \emph{union-find}}
 \label{sec:persistencia-eficiente}
 
-En la práctica la matriz se almacena de forma dispersa. Para imágenes
-bidimensionales hay dos resultados que hacen el cálculo casi lineal y que
-explican la eficiencia de los métodos de la
-Sección~\ref{sec:topo-segmentacion}~\cite[§VII.2]{edelsbrunner2010}.
+El algoritmo de reducción sirve en cualquier dimensión, pero su coste en
+el peor caso es cúbico. En dimensión $0$ hay una vía mucho más rápida, que
+es la que aprovecha Topograph (Sección~\ref{sec:topograph}).
 
-\paragraph{Diagrama de dimensión 0 con \emph{union-find}~\cite[§VII.2]{edelsbrunner2010}.} Una arista
-$uw$ mata una componente si y solo si $u$ y $w$ están en componentes
-distintas. En ese caso, por la regla del mayor, muere la componente cuyo
-vértice más antiguo es más reciente. Basta, pues, mantener las componentes en una
-estructura \emph{union-find} etiquetada con su vértice más antiguo. Así
-$\operatorname{Dgm}_0$ se calcula en tiempo $O(m\,\alpha(m))$, donde
-$\alpha$ es la inversa de la función de Ackermann (en la práctica, una
-constante).
+\paragraph{Árbol de fusión~\cite[§VII.1]{edelsbrunner2010}.} Si dibujamos
+cada componente de $X_a$ como un punto y seguimos su evolución al subir
+$a$, obtenemos un grafo: las ramas nacen en los mínimos y se unen en los
+collados. Como las componentes se fusionan pero nunca se dividen, el
+grafo no tiene ciclos y es un árbol, el \emph{árbol de fusión}
+(\emph{merge tree}). En el ejemplo de la Figura~\ref{fig:elder} tiene tres
+hojas, en los mínimos $0$, $1$ y $5$, y dos uniones, en los collados $6$
+y $8$. La regla del mayor descompone el árbol en caminos disjuntos: en
+cada unión continúa la rama más antigua y termina la más joven. Cada
+camino es un punto del diagrama: $(0,\infty)$, $(1,8)$ y $(5,6)$. Esta es
+la única descomposición en caminos cuyo número de caminos que atraviesan
+$[a,b]$ coincide, para todo $a\le b$, con el número de componentes de
+$X_b$ que contienen puntos de $X_a$. Por eso el diagrama de dimensión
+$0$ es un resumen del árbol de fusión, pero no lo determina por completo:
+pierde, por ejemplo, con qué rama se funde cada componente al morir.
 
-\paragraph{Dimensión 1 por dualidad~\cite[§VII.2]{edelsbrunner2010}.} En una superficie, los agujeros de
-los subniveles de $f$ corresponden a las componentes de los supernivel de
-$f$. En concreto, un punto finito $(a,b)$ está en $\operatorname{Dgm}_1(f)$
-si y solo si $(-b,-a)$ está en $\operatorname{Dgm}_0(-f)$. Por tanto también
-$\operatorname{Dgm}_1$ se obtiene con \emph{union-find}. Es la misma idea,
+\paragraph{Cálculo con \emph{union-find}~\cite[§VII.2]{edelsbrunner2010}.}
+Recorriendo las celdas en orden de filtración, el árbol se construye con
+una estructura \emph{union-find}, que mantiene una partición de los
+vértices en componentes. Cada vértice crea una componente nueva. Cada
+arista $uw$ puede hacer dos cosas:
+\begin{itemize}
+  \item si $u$ y $w$ están en componentes distintas, las fusiona, y por la
+  regla del mayor muere la componente cuyo vértice más antiguo es más
+  reciente;
+  \item si están en la misma componente, no cambia $H_0$: cierra un ciclo,
+  es decir, hace nacer una clase de dimensión $1$.
+\end{itemize}
+Etiquetando cada componente con su vértice más antiguo, cada paso cuesta
+tiempo casi constante, y $\operatorname{Dgm}_0$ se obtiene en
+$O(m\,\alpha(m))$ una vez ordenadas las celdas, donde $\alpha$ es la
+inversa de la función de Ackermann (en la práctica, una constante).
+
+\paragraph{Por qué solo en dimensión $0$.} \emph{Union-find} funciona
+porque en dimensión $0$ las clases de homología son exactamente los
+bloques de una partición: dos vértices son homólogos si y solo si están
+en la misma componente, y añadir una arista solo puede unir dos bloques.
+En dimensión $1$ no hay nada parecido. Las clases son elementos de un
+espacio vectorial, un ciclo puede ser suma de otros, y cuando un
+triángulo (o un cuadrado) mata una clase no basta con unir dos conjuntos:
+hay que decidir \emph{qué combinación} de ciclos muere. Por eso en
+dimensiones superiores hace falta el álgebra lineal de la reducción
+matricial. Por la misma razón, la historia de los ciclos no forma un árbol.
+
+\paragraph{Dimensión 1 en el plano por dualidad~\cite[§VII.2]{edelsbrunner2010}.}
+En una superficie hay una salida: los agujeros de los subniveles de $f$
+corresponden a componentes de los subniveles de $-f$ (es decir, de los
+superniveles de $f$). En concreto, un punto finito $(a,b)$ está en
+$\operatorname{Dgm}_1(f)$ si y solo si $(-b,-a)$ está en
+$\operatorname{Dgm}_0(-f)$. Así, en imágenes bidimensionales también
+$\operatorname{Dgm}_1$ se calcula con \emph{union-find}. Es la misma idea,
 la dualidad entre agujeros del primer plano y componentes del fondo, que
 explota Topograph (Sección~\ref{sec:topograph}).
-
-\paragraph{Relación con los árboles de fusión~\cite[§VII.2]{edelsbrunner2010}.} Para una función
-sobre una superficie, el diagrama de dimensión $0$ codifica el \emph{árbol de
-fusión} (\emph{merge tree}): las componentes de los subniveles se fusionan en
-un árbol cuyas ramas empiezan en los mínimos, y cada punto $(a,b)$ es una rama
-que termina en el valor $b$. Esta estructura tiene esta forma solo en
-dimensión $0$, porque las componentes únicamente se unen y nunca se dividen.
-Con dimensiones superiores, los ciclos pueden nacer y morir en cualquier
-orden, y su historia ya no forma un árbol.
 
 % ------------------------------------------------------------
 \section{Distancias entre diagramas y estabilidad}
@@ -575,19 +874,28 @@ Para funciones $f,g$ sobre el mismo complejo,
 $d_B(\operatorname{Dgm}_p(f),\operatorname{Dgm}_p(g))\le\|f-g\|_\infty$.
 \end{teorema}
 
-Intuitivamente, el teorema dice que pequeños cambios en la imagen producen
-pequeños cambios en la función monótona y, por tanto, pequeños cambios en el
-diagrama de persistencia: la persistencia es robusta al ruido. Existe una
-versión algebraica, el teorema de estabilidad algebraica~\cite{chazal2009},
-que es la base de los emparejamientos inducidos de Bauer y
-Lesnick~\cite{bauer2015} de la Sección~\ref{sec:betti-matching}.Bauer y Lesnick~\cite{bauer2015}.
+La intuición es la siguiente. Si dos imágenes $I$ y $J$ difieren en cada
+píxel como mucho en $\varepsilon$, las funciones monótonas que inducen
+sobre el complejo también difieren como mucho en $\varepsilon$ en cada
+celda, porque el máximo (o el mínimo) de valores que cambian poco cambia
+poco. Es decir, $\|f_I-f_J\|_\infty\le\varepsilon$. El teorema garantiza
+entonces que los diagramas también están cerca: cada punto se desplaza
+como mucho $\varepsilon$ en cada coordenada, y los únicos puntos que
+pueden aparecer o desaparecer son los cercanos a la diagonal, con
+persistencia menor que $2\varepsilon$. En resumen, pequeños cambios en la
+imagen producen pequeños cambios en la función monótona y, por tanto,
+pequeños cambios en el diagrama de persistencia. En el ejemplo de la
+Figura~\ref{fig:elder}, un ruido de amplitud pequeña puede crear o
+eliminar componentes efímeras como la nacida en $5$, pero no la nacida en
+$1$, que persiste $7$ unidades.
 
 \begin{observacion}
 El emparejamiento óptimo de $d_B$ o $W_q$ solo mira las \emph{coordenadas}
 de los puntos, es decir, los valores de nacimiento y muerte, y no
 \emph{dónde} está cada característica en la imagen. Dos agujeros en
 posiciones distintas pero con la misma persistencia son indistinguibles.
-Esta limitación motiva el Betti matching.
+Esta limitación es una de las motivaciones de Topograph
+(Sección~\ref{sec:topograph}).
 \end{observacion}
 
 % ------------------------------------------------------------
@@ -719,136 +1027,45 @@ colapsa.
 
 En esta sección denotamos por $L\in[0,1]^{m\times n}$ el mapa de
 probabilidades que predice la red, por $P\in\{0,1\}^{m\times n}$ su
-binarización y por $G\in\{0,1\}^{m\times n}$ la segmentación de referencia. El error de números
-de Betti, $|\beta_p(P)-\beta_p(G)|$, es la métrica más sencilla~\cite[App.~K]{stucki2023},
-pero ignora la localización: una predicción con el número correcto de
-componentes, todas en el lugar equivocado, obtiene error cero. Por eso
-pasamos directamente a métricas que sí consideran la posición.
-
-\subsection{Pérdida de Wasserstein}
-
-Hu et al.~\cite{hu2019} propusieron la primera pérdida basada en
-persistencia. Se calcula $\operatorname{Dgm}(L)$ con la filtración de
-supernivel, se empareja con $\operatorname{Dgm}(G)$ mediante el
-emparejamiento óptimo $\gamma^*$ de Wasserstein y se minimiza
-$\sum_{q}\|q-\gamma^*(q)\|_2^2$. Como $G$ es binaria, todos los puntos de
-$\operatorname{Dgm}(G)$ coinciden en el punto $(0,1)$. La
-pérdida empuja hacia $(0,1)$ las características emparejadas y hacia la
-diagonal las demás. El problema es el señalado en la
-Sección~\ref{sec:distancias}: $\gamma^*$ puede emparejar un agujero de la
-predicción con otro de la referencia situado en una zona distinta de la
-imagen~\cite{stucki2023}.
-
-Por ejemplo, si la predicción tiene un agujero cerca de la esquina superior
-izquierda y la referencia uno cerca de la inferior derecha, ambos con la misma
-persistencia, el emparejamiento de Wasserstein puede unirlos aunque no
-correspondan al mismo objeto: el diagrama no contiene ninguna información
-sobre la posición.
-
-\subsection{Betti matching}
-\label{sec:betti-matching}
-
-Stucki et al.~\cite{stucki2023} resuelven este problema construyendo un
-emparejamiento que respeta la posición espacial. La herramienta son los
-\emph{emparejamientos inducidos}.
-
-\begin{definicion}[{\cite{bauer2015}}]
-Un \emph{morfismo} de módulos de persistencia $\Phi:M\to N$ es una familia de
-aplicaciones lineales $\Phi_t:M_t\to N_t$, una por cada valor $t$ del
-parámetro, que conmuta con las aplicaciones de transición:
-$N_{s\le t}\circ\Phi_s=\Phi_t\circ M_{s\le t}$ para todo $s\le t$. Su
-\emph{módulo imagen} es $\operatorname{im}\Phi$, con
-$(\operatorname{im}\Phi)_t=\operatorname{im}\Phi_t\subseteq N_t$ y las
-transiciones restringidas de $N$.
-\end{definicion}
-
-El módulo imagen es un submódulo de $N$: contiene las clases de $M$ que
-sobreviven a través de $\Phi$. Es precisamente lo que relaciona el teorema
-siguiente con los códigos de barras de $M$ y $N$. Sus intervalos aparecen como
-intervalos de $M$ y de $N$ a la vez, en el sentido del teorema siguiente.
-
-\paragraph{Emparejamientos inducidos.} Un morfismo $\Phi:M\to N$ entre
-módulos de persistencia determina un emparejamiento entre sus códigos de
-barras. Se trata de un caso particular del teorema 4.2 de~\cite{bauer2015}:
-
-\begin{teorema}[{\cite[Teor.~4.2]{bauer2015}, \cite[Teor.~1]{stucki2023}}]
-Sea $\Phi:M\to N$ un morfismo de módulos de persistencia (de dimensión
-finita puntual, escalonados y continuos por arriba). Existen inyecciones
-únicas $\mathcal{B}(\operatorname{im}\Phi)\hookrightarrow\mathcal{B}(M)$ y
-$\mathcal{B}(\operatorname{im}\Phi)\hookrightarrow\mathcal{B}(N)$ que envían
-cada intervalo $[b,c)$ a un intervalo $[b,d)\in\mathcal{B}(M)$ con $c\le d$
-y a un intervalo $[a,c)\in\mathcal{B}(N)$ con $a\le b$.
-\end{teorema}
-
-Componiendo ambas inyecciones a través de la imagen se obtiene el
-\emph{emparejamiento inducido} $\sigma(\Phi):\mathcal{B}(M)\to\mathcal{B}(N)$.
-Para imágenes, si $I\ge J$ píxel a píxel, cada subnivel de $I$ está
-contenido en el de $J$. Las inclusiones inducen un morfismo
-$\Phi(I,J):H_*(I)\to H_*(J)$ y, por tanto, un emparejamiento
-$\sigma(I,J)$. Este emparejamiento identifica características
-\emph{a través de la inclusión}, es decir, en la misma posición.
-
-\paragraph{Imagen de comparación~\cite[§3.1]{stucki2023}.} Para comparar $L$ y $G$, que no son
-comparables entre sí, se introduce un espacio ambiente común. Con
-supernivel se toma $C=\max(L,G)$, cuyos supernivel son la unión de los de
-$L$ y $G$. Como $L,G\le C$, hay emparejamientos inducidos $\sigma(L,C)$ y
-$\sigma(G,C)$, y el \emph{Betti matching} es la composición
-\[
-  \tau(L,G)=\sigma(G,C)^{-1}\circ\sigma(L,C).
-\]
-Dos características quedan emparejadas si ambas sobreviven en la unión como
-la misma característica.
-
-\paragraph{Pérdida~\cite[§3.2]{stucki2023}.} Viendo los códigos de barras como diagramas, y
-emparejando con la diagonal los puntos no emparejados, la pérdida de Betti
-matching es
-\[
-  \ell_{BM}(L,G)=\sum_{q\in\operatorname{Dgm}(L)}2\,\|q-\tau(L,G)(q)\|_2^2,
-\]
-y en la práctica se combina con una pérdida de solapamiento,
-$\ell=\alpha\,\ell_{BM}+\ell_{\mathrm{Dice}}$. Cada punto $q$ depende
-solo de dos píxeles, el de nacimiento $b(q)$ y el de muerte $d(q)$. Por
-eso el gradiente es disperso: refuerza el contraste entre esos dos píxeles
-para las características emparejadas y lo reduce para las no emparejadas.
-
-\paragraph{Métrica~\cite[§3.3]{stucki2023}.} Para imágenes binarias todos los puntos están en
-$(0,1)$. Un punto no emparejado contribuye
-$2(\tfrac12)^2+2(\tfrac12)^2=1$ y uno emparejado contribuye $0$, de modo que
-el \emph{error de Betti matching} es un entero:
-\[
-  \tau^{\mathrm{err}}(P,G)=\#\ker\tau(P,G)+\#\operatorname{coker}\tau(P,G),
-\]
-el número de características de $P$ o de $G$ sin pareja espacialmente
-correcta. Refina el error de Betti, que se obtiene con el mismo recuento
-pero usando un emparejamiento que ignora la posición.
+binarización y por $G\in\{0,1\}^{m\times n}$ la segmentación de referencia.
+El error de números de Betti, $|\beta_p(P)-\beta_p(G)|$, es la métrica
+topológica más sencilla~\cite[App.~K]{stucki2023}, pero ignora la
+localización: una predicción con el número correcto de componentes, todas
+en el lugar equivocado, obtiene error cero. A continuación describimos
+Topograph, que sí tiene en cuenta dónde está cada componente.
 
 \subsection{Topograph}
 \label{sec:topograph}
 
-Betti matching tiene dos inconvenientes: calcular los códigos de barras y
-el emparejamiento inducido es costoso, lo que en la práctica limita su uso
-a parches pequeños, y el gradiente solo actúa sobre dos píxeles por
-característica. Topograph~\cite{lux2025} sustituye la persistencia por un
-grafo de componentes conexas, que da garantías más fuertes y se calcula en
-tiempo casi lineal.
+Una forma natural de llevar la homología persistente al entrenamiento es
+comparar los diagramas de persistencia de la predicción y de la
+referencia y usar su distancia como pérdida~\cite{hu2019,stucki2023}.
+Estas pérdidas tienen tres inconvenientes~\cite{lux2025}. Primero, el
+emparejamiento entre diagramas solo mira las coordenadas de los puntos y
+puede asociar características situadas en lugares distintos de la imagen
+(Sección~\ref{sec:distancias}). Segundo, el coste: hay que calcular los
+diagramas en cada iteración del entrenamiento, lo que en la práctica
+limita su uso a parches pequeños. Tercero, el gradiente es muy disperso:
+cada punto $(b,d)$ del diagrama depende solo de dos píxeles, el de
+nacimiento y el de muerte. Topograph~\cite{lux2025} sustituye la
+persistencia por un grafo de componentes conexas, que tiene en cuenta la
+posición, se calcula en tiempo casi lineal y reparte el gradiente sobre
+regiones enteras.
 
-En lo que sigue, $P$ y $G$ son la predicción binaria y la referencia de la
-Sección~\ref{sec:topo-segmentacion}.
-
-\paragraph{Grafo de componentes~\cite[§2.1]{lux2025}.} Se modela la imagen binaria con la
-construcción T y se añade una celda de fondo exterior $c^\star$ pegada al
-borde, con lo que el complejo resultante $\tilde{C}$ es homeomorfo a la
-esfera $S^2$. Primer plano $F(I)$ y fondo $B(I)$ se descomponen en
-componentes conexas $F_1,\dots,F_k$ y $B_1,\dots,B_l$. El \emph{grafo de
-componentes} $\mathcal{G}(I)$ tiene un vértice por componente y una arista
-entre $F_i$ y $B_j$ si se tocan. Es un árbol bipartito y determina los
-números de Betti del primer plano:
+\paragraph{Grafo de componentes~\cite[§2.1]{lux2025}.} Se modela la imagen
+binaria con la construcción T y se añade una celda de fondo exterior
+$c^\star$ pegada al borde, con lo que el complejo resultante $\tilde{C}$ es
+homeomorfo a la esfera $S^2$. Primer plano $F(I)$ y fondo $B(I)$ se
+descomponen en componentes conexas $F_1,\dots,F_k$ y $B_1,\dots,B_l$. El
+\emph{grafo de componentes} $\mathcal{G}(I)$ tiene un vértice por
+componente y una arista entre $F_i$ y $B_j$ si se tocan. Es un árbol
+bipartito y determina los números de Betti del primer plano:
 \[
   \beta_0(F)=k,\qquad
   \beta_1(F)=\sum_{i=1}^{k}\bigl(\deg F_i-1\bigr).
 \]
 En la segunda fórmula, cada fondo vecino de $F_i$ salvo el exterior es un
-agujero de $F_i$.
+agujero de $F_i$ (Figura~\ref{fig:grafo-componentes}).
 
 \begin{figure}[ht]
 \centering
@@ -867,14 +1084,15 @@ $\beta_1(F)=(2-1)+(1-1)=1$. Ilustración propia.}
 \label{fig:grafo-componentes}
 \end{figure}
 
-\paragraph{Grafo combinado~\cite[§2.1]{lux2025}.} Superponiendo $P$ y $G$, el plano se cubre con
-cuatro regiones: verdaderos positivos (TP), verdaderos negativos (TN),
-falsos positivos (FP) y falsos negativos (FN). Para evitar problemas de
-conectividad en los bordes, se engrosa ligeramente el primer plano con
-$\varepsilon$ y $2\varepsilon$. Las componentes conexas de las cuatro
-regiones son los vértices del \emph{grafo combinado} $\mathcal{G}(P,G)$, con
-aristas entre regiones adyacentes. Es bipartito: las aristas unen siempre
-una región correcta (TP o TN) con una errónea (FP o FN).
+\paragraph{Grafo combinado~\cite[§2.1]{lux2025}.} Superponiendo $P$ y $G$,
+el plano se cubre con cuatro regiones: verdaderos positivos (TP), verdaderos
+negativos (TN), falsos positivos (FP) y falsos negativos (FN). Para evitar
+problemas de conectividad en los bordes, se engrosa ligeramente el primer
+plano con $\varepsilon$ y $2\varepsilon$. Las componentes conexas de las
+cuatro regiones son los vértices del \emph{grafo combinado}
+$\mathcal{G}(P,G)$, con aristas entre regiones adyacentes. Es bipartito:
+las aristas unen siempre una región correcta (TP o TN) con una errónea (FP
+o FN) (Figura~\ref{fig:grafo-combinado}).
 
 \begin{figure}[ht]
 \centering
@@ -896,9 +1114,9 @@ vértice por cada una. Ilustración propia.}
 \label{fig:grafo-combinado}
 \end{figure}
 
-\paragraph{Vértices regulares y críticos~\cite[§2.2--2.3]{lux2025}.} Un vértice erróneo
-$v\in V_F$ es \emph{regular} si tiene exactamente un vecino TP y
-exactamente un vecino TN:
+\paragraph{Vértices regulares y críticos~\cite[§2.2--2.3]{lux2025}.} Un
+vértice erróneo $v\in V_F$ es \emph{regular} si tiene exactamente un vecino
+TP y exactamente un vecino TN:
 \[
   V_r=\{v\in V_F : \exists!\,s\in N(v),\ s\subseteq\mathrm{TP}\ \wedge\
                   \exists!\,t\in N(v),\ t\subseteq\mathrm{TN}\}.
@@ -911,8 +1129,8 @@ concentra en ellos:
   \mathcal{L}_{CG}=\alpha\sum_{v\in V_c}\bar y_v,
 \]
 donde $\bar y_v$ es la probabilidad media de la clase predicha en los
-píxeles de $v$. A diferencia de Betti matching, el gradiente actúa sobre
-\emph{todos} los píxeles de cada región crítica.
+píxeles de $v$. A diferencia de las pérdidas basadas en persistencia, el
+gradiente actúa sobre \emph{todos} los píxeles de cada región crítica.
 
 \begin{proposicion}[{\cite[Prop.~2.1]{lux2025}}]
 Si $\mathcal{L}_{CG}(P,G)=0$, todas las inclusiones del diagrama
@@ -925,14 +1143,14 @@ Si $\mathcal{L}_{CG}(P,G)=0$, todas las inclusiones del diagrama
 son retractos por deformación y, en particular, equivalencias homotópicas.
 \end{proposicion}
 
-Esta garantía es más fuerte que la del Betti matching. Las equivalencias
-homotópicas inducen isomorfismos en homología, de modo que
-$\mathcal{L}_{CG}=0$ implica $\tau^{\mathrm{err}}=0$. Además, Topograph
-compara la unión con la \emph{intersección}, y no solo predicción y
-referencia con su unión.
+La proposición dice más que la igualdad de los números de Betti de $P$ y
+$G$. Como la intersección y la unión tienen la misma topología que ambas,
+cada componente y cada agujero de la predicción se corresponde con uno de la
+referencia \emph{en la misma posición}: es la correspondencia espacial que
+el emparejamiento de diagramas no garantiza (Sección~\ref{sec:distancias}).
 
-\paragraph{Métrica DIU~\cite[§2.5]{lux2025}.} La \emph{discrepancia entre intersección y
-unión} usa la aplicación inducida por la inclusión
+\paragraph{Métrica DIU~\cite[§2.5]{lux2025}.} La \emph{discrepancia entre
+intersección y unión} usa la aplicación inducida por la inclusión
 $i:F_\varepsilon(P)\cap F_{2\varepsilon}(G)\hookrightarrow
 F_\varepsilon(P)\cup F_{2\varepsilon}(G)$:
 \[
@@ -949,8 +1167,8 @@ conúcleo cuenta componentes de la unión sin contrapartida en la
 intersección y el núcleo cuenta componentes de la intersección que en la
 unión se funden en una sola.
 
-\paragraph{Complejidad~\cite[§2.6]{lux2025}.} Construir $\mathcal{G}(P,G)$ requiere etiquetar
-componentes conexas, lo que con \emph{union-find} cuesta
+\paragraph{Complejidad~\cite[§2.6]{lux2025}.} Construir $\mathcal{G}(P,G)$
+requiere etiquetar componentes conexas, lo que con \emph{union-find} cuesta
 $O(n\,\alpha(n))$. Como el grafo es plano, tiene $O(n)$ aristas, y
 clasificar los vértices es lineal. Es la misma estructura que hace eficiente
 el cálculo de $\operatorname{Dgm}_0$
@@ -959,26 +1177,28 @@ una filtración.
 
 \subsection{Comparación}
 
-La Tabla~\ref{tab:comparacion-topo} resume las diferencias entre los
-enfoques descritos. Las pérdidas basadas en solapamiento de esqueletos, como
-clDice~\cite{shit2021}, son eficientes y adecuadas para estructuras
-tubulares, pero no ofrecen garantías topológicas formales.
+La Tabla~\ref{tab:comparacion-topo} resume las pérdidas que aparecen en el
+capítulo: la de solapamiento (Dice), la basada en esqueletos (clDice), las
+basadas en diagramas de persistencia y Topograph.
 
 \begin{table}[ht]
 \centering
 \small
-\begin{tabular}{@{}lccc@{}}
+\begin{tabular}{@{}lcccc@{}}
 \toprule
- & Hu et al.~\cite{hu2019} & BM~\cite{stucki2023} & Topograph~\cite{lux2025}\\
+ & Dice & clDice~\cite{shit2021} & Persistencia~\cite{hu2019,stucki2023} & Topograph~\cite{lux2025}\\
 \midrule
-Herramienta & persistencia & emp.\ inducidos & grafo de comp.\\
-Correspondencia esp. & no & sí & sí\\
-Usa la intersección & no & no & sí\\
-Soporte del gradiente & 2 px/caract. & 2 px/caract. & regiones críticas\\
-Coste & alto & alto & $O(n\,\alpha(n))$\\
-Métrica asociada & --- & $\tau^{\mathrm{err}}$ & $\xi^{\mathrm{err}}$ (DIU)\\
+Compara & píxeles & esqueletos & diagramas & grafo de comp.\\
+Sensible a la topología & no & sí & sí & sí\\
+Garantías formales & no & no & sí & sí\\
+Correspondencia esp. & --- & local & no$^{*}$ & sí\\
+Soporte del gradiente & todos los px & esqueletos & 2 px/caract. & regiones críticas\\
+Coste & $O(n)$ & $O(Kn)$ & alto & $O(n\,\alpha(n))$\\
 \bottomrule
 \end{tabular}
-\caption{Comparación de los métodos topológicos para segmentación.}
+\caption{Comparación de las pérdidas descritas en el capítulo. $n$ es el
+número de píxeles y $K$ el número de iteraciones del esqueleto blando.
+$^{*}$Betti matching~\cite{stucki2023} añade correspondencia espacial a
+costa de un cálculo aún más caro.}
 \label{tab:comparacion-topo}
 \end{table}

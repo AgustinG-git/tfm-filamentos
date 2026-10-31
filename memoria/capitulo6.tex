@@ -113,13 +113,15 @@ controla la extensión de la máscara, así que necesita un término de
 solapamiento que lo haga. En lo que sigue se dejan fuera estas dos
 ejecuciones.
 
-\paragraph{Sin post-proceso, las pérdidas con sesgo topológico ganan.}
+\paragraph{Sin post-proceso, las pérdidas con sesgo topológico ganan algo.}
 Todas las variantes con clDice o con Topograph superan a la baseline de
-la misma semilla, entre $+0{,}002$ (clDice) y $+0{,}016$ (Topograph).
-IoU, que no tiene sesgo topológico, queda por debajo. La ventaja más
-clara es la de Topograph, porque se repite con las dos semillas: $+0{,}016$
-con la 42 ($0{,}327$ frente a $0{,}311$) y $+0{,}035$ con la 43
-($0{,}322$ frente a $0{,}287$).
+la semilla 42, entre $+0{,}002$ (clDice) y $+0{,}016$ (Topograph). IoU,
+que no tiene sesgo topológico, queda por debajo. La ventaja más clara es
+la de Topograph, porque se repite con las dos semillas: $+0{,}016$ con
+la 42 ($0{,}327$ frente a $0{,}311$) y $+0{,}035$ con la 43 ($0{,}322$
+frente a $0{,}287$). Como se verá en la
+Sección~\ref{sec:res-bootstrap}, solo la primera de estas diferencias
+es estadísticamente distinguible de cero.
 
 \paragraph{Con B2, la ventaja desaparece.} Tras el post-proceso, ninguna
 pérdida supera a la baseline. Topograph queda en $0{,}354$ y $0{,}355$
@@ -179,10 +181,56 @@ referencia. Topograph penaliza en el entrenamiento las regiones críticas
 que crean esas componentes, y el filtro de área las elimina después.
 Ambos corrigen el mismo tipo de error, así que sus mejoras no se suman.
 
-\textbf{[completar con la salida de \texttt{scripts/resultados.py}:
-fragmentados (1:$n$), fusiones ($n$:1) y sin contacto de la baseline y
-Topograph con B2. Si Topograph tiene menos fragmentados, decirlo aquí:
-sería la parte de su efecto que el filtro de área no cubre.]}
+La Tabla~\ref{tab:res-asignaciones} descompone los errores en los
+tipos de la Sección~\ref{sec:diagnostico}: filamentos fragmentados
+(cubiertos por varias predicciones), fusiones (una predicción que cubre
+varios filamentos), filamentos sin ninguna predicción que los toque
+(perdidos) y predicciones que no tocan ningún filamento (espurias).
+
+\begin{table}[ht]
+\centering
+\small
+\begin{tabular}{@{}llcccc@{}}
+\toprule
+Pérdida & Post & Fragm.\ (\%) & Fusiones (\%) & Perdidos & Espurias\\
+\midrule
+Baseline (s42) & sin & 10,6 & 1,0 & 140 & 319\\
+Baseline (s43) & sin & 12,8 & 1,0 & 100 & 482\\
+clDice & sin & 8,4 & 1,5 & 122 & 278\\
+IoU+clDice & sin & 6,6 & 1,4 & 124 & 261\\
+Topograph (s42) & sin & 9,0 & 1,4 & 183 & 169\\
+Topograph (s43) & sin & 7,8 & 1,6 & 224 & 110\\
+\midrule
+Baseline (s42) & B2 & 4,9 & 1,7 & 250 & 68\\
+Baseline (s43) & B2 & 4,3 & 1,8 & 275 & 88\\
+clDice & B2 & 4,5 & 1,9 & 213 & 119\\
+IoU+clDice & B2 & 3,9 & 1,9 & 201 & 110\\
+Topograph (s42) & B2 & 4,7 & 1,5 & 217 & 108\\
+Topograph (s43) & B2 & 3,0 & 2,2 & 300 & 49\\
+\bottomrule
+\end{tabular}
+\caption{Tipos de error en val~$B$ (definiciones oficiales, IoU $>0$).
+Fragmentados, en \% de los 869 filamentos de referencia; fusiones, en
+\% de las predicciones.}
+\label{tab:res-asignaciones}
+\end{table}
+
+Sin post-proceso, Topograph divide por dos o por tres las predicciones
+espurias (de 319 y 482 a 169 y 110), pero a cambio deja más filamentos
+sin tocar (de 140 y 100 a 183 y 224). También reduce algo la
+fragmentación, aunque menos que clDice: con IoU+clDice los
+fragmentados bajan del 10,6\,\% al 6,6\,\%, lo que concuerda con que
+clDice premia la continuidad de las estructuras alargadas. Las fusiones
+son raras en todos los casos (1--2\,\%) y aumentan ligeramente con las
+pérdidas topológicas.
+
+Con B2, la fragmentación queda entre el 3 y el 5\,\% en todos los
+modelos, y las diferencias entre pérdidas se reducen a la proporción
+entre perdidos y espurias. Es decir, el filtro de área elimina también
+los trozos pequeños de los filamentos fragmentados, de modo que la
+ventaja de clDice y de Topograph en fragmentación deja de notarse.
+Destaca IoU+clDice, que con B2 es el modelo con menos filamentos
+perdidos (201) y más aciertos (474).
 
 % ------------------------------------------------------------
 \section{Incertidumbre de las comparaciones}
@@ -211,19 +259,63 @@ remuestreos). $^*$: el intervalo no contiene el 0.}
 \label{tab:res-bootstrap}
 \end{table}
 
-\textbf{[completar: qué intervalos excluyen el 0. En particular, si la
-ventaja de Topograph sin post-proceso es significativa y si alguna
-diferencia con B2 lo es. Comparar con la distancia entre las dos
-semillas de la baseline.]}
+Sin post-proceso, solo Topograph con la semilla 42 mejora a la
+baseline de forma significativa ($+0{,}016$, IC $[+0{,}001,\,+0{,}032]$),
+e IoU es significativamente peor. Con B2 ocurre lo contrario: casi todas
+las pérdidas quedan significativamente por debajo de la baseline.
+
+Pero estos intervalos deben leerse con cuidado. La baseline con la
+semilla 43 es significativamente peor que con la 42 sin post-proceso
+($-0{,}024$, IC $[-0{,}039,\,-0{,}009]$), y casi lo es con B2
+($-0{,}016$). Es la misma configuración: lo único que cambia es la
+semilla. El \emph{bootstrap} por días mide cuánto depende el PQ de qué
+días forman val~$B$, pero no la variabilidad del propio entrenamiento.
+Con una sola ejecución por pérdida, una diferencia «significativa»
+puede deberse a que la ejecución de referencia salió especialmente bien
+o mal.
+
+Tomando como referencia las dos semillas, la conclusión es más
+modesta. Sin post-proceso, Topograph supera a la baseline con las dos
+semillas, lo que apunta a una mejora real. Con B2, la baseline queda en
+$0{,}357$--$0{,}373$ y Topograph en $0{,}354$--$0{,}355$: Topograph no
+mejora, y la diferencia con la baseline es del orden de la que separa a
+las dos semillas. Confirmarlo exigiría varias semillas por pérdida.
 
 % ------------------------------------------------------------
 \section{Barbas}
 \label{sec:res-barbas}
 % ------------------------------------------------------------
 
-PQ no distingue si un acierto recoge las barbas. La
-Tabla~\ref{tab:res-barbas} muestra las medidas de la
-Sección~\ref{sec:evaluacion}.
+PQ no distingue si un acierto recoge las barbas. Antes de comparar
+modelos conviene saber cuánto pesan las barbas en los datos y cuánto se
+pierde solo por trabajar a $512\times512$.
+
+\paragraph{Las barbas en val~$B$.} De los 869 filamentos anotados, el
+41,4\,\% tiene al menos una barba, con una media de $0{,}70$ barbas por
+filamento. Son estructuras pequeñas: su esqueleto mide en total un
+6\,\% de la longitud de las espinas, y el grosor mediano de un
+filamento es de $11{,}4$ píxeles a resolución completa (menos de 3 a
+$512\times512$). Esto explica por qué PQ apenas las ve: un acierto con o
+sin barbas tiene casi el mismo IoU.
+
+\paragraph{Techo a $512\times512$.} Si se reduce cada máscara anotada a
+$512\times512$ y se vuelve a ampliar, como le ocurre a la predicción del
+modelo, y se mide contra la original, la cobertura de barbas es
+$0{,}997$, la precisión $0{,}908$ y el $F_1$ $0{,}950$; se conservan
+todas las barbas y aparecen $0{,}075$ ramas inventadas por filamento.
+Dos consecuencias:
+\begin{itemize}
+  \item \emph{La resolución no es el cuello de botella.} Lo que el
+  modelo no recupera de las barbas no se debe a la reducción de la
+  imagen, sino a lo que aprende.
+  \item \emph{La precisión tiene un techo de $0{,}91$.} El reescalado
+  suaviza el contorno y crea pequeñas ramas en el esqueleto, que la
+  medida cuenta como inventadas. Las precisiones de los modelos deben
+  compararse con ese techo, no con 1.
+\end{itemize}
+
+\paragraph{Modelos.} La Tabla~\ref{tab:res-barbas} muestra las medidas
+de barbas de la baseline, Topograph y clDice.
 
 \begin{table}[ht]
 \centering
@@ -232,19 +324,20 @@ Sección~\ref{sec:evaluacion}.
 \toprule
 Pérdida & Post & Cobertura & Precisión & $F_1$ & Ramas inventadas\\
 \midrule
+Techo a $512\times512$ & --- & 0,997 & 0,908 & 0,950 & 0,075\\
+\midrule
 \multicolumn{6}{c}{\textbf{[completar con \texttt{barbas\_runs.csv}]}}\\
 \bottomrule
 \end{tabular}
-\caption{Medidas de barbas en val~$B$.}
+\caption{Medidas de barbas en val~$B$. El techo es la propia anotación
+reducida a $512\times512$ y vuelta a ampliar.}
 \label{tab:res-barbas}
 \end{table}
 
 \textbf{[completar: medido sobre los reentrenamientos de referencia
 (intento 0 del ajuste, misma config que la Tabla~\ref{tab:res-perdidas});
 decirlo en el texto. Si clDice o Topograph cubren más barbas que la
-baseline, y a qué coste en precisión. Incluir el techo a $512\times512$
-de \texttt{barbas.py gt}: la parte de las barbas que se pierde solo por
-reducir la resolución.]}
+baseline, y a qué coste en precisión.]}
 
 % ------------------------------------------------------------
 \section{Ajuste de hiperparámetros}
@@ -267,13 +360,17 @@ inflado por la selección; la cifra válida es la de $B$.]}
   el área mínima sube el PQ de la baseline de $0{,}311$ a $0{,}373$,
   porque elimina componentes espurias pequeñas.
   \item Sin post-proceso, las pérdidas con sesgo topológico mejoran a la
-  baseline. Topograph es la más consistente, con las dos semillas.
-  \item Topograph mejora sobre todo porque reduce los falsos positivos,
-  que es lo mismo que consigue el filtro de área. Con B2 su ventaja
-  desaparece.
+  baseline. Topograph es la más consistente (mejora con las dos
+  semillas) y la única con una diferencia significativa.
+  \item Topograph mejora sobre todo porque reduce las predicciones
+  espurias, a costa de perder algunos filamentos. clDice reduce más la
+  fragmentación.
+  \item El filtro de área corrige esos mismos errores, así que con B2
+  la ventaja de ambas desaparece. Ninguna pérdida supera a la baseline
+  con B2.
   \item clDice necesita un término de solapamiento; sin Dice, el
   entrenamiento colapsa.
-  \item Las diferencias entre pérdidas con B2 son del orden de la
-  variación entre semillas. \textbf{[ajustar tras el bootstrap y el
-  ajuste de hiperparámetros.]}
+  \item La variación entre semillas es del mismo orden que las
+  diferencias entre pérdidas, y el \emph{bootstrap} por días no la
+  recoge. \textbf{[ajustar tras el ajuste de hiperparámetros.]}
 \end{itemize}

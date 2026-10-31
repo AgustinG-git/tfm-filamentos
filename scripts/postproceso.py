@@ -11,9 +11,12 @@ relanzar sin duplicar filas. Si una falla, sigue con las demás.
 
 Uso (con el entorno activado):
     python scripts/postproceso.py
+    python scripts/postproceso.py --filtro "_(iou|cldice)_"   # solo algunas
 """
 
+import argparse
 import json
+import re
 import os
 import traceback
 from pathlib import Path
@@ -33,12 +36,16 @@ def leer(run_dir: Path) -> dict:
 
 
 def main():
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("--filtro", help="regex sobre el run_id del entrenamiento")
+    filtro = ap.parse_args().filtro
     runs = sorted(d for d in (OUT / "runs").iterdir() if (d / "run_config.json").exists())
     configs = [leer(d) for d in runs]
     hechos = {(c["fuente"], c["config_post"]["nombre"]) for c in configs if "fuente" in c}
     entrenados = [
         (d, c) for d, c in zip(runs, configs)
         if "fuente" not in c and "-humo" not in d.name   # solo entrenamientos
+        and (not filtro or re.search(filtro, d.name))
     ]
     print(f"{len(entrenados)} ejecuciones entrenadas en {OUT / 'runs'}")
 

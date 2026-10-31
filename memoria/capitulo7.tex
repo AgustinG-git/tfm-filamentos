@@ -1,0 +1,89 @@
+% ============================================================
+% Capítulo 7 — Conclusiones
+% ============================================================
+
+\chapter{Conclusiones}
+\label{cap:conclusiones}
+
+% ------------------------------------------------------------
+\section{Conclusiones}
+% ------------------------------------------------------------
+
+\paragraph{Fundamentos (O1).} La homología persistente da un lenguaje
+preciso para los errores que más pesan en la segmentación de
+estructuras finas. Un filamento partido, dos filamentos fusionados o una
+componente espuria son cambios en el número de Betti $\beta_0$, y su
+robustez frente al umbral se lee en el diagrama de persistencia.
+Topograph traduce esa idea en una pérdida que actúa solo sobre las
+regiones críticas, con un coste casi lineal.
+
+\paragraph{Protocolo (O2).} Todas las decisiones se toman en una mitad
+de la validación y la cifra se reporta en la otra, con la métrica
+oficial y una partición por días. Esta separación ha resultado
+necesaria: la variación entre semillas, de hasta $0{,}024$ en PQ, es del
+mismo orden que las diferencias entre pérdidas, y el \emph{bootstrap}
+por días no la recoge. Sin esta precaución, varias de las comparaciones
+habrían parecido concluyentes.
+
+\paragraph{Diagnóstico (O3).} Leído sobre el diagrama $H_0$, el
+post-proceso clásico es un filtro sobre las componentes del conjunto de
+supernivel que solo mira su tamaño. Su efecto es grande: el área mínima
+sube el PQ de la baseline de $0{,}311$ a $0{,}373$, porque la mayoría de
+los falsos positivos son componentes pequeñas. El umbral, por sí solo,
+no aporta nada.
+
+\paragraph{Pérdidas topológicas (O4).} Sin post-proceso, Topograph
+mejora a la baseline con las dos semillas probadas, y es la única pérdida
+con una mejora significativa. clDice reduce la fragmentación, coherente
+con que premia la continuidad. Pero la mejora de Topograph viene sobre
+todo de eliminar componentes espurias, que es lo mismo que hace el
+filtro de área. Con el post-proceso ajustado, ninguna pérdida supera a
+la baseline. La conclusión es que, en este problema, el sesgo
+topológico introducido en el entrenamiento y el filtro clásico aplicado
+después corrigen el mismo tipo de error, y sus mejoras no se suman.
+\textbf{[completar: barbas y ajuste de hiperparámetros.]}
+
+% ------------------------------------------------------------
+\section{Limitaciones}
+% ------------------------------------------------------------
+
+\begin{itemize}
+  \item \emph{Una ejecución por pérdida.} Solo la baseline y Topograph
+  se han entrenado con dos semillas. Dada la variación observada entre
+  semillas, las diferencias pequeñas entre pérdidas no pueden
+  confirmarse.
+  \item \emph{Resolución.} El modelo trabaja a $512\times512$, un cuarto
+  de la resolución original en cada eje. Para las barbas esto apenas
+  importa (la anotación reducida conserva el 99,7\,\% de su esqueleto),
+  pero limita la precisión con que se delimita el contorno.
+  \item \emph{Configuración fija.} Las comparaciones de pérdidas usan los
+  mismos hiperparámetros, sin aumentos de datos y con el peso de
+  Topograph fijado a priori. El ajuste de la
+  Sección~\ref{sec:res-hp} cubre solo tres modelos.
+  \item \emph{Una sola arquitectura}, la U-Net con ResNet-34.
+\end{itemize}
+
+% ------------------------------------------------------------
+\section{Trabajo futuro}
+% ------------------------------------------------------------
+
+\begin{itemize}
+  \item \textbf{Post-proceso por persistencia (E2).} Es la continuación
+  más directa. Si Topograph y el filtro de área corrigen el mismo error,
+  un filtro que decida sobre la persistencia de cada componente, y no
+  sobre su área, podría conservar los filamentos pequeños pero robustos
+  que el filtro de área elimina. La fusión por proximidad del collado
+  atacaría además los fragmentados recuperables, que ningún método
+  probado corrige.
+  \item \textbf{Estrategias de etiquetas (E4).} Comparar el
+  entrenamiento con cada anotación por separado con la media de las
+  anotaciones y con los filamentos de la mayoría.
+  \item \textbf{Más semillas por pérdida}, para separar las diferencias
+  reales del ruido del entrenamiento.
+  \item \textbf{Pérdidas centradas en las barbas.} Como la resolución
+  no es el límite, mejorar las barbas pasa por cambiar lo que aprende
+  la red, por ejemplo dando más peso a la zona de barbas en la pérdida.
+  \item \textbf{Otras pérdidas topológicas}, como Betti
+  matching~\cite{stucki2023}, que garantiza la correspondencia espacial
+  de las estructuras a mayor coste computacional.
+\end{itemize}

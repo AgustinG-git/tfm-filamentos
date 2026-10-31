@@ -58,8 +58,8 @@ def main():
             if n == REF:
                 celdas += ["---", "---"]
             else:
-                ic = f"[{f(r.dif_lo)},\\,{f(r.dif_hi)}]"
-                celdas += [f(r.dif) + ("$^*$" if r.significativa else ""), ic]
+                ic = f"$[{f(r.dif_lo)},\\,{f(r.dif_hi)}]$"
+                celdas += [f"${f(r.dif)}" + ("^*$" if r.significativa else "$"), ic]
         lineas.append(f"{n} & " + " & ".join(celdas) + r" \\")
     dest = REPO / "memoria" / "tablas"
     dest.mkdir(exist_ok=True)

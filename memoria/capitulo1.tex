@@ -1,0 +1,101 @@
+% ============================================================
+% Capítulo 1 — Introducción
+% ============================================================
+
+\chapter{Introducción}
+\label{cap:introduccion}
+
+% ------------------------------------------------------------
+\section{Motivación}
+% ------------------------------------------------------------
+
+Las redes neuronales de segmentación se entrenan casi siempre con
+pérdidas de solapamiento, como la entropía cruzada o el coeficiente de
+Dice, que comparan la predicción con la referencia píxel a píxel. Para
+muchos objetos esto basta. Pero cuando lo que se segmenta son
+estructuras finas y alargadas (vasos sanguíneos, carreteras, fibras),
+los errores que más importan no son los que más píxeles cuestan. Un
+vaso partido en dos por un hueco de tres píxeles apenas cambia el Dice,
+y sin embargo ha dejado de ser un vaso para convertirse en dos. Son
+errores de \emph{forma}: cambian cuántas piezas hay y cómo se conectan.
+
+La topología es la parte de las matemáticas que estudia precisamente
+esas propiedades, las que no cambian al deformar un objeto sin
+romperlo ni pegarlo. En los últimos años, la topología computacional, y
+en particular la homología persistente, ha dado lugar a métricas y
+pérdidas que penalizan directamente los errores topológicos de una
+segmentación~\cite{hu2019,shit2021,stucki2023,lux2025}. Este trabajo
+estudia esas herramientas y las pone a prueba en un problema real.
+
+El problema elegido es la segmentación de filamentos solares en
+imágenes H-alfa, propuesto en la competición \emph{Solar Filament
+Segmentation Challenge 2026}~\cite{kaggle2026}. Los filamentos son
+estructuras alargadas, con ramificaciones finas llamadas \emph{barbas},
+y la competición los evalúa con una métrica de instancias, la calidad
+panóptica~\cite{kirillov2019}, que castiga con fuerza los filamentos
+partidos o fusionados. Es, por tanto, un caso en el que los errores
+topológicos tienen un coste directo y medible.
+
+% ------------------------------------------------------------
+\section{Objetivos}
+% ------------------------------------------------------------
+
+El objetivo general es estudiar qué aporta la topología computacional a
+la segmentación de estructuras finas, tanto en la teoría como en la
+práctica. Se concreta en cuatro objetivos:
+\begin{enumerate}
+  \item[\textbf{O1.}] Estudiar los fundamentos de la homología y la
+  homología persistente, y los métodos de segmentación que se basan en
+  ellas, en particular Topograph~\cite{lux2025}.
+  \item[\textbf{O2.}] Construir un protocolo de experimentación
+  reproducible para la segmentación de filamentos, en el que las
+  comparaciones entre métodos no dependan de decisiones tomadas sobre
+  los datos de evaluación.
+  \item[\textbf{O3.}] Diagnosticar los errores de un modelo de
+  referencia e interpretarlos en términos topológicos.
+  \item[\textbf{O4.}] Evaluar si las pérdidas con sesgo topológico
+  (clDice y Topograph) mejoran a las pérdidas de solapamiento, en la
+  métrica de la competición y en la detección de las barbas, y cómo
+  interactúan con el post-proceso.
+\end{enumerate}
+
+% ------------------------------------------------------------
+\section{Contribuciones}
+% ------------------------------------------------------------
+
+\begin{itemize}
+  \item Una exposición de la homología persistente y de Topograph sin
+  demostraciones, centrada en la intuición y con ejemplos, pensada para
+  un lector con formación matemática pero sin experiencia previa en
+  topología computacional.
+  \item Una lectura topológica del post-proceso habitual (umbral y
+  componentes conexas): el número de instancias predichas es el número
+  de puntos de un cuadrante del diagrama de persistencia $H_0$, y cada
+  tipo de error deja en él una firma reconocible.
+  \item Una comparación controlada de diez pérdidas, combinando BCE con
+  Dice, IoU y clDice, con y sin Topograph, bajo un mismo protocolo, con
+  separación entre ajuste y reporte e intervalos de confianza.
+  \item El resultado principal: Topograph mejora a la baseline sin
+  post-proceso, sobre todo porque elimina componentes espurias. Pero el
+  filtro de área corrige ese mismo tipo de error, y con él la ventaja
+  desaparece.
+  \item Una medida de la detección de las barbas basada en la espina
+  anotada en MAGFiLO.
+  \item El código, público, con el que se puede reproducir cada
+  resultado.
+\end{itemize}
+
+% ------------------------------------------------------------
+\section{Estructura de la memoria}
+% ------------------------------------------------------------
+
+El Capítulo~\ref{cap:fundamentos} presenta los fundamentos de
+topología computacional y los métodos topológicos de segmentación. El
+Capítulo~\ref{cap:contexto} describe el problema: los filamentos
+solares, el conjunto de datos MAGFiLO, la competición y los trabajos
+previos. El Capítulo~\ref{cap:planteamiento} diagnostica los errores
+de un modelo de referencia, los interpreta topológicamente y plantea la
+estrategia de mejora. El Capítulo~\ref{cap:metodologia} detalla el
+protocolo experimental, y el Capítulo~\ref{cap:resultados}, los
+resultados. El Capítulo~\ref{cap:conclusiones} recoge las conclusiones,
+las limitaciones y el trabajo futuro.
