@@ -1,0 +1,260 @@
+% ============================================================
+% Capítulo 5 — Metodología
+% ============================================================
+
+\chapter{Metodología}
+\label{cap:metodologia}
+
+Este capítulo describe el protocolo común a todos los experimentos: cómo
+se parten los datos, cómo se entrena y se elige cada modelo, cómo se
+obtienen las instancias y cómo se evalúan. Todas las ejecuciones siguen
+las mismas reglas, fijadas antes de empezar a comparar. Así, cualquier
+diferencia entre dos resultados se debe a la pieza que cambia (la
+pérdida, el post-proceso o los hiperparámetros) y no al protocolo. El
+código está disponible en \url{https://github.com/AgustinG-git/tfm-filamentos}.
+
+% ------------------------------------------------------------
+\section{Datos y partición}
+\label{sec:particion}
+% ------------------------------------------------------------
+
+Se usa el conjunto de entrenamiento de la competición, con las
+anotaciones de MAGFiLO~\cite{ahmadzadeh2024,kaggle2026}. El conjunto de
+test no tiene anotaciones públicas y solo se usa para enviar
+predicciones al \emph{leaderboard}.
+
+\paragraph{Partición por días.} Las imágenes de un mismo día son casi
+idénticas: el Sol apenas cambia en unas horas. Si una imagen de un día
+estuviera en entrenamiento y otra del mismo día en validación, el modelo
+se evaluaría sobre algo que ya ha visto. Por eso la partición se hace por
+\emph{fecha}: ningún día aparece en dos subconjuntos. Se reserva el
+20\,\% de los días para validación, y estos se dividen a su vez en dos
+mitades, $A$ y $B$ (Tabla~\ref{tab:split}). La partición se genera una
+sola vez, con semilla fija, y se guarda junto al código.
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Subconjunto & Días & Imágenes & Pares anotador--imagen\\
+\midrule
+Entrenamiento & 524 & 561 & 920\\
+Validación $A$ & 66 & 72 & 113\\
+Validación $B$ & 66 & 74 & 121\\
+\bottomrule
+\end{tabular}
+\caption{Partición de los datos. La unidad de evaluación es el par
+anotador--imagen (Sección~\ref{sec:competicion}).}
+\label{tab:split}
+\end{table}
+
+\paragraph{Ajuste en $A$, reporte en $B$.} Toda decisión se toma en
+$A$: la época del modelo, los parámetros del post-proceso y los
+hiperparámetros. La cifra que se reporta es la de $B$, que no interviene
+en ninguna decisión. Si se eligiera en el mismo conjunto en el que se
+mide, la cifra estaría inflada: entre muchas variantes, alguna sale
+mejor por azar.
+
+\paragraph{Preprocesado.} Las imágenes H-alfa son de un canal y
+$2048\times2048$ píxeles. Para entrenar se reducen a $512\times512$
+(interpolación por área), se replica el canal tres veces y se
+normalizan con la media y la desviación de ImageNet~\cite{deng2009},
+porque el codificador viene preentrenado en ese conjunto. No se usan
+aumentos de datos.
+
+\paragraph{Etiquetas.} Cada anotación es un ejemplo de entrenamiento
+independiente: una imagen con tres anotadores aporta tres pares
+(imagen, máscara). La máscara de un par es la unión de los filamentos de
+ese anotador, reducida a $512\times512$. La referencia de evaluación,
+en cambio, son siempre las anotaciones originales, una por una y a
+resolución completa.
+
+% ------------------------------------------------------------
+\section{Modelo y entrenamiento}
+\label{sec:entrenamiento}
+% ------------------------------------------------------------
+
+El modelo es una U-Net~\cite{ronneberger2015} con codificador
+ResNet-34~\cite{he2016} preentrenado en ImageNet, de la biblioteca
+\emph{Segmentation Models PyTorch}~\cite{iakubovskii2019}. Produce un
+mapa de probabilidades de una sola clase (filamento) a $512\times512$.
+
+Salvo en el ajuste de la Sección~\ref{sec:ajuste-hp}, todas las
+ejecuciones usan la misma configuración: 30 épocas, lotes de 8,
+optimizador AdamW~\cite{loshchilov2019} con tasa de aprendizaje
+$3\cdot10^{-4}$ y \emph{weight decay} $10^{-4}$, y tasa de aprendizaje
+con decaimiento coseno. La red se ejecuta en precisión mixta, pero las
+pérdidas se calculan siempre en \texttt{float32}: en \texttt{float16}
+las sumas de clDice sobre un lote (unos $2\cdot10^6$ píxeles) desbordan.
+La semilla es 42; la baseline y Topograph se repiten además con la
+semilla 43.
+
+\paragraph{Selección de la época.} Al final de cada época se evalúa el
+modelo en $A$ y se guarda el mejor. El criterio es fijo para todas las
+versiones: PQ global a $512\times512$, con umbral $0{,}5$ y sin filtro
+de área. Se usa un post-proceso estricto a propósito: si la época se
+eligiera con el post-proceso de cada versión, la comparación entre
+pérdidas mezclaría dos efectos.
+
+% ------------------------------------------------------------
+\section{Pérdidas}
+\label{sec:perdidas}
+% ------------------------------------------------------------
+
+Todas las pérdidas incluyen BCE, con peso $0{,}5$, y se obtienen
+cambiando una sola pieza respecto a la baseline
+(Tabla~\ref{tab:perdidas}). IoU se definió en la
+Sección~\ref{sec:competicion}, Dice y clDice en la
+Sección~\ref{sec:dice-cldice} y Topograph en la
+Sección~\ref{sec:topograph}; aquí solo se fijan los pesos.
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{@{}ll@{}}
+\toprule
+Nombre & Pérdida\\
+\midrule
+Baseline & $0{,}5\,\mathrm{BCE}+0{,}5\,\mathrm{Dice}$\\
+IoU & $0{,}5\,\mathrm{BCE}+0{,}5\,\mathrm{IoU}$\\
+clDice & $0{,}5\,\mathrm{BCE}+0{,}25\,\mathrm{Dice}+0{,}25\,\mathrm{clDice}$\\
+IoU+clDice & $0{,}5\,\mathrm{BCE}+0{,}25\,\mathrm{IoU}+0{,}25\,\mathrm{clDice}$\\
+clDice sin Dice & $0{,}5\,\mathrm{BCE}+0{,}5\,\mathrm{clDice}$\\
+\midrule
+\dots{} + Topograph & la anterior $+\,\alpha\,\mathcal{L}_{\mathrm{Topo}}$, $\alpha=0{,}04$\\
+\bottomrule
+\end{tabular}
+\caption{Pérdidas comparadas. Cada una de las cinco primeras se entrena
+también con el término de Topograph.}
+\label{tab:perdidas}
+\end{table}
+
+\paragraph{clDice.} Se usa el esqueleto blando de Shit et
+al.~\cite{shit2021}, con 10 iteraciones de erosión.
+
+\paragraph{Topograph.} Se usa la implementación oficial~\cite{lux2025},
+con 8-conectividad, la misma que el post-proceso. Dos decisiones fijan
+cómo se añade:
+\begin{itemize}
+  \item \emph{Peso.} Con un modelo ya entrenado, el término de
+  Topograph es unas 27 veces mayor que BCE+Dice. Con $\alpha=0{,}04$
+  ambos pesan lo mismo. El valor se fija así y no se ajusta en las
+  comparaciones de pérdidas.
+  \item \emph{Calentamiento.} Con un modelo sin entrenar, la predicción
+  tiene cientos de regiones críticas por imagen y el término no aporta
+  una señal útil. Por eso Topograph se activa a partir de la sexta
+  época; en las cinco primeras $\alpha=0$.
+\end{itemize}
+
+% ------------------------------------------------------------
+\section{Post-proceso}
+\label{sec:postproceso}
+% ------------------------------------------------------------
+
+Las instancias se obtienen del mapa de probabilidades $p$ en tres pasos:
+\begin{enumerate}
+  \item se reescala $p$ a $2048\times2048$ (interpolación bilineal);
+  \item se umbraliza, $X_t=\{p>t\}$;
+  \item cada componente 8-conexa de $X_t$ es una instancia, y se
+  descartan las de área menor que $a$.
+\end{enumerate}
+En la lectura de la Sección~\ref{sec:lectura-topologica}, son las
+componentes del conjunto de nivel superior $X_t$ con un filtro que solo
+mira su tamaño. Se consideran dos variantes:
+\begin{itemize}
+  \item \textbf{B1:} solo umbral, $t$ ajustado y $a=0$;
+  \item \textbf{B2:} umbral y área mínima ajustados conjuntamente.
+\end{itemize}
+Los parámetros se buscan en $A$ con Optuna~\cite{akiba2019} (búsqueda
+bayesiana TPE, 60 intentos, semilla fija), en los rangos
+$t\in[0{,}2,\,0{,}9]$ y $a\in[0,\,300]$ píxeles a $512\times512$
+(el área se escala por 16 a resolución completa). Cada intento evalúa
+con la métrica oficial en $A$. El post-proceso se aplica a los
+\emph{logits} ya guardados de cada ejecución, sin reentrenar.
+
+% ------------------------------------------------------------
+\section{Ajuste de hiperparámetros}
+\label{sec:ajuste-hp}
+% ------------------------------------------------------------
+
+Las comparaciones de pérdidas usan los mismos hiperparámetros para
+todas. Puede ocurrir que una pérdida salga peor solo porque esos
+valores le sientan peor. Para comprobarlo, se ajustan los
+hiperparámetros de entrenamiento de la baseline y de las dos pérdidas
+más relevantes para el trabajo: Topograph, que es el método topológico
+central, y clDice, que apunta a las barbas.
+
+Se usa Optuna con TPE y, para cada modelo, se buscan tres valores: la
+tasa de aprendizaje en $[10^{-4},10^{-3}]$, el \emph{weight decay} en
+$[10^{-6},10^{-3}]$ (ambos en escala logarítmica) y un peso propio de
+cada pérdida: el de Dice en la baseline ($[0{,}25,\,0{,}75]$, con
+BCE el resto hasta 1), $\alpha$ en Topograph ($[0{,}01,\,0{,}16]$) y el
+de clDice ($[0{,}10,\,0{,}40]$, restado del de Dice). El primer intento de
+cada búsqueda es la configuración de la Sección~\ref{sec:entrenamiento}.
+El objetivo es el PQ oficial en $A$. Los intentos que, a partir de la
+época 10, van por debajo de la mediana de los anteriores en esa misma
+época se interrumpen. Cada modelo dispone del mismo tiempo de cómputo.
+\textbf{[completar: número de intentos por modelo y GPU.]}
+
+% ------------------------------------------------------------
+\section{Evaluación}
+\label{sec:evaluacion}
+% ------------------------------------------------------------
+
+\paragraph{Métrica oficial.} Se usa el código del cuaderno oficial de
+autoevaluación de la competición~\cite{kaggle2026}, sin modificarlo. La
+cifra principal es el PQ global en $B$ a resolución completa
+(Sección~\ref{sec:competicion}), con SQ y RQ, y las distribuciones de
+la rúbrica: IoU, Dice y relaciones 1:$n$ y $n$:1.
+
+\paragraph{Medidas propias.} Como complemento, nunca en sustitución de
+las oficiales, se cuentan en $B$:
+\begin{itemize}
+  \item \emph{partidos y unidos:} filamentos de referencia cubiertos por
+  varias predicciones, más predicciones que cubren varios filamentos;
+  \item \emph{sin contacto:} filamentos sin ninguna predicción que los
+  toque, más predicciones que no tocan ningún filamento.
+\end{itemize}
+
+\paragraph{Barbas.} PQ no distingue si un acierto incluye las barbas.
+Para medirlo se usa la espina que MAGFiLO anota en cada
+filamento~\cite{ahmadzadeh2024}. Sea $w$ el grosor medio del filamento
+(área entre longitud de la espina). Las \emph{barbas} son la parte del
+esqueleto de la máscara anotada que queda fuera de un tubo de radio
+$1{,}5\cdot w/2$ alrededor de la espina; se descartan trozos de menos de
+6 píxeles. La \emph{zona de barbas} es el entorno del filamento, hasta
+$2w$, sin ese tubo ni los demás filamentos. Sobre ella se definen:
+\begin{itemize}
+  \item \emph{cobertura:} fracción de los píxeles de barbas reales que
+  cubre la predicción;
+  \item \emph{precisión:} fracción del esqueleto de la predicción en la
+  zona de barbas que cae sobre una barba real;
+  \item su $F_1$ y el número de ramas inventadas por filamento.
+\end{itemize}
+Todo se mide a $2048\times2048$, por anotación de $B$. Es una medida
+propia de este trabajo.
+
+\paragraph{Incertidumbre.} $B$ tiene 66 días, y una diferencia de PQ
+puede deberse a qué días han caído en él. Para estimar esa variabilidad
+se usa un \emph{bootstrap} pareado por días~\cite{efron1993}: se
+remuestrean con reemplazo los días de $B$ (2.000 veces), se recalcula el
+PQ global de cada ejecución con los conteos de esos días y se toma el
+intervalo del 95\,\% de la diferencia con la referencia. El mismo
+remuestreo se aplica a todas las ejecuciones, para que la comparación
+sea pareada. Se remuestrean días, y no pares, porque los pares de un
+mismo día no son independientes.
+
+\paragraph{Variabilidad entre entrenamientos.} El entrenamiento en GPU
+no es determinista: reentrenar la misma configuración con la misma
+semilla cambia el PQ en $B$ entre $0{,}01$ y $0{,}02$. Las diferencias
+menores que eso no se interpretan como mejoras.
+
+% ------------------------------------------------------------
+\section{Reproducibilidad}
+\label{sec:reproducibilidad}
+% ------------------------------------------------------------
+
+Cada ejecución queda identificada por la fecha, la configuración y el
+\emph{commit} del código, y guarda su configuración completa, la época
+elegida, las predicciones y los \emph{logits} de validación. Una tabla
+única registra una fila por ejecución con sus métricas en $A$ y $B$. Los
+resultados del Capítulo~\ref{cap:resultados} salen de esa tabla.

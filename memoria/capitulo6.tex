@@ -1,0 +1,279 @@
+% ============================================================
+% Capítulo 6 — Experimentos y resultados
+% ============================================================
+
+\chapter{Experimentos y resultados}
+\label{cap:resultados}
+
+Este capítulo presenta los resultados en el orden de la estrategia del
+Capítulo~\ref{cap:planteamiento}: primero el post-proceso clásico de la
+baseline (E1), después la comparación de pérdidas (E3), con especial
+atención a Topograph, y por último el ajuste de hiperparámetros. Salvo
+que se diga otra cosa, las cifras son de val~$B$, con el protocolo del
+Capítulo~\ref{cap:metodologia}. Las cifras de val~$A$ se muestran porque
+son las que guían las decisiones.
+
+Conviene tener presente desde el principio la escala del ruido.
+Reentrenar la misma configuración cambia el PQ en $B$ entre $0{,}01$ y
+$0{,}02$ (Sección~\ref{sec:evaluacion}), y cambiar la semilla puede
+moverlo más: la baseline pasa de $0{,}311$ con la semilla 42 a $0{,}287$
+con la 43. Las diferencias entre pérdidas deben leerse con esa escala.
+
+% ------------------------------------------------------------
+\section{Post-proceso clásico (E1)}
+\label{sec:res-post}
+% ------------------------------------------------------------
+
+La Tabla~\ref{tab:res-post} recoge las variantes del post-proceso sobre
+la misma baseline (semilla 42), sin reentrenar.
+
+\begin{table}[ht]
+\centering
+\small
+\begin{tabular}{@{}lccccccc@{}}
+\toprule
+Post-proceso & $t$ & $a$ & PQ & SQ & RQ & TP & FP / FN\\
+\midrule
+Sin post-proceso & 0,50 & 0 & 0,311 & 0,638 & 0,488 & 495 & 665 / 374\\
+B1 (rejilla) & 0,65 & 0 & 0,314 & 0,647 & 0,485 & 494 & 674 / 375\\
+B1 (Optuna) & 0,66 & 0 & 0,313 & 0,646 & 0,484 & 494 & 678 / 375\\
+B2 (rejilla) & 0,65 & 25 & \textbf{0,375} & 0,649 & 0,577 & 473 & 297 / 396\\
+B2 (Optuna) & 0,66 & 29 & 0,373 & 0,650 & 0,574 & 458 & 269 / 411\\
+\bottomrule
+\end{tabular}
+\caption{Post-proceso de la baseline (semilla 42) en val~$B$. $t$ es el
+umbral y $a$ el área mínima en píxeles a $512\times512$, ambos ajustados
+en val~$A$.}
+\label{tab:res-post}
+\end{table}
+
+Se observan tres cosas:
+\begin{itemize}
+  \item \emph{El umbral por sí solo no aporta nada.} Subirlo de $0{,}5$
+  a $0{,}65$ deja el PQ igual. Incluso aumenta algo los falsos
+  positivos, probablemente porque al subir el umbral algunas
+  componentes se parten en varias.
+  \item \emph{El área mínima lo aporta casi todo.} B2 sube el PQ en
+  $0{,}06$, de $0{,}311$ a $0{,}373$. Los falsos positivos bajan de 665
+  a 269, a cambio de perder 37 aciertos. Es decir, la mayor parte de los
+  falsos positivos de la baseline son componentes pequeñas.
+  \item \emph{La mejora está en la detección, no en la delimitación.}
+  SQ apenas cambia (de $0{,}64$ a $0{,}65$), mientras que RQ pasa de
+  $0{,}49$ a $0{,}57$.
+\end{itemize}
+Con B2 la baseline supera el umbral de $0{,}35$ que los organizadores
+consideran un resultado de gran valor (Sección~\ref{sec:competicion}).
+Rejilla y Optuna llegan a valores muy parecidos; en lo que sigue se
+usa B2 con Optuna para todas las ejecuciones.
+
+% ------------------------------------------------------------
+\section{Comparación de pérdidas (E3)}
+\label{sec:res-perdidas}
+% ------------------------------------------------------------
+
+La Tabla~\ref{tab:res-perdidas} compara todas las pérdidas de la
+Tabla~\ref{tab:perdidas}, sin post-proceso y con B2.
+
+\begin{table}[ht]
+\centering
+\small
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+ & & \multicolumn{2}{c}{Sin post-proceso} & \multicolumn{2}{c}{B2 (Optuna)}\\
+\cmidrule(lr){3-4}\cmidrule(lr){5-6}
+Pérdida & Época & PQ $A$ & PQ $B$ & PQ $A$ & PQ $B$\\
+\midrule
+Baseline (s42) & 8 & 0,297 & 0,311 & \textbf{0,364} & \textbf{0,373}\\
+Baseline (s43) & 8 & 0,276 & 0,287 & 0,348 & 0,357\\
+IoU & 15 & 0,279 & 0,285 & 0,351 & 0,351\\
+clDice & 13 & 0,307 & 0,313 & 0,351 & 0,354\\
+IoU+clDice & 14 & 0,308 & 0,322 & 0,345 & 0,363\\
+clDice sin Dice & 1 & 0,012 & 0,009 & 0,062 & 0,036\\
+\midrule
+Topograph (s42) & 17 & \textbf{0,322} & \textbf{0,327} & 0,354 & 0,354\\
+Topograph (s43) & 12 & 0,298 & 0,322 & 0,336 & 0,355\\
+IoU+Topo & 16 & 0,315 & 0,315 & 0,346 & 0,346\\
+clDice+Topo & 18 & 0,307 & 0,317 & 0,344 & 0,348\\
+IoU+clDice+Topo & 18 & 0,297 & 0,318 & 0,333 & 0,336\\
+clDice sin Dice+Topo & 6 & 0,025 & 0,014 & 0,080 & 0,045\\
+\bottomrule
+\end{tabular}
+\caption{PQ de cada pérdida en val~$A$ y val~$B$, sin post-proceso
+(umbral $0{,}5$, sin filtro de área) y con B2 ajustado en val~$A$ para
+cada ejecución. «Época» es la elegida en val~$A$. Semilla 42 salvo que
+se indique.}
+\label{tab:res-perdidas}
+\end{table}
+
+\paragraph{clDice sin Dice colapsa.} Con solo BCE y clDice, el mejor
+modelo en $A$ es el de la primera época (la sexta con Topograph), y su
+PQ no llega a $0{,}05$ ni con post-proceso. Es coherente con lo visto en
+la Sección~\ref{sec:dice-cldice}: clDice compara esqueletos y no
+controla la extensión de la máscara, así que necesita un término de
+solapamiento que lo haga. En lo que sigue se dejan fuera estas dos
+ejecuciones.
+
+\paragraph{Sin post-proceso, las pérdidas con sesgo topológico ganan.}
+Todas las variantes con clDice o con Topograph superan a la baseline de
+la misma semilla, entre $+0{,}002$ (clDice) y $+0{,}016$ (Topograph).
+IoU, que no tiene sesgo topológico, queda por debajo. La ventaja más
+clara es la de Topograph, porque se repite con las dos semillas: $+0{,}016$
+con la 42 ($0{,}327$ frente a $0{,}311$) y $+0{,}035$ con la 43
+($0{,}322$ frente a $0{,}287$).
+
+\paragraph{Con B2, la ventaja desaparece.} Tras el post-proceso, ninguna
+pérdida supera a la baseline. Topograph queda en $0{,}354$ y $0{,}355$
+con las dos semillas, frente a $0{,}373$ y $0{,}357$ de la baseline. La
+mejor alternativa es IoU+clDice ($0{,}363$), dentro del rango que separa
+las dos semillas de la baseline. Si se aplica el protocolo y se elige en
+$A$, el modelo elegido es la baseline con B2.
+
+\paragraph{Añadir Topograph a otras pérdidas no ayuda.} Sin
+post-proceso, Topograph mejora a IoU ($+0{,}030$) pero apenas cambia
+clDice ($+0{,}004$) e IoU+clDice ($-0{,}004$). Con B2, todas las
+variantes con Topograph quedan por debajo de su versión sin él.
+
+% ------------------------------------------------------------
+\section{Qué hace Topograph}
+\label{sec:res-topograph}
+% ------------------------------------------------------------
+
+Para entender por qué la ventaja de Topograph desaparece con el
+post-proceso, la Tabla~\ref{tab:res-topo} descompone las detecciones.
+
+\begin{table}[ht]
+\centering
+\small
+\begin{tabular}{@{}llcccc@{}}
+\toprule
+Pérdida & Post & PQ & TP & FP & FN\\
+\midrule
+Baseline (s42) & sin & 0,311 & 495 & 665 & 374\\
+Topograph (s42) & sin & 0,327 & 461 & 481 & 408\\
+Baseline (s43) & sin & 0,287 & 503 & 899 & 366\\
+Topograph (s43) & sin & 0,322 & 422 & 402 & 447\\
+\midrule
+Baseline (s42) & B2 & 0,373 & 458 & 269 & 411\\
+Topograph (s42) & B2 & 0,354 & 457 & 342 & 412\\
+Baseline (s43) & B2 & 0,357 & 431 & 279 & 438\\
+Topograph (s43) & B2 & 0,355 & 412 & 220 & 457\\
+\bottomrule
+\end{tabular}
+\caption{Detecciones en val~$B$ de la baseline y de Topograph, con las
+dos semillas, sin post-proceso y con B2.}
+\label{tab:res-topo}
+\end{table}
+
+Sin post-proceso, Topograph reduce mucho los falsos positivos: un
+28\,\% con la semilla 42 (de 665 a 481) y un 55\,\% con la 43 (de 899 a
+402). A cambio pierde aciertos, un 7\,\% y un 16\,\%. El balance es
+positivo porque los falsos positivos eran el error dominante.
+
+Pero eso es justo lo que hace el filtro de área. Tras B2, la baseline
+tiene menos falsos positivos que Topograph sin post-proceso (269 y 279,
+frente a 481 y 402) con un número parecido de aciertos, y los dos
+modelos quedan en valores de PQ similares. La lectura topológica de la
+Sección~\ref{sec:lectura-topologica} sugiere una explicación: los falsos
+positivos pequeños son componentes de $H_0$ que no están en la
+referencia. Topograph penaliza en el entrenamiento las regiones críticas
+que crean esas componentes, y el filtro de área las elimina después.
+Ambos corrigen el mismo tipo de error, así que sus mejoras no se suman.
+
+\textbf{[completar con la salida de \texttt{scripts/resultados.py}:
+fragmentados (1:$n$), fusiones ($n$:1) y sin contacto de la baseline y
+Topograph con B2. Si Topograph tiene menos fragmentados, decirlo aquí:
+sería la parte de su efecto que el filtro de área no cubre.]}
+
+% ------------------------------------------------------------
+\section{Incertidumbre de las comparaciones}
+\label{sec:res-bootstrap}
+% ------------------------------------------------------------
+
+La Tabla~\ref{tab:res-bootstrap} da la diferencia de PQ de cada
+ejecución con la baseline (semilla 42) y su intervalo del 95\,\% por
+\emph{bootstrap} pareado por días.
+
+\begin{table}[ht]
+\centering
+\small
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+ & \multicolumn{2}{c}{Sin post-proceso} & \multicolumn{2}{c}{B2 (Optuna)}\\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+Pérdida & $\Delta$PQ & IC 95\,\% & $\Delta$PQ & IC 95\,\%\\
+\midrule
+\InputIfFileExists{tablas/bootstrap}{}{\multicolumn{5}{c}{\textbf{[ejecutar scripts/resultados.py]}}\\}
+\bottomrule
+\end{tabular}
+\caption{Diferencia de PQ en val~$B$ con la baseline (semilla 42) e
+intervalo del 95\,\% (\emph{bootstrap} pareado por días, 2.000
+remuestreos). $^*$: el intervalo no contiene el 0.}
+\label{tab:res-bootstrap}
+\end{table}
+
+\textbf{[completar: qué intervalos excluyen el 0. En particular, si la
+ventaja de Topograph sin post-proceso es significativa y si alguna
+diferencia con B2 lo es. Comparar con la distancia entre las dos
+semillas de la baseline.]}
+
+% ------------------------------------------------------------
+\section{Barbas}
+\label{sec:res-barbas}
+% ------------------------------------------------------------
+
+PQ no distingue si un acierto recoge las barbas. La
+Tabla~\ref{tab:res-barbas} muestra las medidas de la
+Sección~\ref{sec:evaluacion}.
+
+\begin{table}[ht]
+\centering
+\small
+\begin{tabular}{@{}llcccc@{}}
+\toprule
+Pérdida & Post & Cobertura & Precisión & $F_1$ & Ramas inventadas\\
+\midrule
+\multicolumn{6}{c}{\textbf{[completar con \texttt{barbas\_runs.csv}]}}\\
+\bottomrule
+\end{tabular}
+\caption{Medidas de barbas en val~$B$.}
+\label{tab:res-barbas}
+\end{table}
+
+\textbf{[completar: medido sobre los reentrenamientos de referencia
+(intento 0 del ajuste, misma config que la Tabla~\ref{tab:res-perdidas});
+decirlo en el texto. Si clDice o Topograph cubren más barbas que la
+baseline, y a qué coste en precisión. Incluir el techo a $512\times512$
+de \texttt{barbas.py gt}: la parte de las barbas que se pierde solo por
+reducir la resolución.]}
+
+% ------------------------------------------------------------
+\section{Ajuste de hiperparámetros}
+\label{sec:res-hp}
+% ------------------------------------------------------------
+
+\textbf{[completar mañana con \texttt{ajuste\_hp.py --resumen}: mejor
+intento de cada modelo (valores, PQ $A$ y $B$, sin post y con B2),
+número de intentos y podados. Comparar la ganancia en $B$ con el ruido
+de $0{,}01$--$0{,}02$. Recordar que el PQ en $A$ del mejor intento está
+inflado por la selección; la cifra válida es la de $B$.]}
+
+% ------------------------------------------------------------
+\section{Resumen}
+\label{sec:res-resumen}
+% ------------------------------------------------------------
+
+\begin{itemize}
+  \item El post-proceso clásico es la mejora más grande y más barata:
+  el área mínima sube el PQ de la baseline de $0{,}311$ a $0{,}373$,
+  porque elimina componentes espurias pequeñas.
+  \item Sin post-proceso, las pérdidas con sesgo topológico mejoran a la
+  baseline. Topograph es la más consistente, con las dos semillas.
+  \item Topograph mejora sobre todo porque reduce los falsos positivos,
+  que es lo mismo que consigue el filtro de área. Con B2 su ventaja
+  desaparece.
+  \item clDice necesita un término de solapamiento; sin Dice, el
+  entrenamiento colapsa.
+  \item Las diferencias entre pérdidas con B2 son del orden de la
+  variación entre semillas. \textbf{[ajustar tras el bootstrap y el
+  ajuste de hiperparámetros.]}
+\end{itemize}

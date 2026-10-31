@@ -21,12 +21,14 @@ tubo de la espina ni los demás filamentos de la misma anotación.
 Uso (con el entorno activado):
     python scripts/barbas.py gt     # estadísticas, techo a 512 y ejemplos
     python scripts/barbas.py runs   # cobertura de barbas y espina por ejecución
+    python scripts/barbas.py runs --filtro "hp-.*-t00_"   # solo algunas
 
 Salidas en $FILSEG_OUT/barbas/.
 """
 
 import argparse
 import json
+import re
 import os
 from pathlib import Path
 
@@ -189,10 +191,13 @@ def modo_gt(anns, meta):
     print(f"ejemplos: {DEST}/ejemplo_*.png (gris máscara, azul espina, rojo barbas)")
 
 
-def modo_runs(anns, meta):
+def modo_runs(anns, meta, filtro=None):
     cfg = {d.name: json.loads((d / "run_config.json").read_text())
            for d in (OUT / "runs").iterdir()
            if (d / "run_config.json").exists() and "-humo" not in d.name}
+    if filtro:  # por run_id o por su fuente
+        cfg = {r: c for r, c in cfg.items()
+               if re.search(filtro, r) or re.search(filtro, c.get("fuente", ""))}
     nombre = lambda r: r.split("_", 1)[1].rsplit("_", 1)[0]
     runs = {r: (nombre(r), "sin post") for r, c in cfg.items() if "fuente" not in c}
     runs |= {r: (nombre(c["fuente"]), "B2") for r, c in cfg.items()
@@ -224,5 +229,9 @@ def modo_runs(anns, meta):
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("modo", choices=["gt", "runs"])
-    modo = ap.parse_args().modo
-    {"gt": modo_gt, "runs": modo_runs}[modo](*datos())
+    ap.add_argument("--filtro", help="regex sobre run_id (modo runs)")
+    a = ap.parse_args()
+    if a.modo == "gt":
+        modo_gt(*datos())
+    else:
+        modo_runs(*datos(), filtro=a.filtro)
