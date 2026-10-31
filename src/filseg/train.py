@@ -112,8 +112,14 @@ def run(
     out_dir: str | Path = "/kaggle/working",
     nota: str = "",
     humo: bool | None = None,
+    al_epoca=None,
 ) -> dict:
-    """``humo=True`` hace la prueba rápida con cualquier config."""
+    """``humo=True`` hace la prueba rápida con cualquier config.
+
+    ``al_epoca(epoca, pq_A)`` se llama al final de cada época (p. ej.
+    para la poda de Optuna); si lanza una excepción, la ejecución se
+    corta sin registrar nada.
+    """
     repo, data, out_dir = Path(repo_dir), Path(data_dir), Path(out_dir)
     cfg_path = Path(config) if Path(config).is_absolute() else repo / config
     cfg = load_config(cfg_path)
@@ -195,6 +201,8 @@ def run(
             torch.save(model.state_dict(), ckpt)
             flag = " ★"
         print(f"[{epoch:02d}/{epochs}] loss {history[-1]['train_loss']:.4f} | PQ@512 A {pq_A:.4f}{flag}")
+        if al_epoca is not None:
+            al_epoca(epoch, pq_A)
 
     # ── Predicción y evaluación oficial ──────────────────────────────
     model.load_state_dict(torch.load(ckpt, map_location=device))

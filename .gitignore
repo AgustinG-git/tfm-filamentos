@@ -5,3 +5,4 @@ runs/
 *.pth
 *.npz
 .ipynb_checkpoints/
+configs/ajuste/
