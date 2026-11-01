@@ -200,8 +200,10 @@ def modo_runs(anns, meta, filtro=None):
                if re.search(filtro, r) or re.search(filtro, c.get("fuente", ""))}
     nombre = lambda r: r.split("_", 1)[1].rsplit("_", 1)[0]
     runs = {r: (nombre(r), "sin post") for r, c in cfg.items() if "fuente" not in c}
-    runs |= {r: (nombre(c["fuente"]), "B2") for r, c in cfg.items()
-             if c.get("config_post", {}).get("nombre") == "b2-optuna"}
+    post_de = {"b2-optuna": "B2", "e2-persistencia": "E2"}
+    runs |= {r: (nombre(c["fuente"]), post_de[c["config_post"]["nombre"]])
+             for r, c in cfg.items()
+             if c.get("config_post", {}).get("nombre") in post_de}
 
     gt = [(stem, *m.shape, p) for stem, m, _, p in recorrer(anns, meta) if p is not None]
 

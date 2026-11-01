@@ -1,0 +1,14 @@
+# E2: post-proceso por persistencia, ajustado en val_A con Optuna (TPE).
+# Sustituye el filtro de área de B2 por un filtro sobre el diagrama H0
+# de superniveles (tau) y añade la fusión por collado (delta).
+# Sin reentrenar: filseg.postrun.run_post sobre la ejecución fuente.
+hereda: base.yaml
+nombre: e2-persistencia
+post:
+  metodo: persistencia
+  ajuste:
+    metodo: optuna
+    intentos: 60
+    umbral: [0.2, 0.9]
+    tau: [0.01, 0.5]      # persistencia mínima b - d
+    delta: [0.0, 0.3]     # fusión: collado a menos de delta bajo t
