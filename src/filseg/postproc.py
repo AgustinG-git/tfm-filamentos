@@ -69,6 +69,8 @@ def persistencia_full(prob512, prob_full, umbral=0.5, tau=0.0, delta=0.0):
     up = lab512.repeat(k, 0).repeat(k, 1)
     n_c, comp = cv2.connectedComponents((prob_full > umbral).astype(np.uint8), connectivity=8)
     sel = (comp > 0) & (up > 0)
+    if not sel.any():                            # nada coincide a 2048
+        return np.zeros(prob_full.shape, np.int32), 0
     c, l = comp[sel].astype(np.int64), up[sel].astype(np.int64)
     key, cnt = np.unique(c * (n + 1) + l, return_counts=True)
     kc, kl = key // (n + 1), key % (n + 1)
