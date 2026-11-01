@@ -95,7 +95,7 @@ estrategia. El análisis sobre la validación revela varios patrones:
 \end{itemize}
 
 \subsection{El techo humano}
-
+\label{sec:techo-humano}
 Comparando entre sí las anotaciones de imágenes con varios anotadores, con
 el mismo PQ, se obtiene un acuerdo humano de $\mathrm{PQ}\approx0{,}34$.
 Esa primera baseline, comparada con cada anotador, obtiene
@@ -183,11 +183,11 @@ reentrenar.
 \small
 \begin{tabular}{@{}llll@{}}
 \toprule
-Línea & Error al que apunta & Reentrena & En este trabajo\\
+   Línea & Error al que apunta & Reentrena & Estado\\
 \midrule
 E1. Umbral y área mínima & Espurios pequeños & No & Sí\\
 E2. Post-proceso por persistencia & Fragmentación, espurios & No & Planteada\\
-E3. Pérdidas (IoU, clDice, Topograph) & Fragmentación, barbas, continuidad & Sí & Sí\\
+   E3. Pérdidas (IoU, clDice, Topograph) & Fragmentación, barbas & Sí & Hecha\\\\
 E4. Etiquetas multianotador & Desacuerdo entre anotadores & Sí & Planteada\\
 \bottomrule
 \end{tabular}

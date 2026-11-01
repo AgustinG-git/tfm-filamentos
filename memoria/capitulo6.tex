@@ -181,56 +181,72 @@ referencia. Topograph penaliza en el entrenamiento las regiones críticas
 que crean esas componentes, y el filtro de área las elimina después.
 Ambos corrigen el mismo tipo de error, así que sus mejoras no se suman.
 
-La Tabla~\ref{tab:res-asignaciones} descompone los errores en los
-tipos de la Sección~\ref{sec:diagnostico}: filamentos fragmentados
-(cubiertos por varias predicciones), fusiones (una predicción que cubre
-varios filamentos), filamentos sin ninguna predicción que los toque
-(perdidos) y predicciones que no tocan ningún filamento (espurias).
+La Tabla~\ref{tab:res-asignaciones} descompone los errores con las
+relaciones de la rúbrica oficial (Sección~\ref{sec:evaluacion}): filamentos
+\emph{partidos} (tocados por varias predicciones, 1:$n$), predicciones que
+\emph{unen} varios filamentos ($n$:1), filamentos \emph{sin predicción}
+que los toque y predicciones \emph{sin filamento}. Las dos sumas son las
+medidas propias definidas en la Sección~\ref{sec:evaluacion}.
 
 \begin{table}[ht]
 \centering
 \small
-\begin{tabular}{@{}llcccc@{}}
+\begin{tabular}{@{}lcccccc@{}}
 \toprule
-Pérdida & Post & Fragm.\ (\%) & Fusiones (\%) & Perdidos & Espurias\\
+Pérdida & Partidos & Unidos & P.\,+\,U. & Sin pred. & Sin fil. & S.\,P.\,+\,S.\,F.\\
 \midrule
-Baseline (s42) & sin & 10,6 & 1,0 & 140 & 319\\
-Baseline (s43) & sin & 12,8 & 1,0 & 100 & 482\\
-clDice & sin & 8,4 & 1,5 & 122 & 278\\
-IoU+clDice & sin & 6,6 & 1,4 & 124 & 261\\
-Topograph (s42) & sin & 9,0 & 1,4 & 183 & 169\\
-Topograph (s43) & sin & 7,8 & 1,6 & 224 & 110\\
+\multicolumn{7}{l}{\emph{Sin post-proceso}}\\
+Baseline (s42) & 92 & 12 & 104 & 140 & 319 & 459\\
+Baseline (s43) & 111 & 14 & 125 & 100 & 482 & 582\\
+IoU & 123 & 13 & 136 & 119 & 380 & 499\\
+clDice & 73 & 17 & 90 & 122 & 278 & 400\\
+IoU+clDice & \textbf{57} & 15 & \textbf{72} & 124 & 261 & 385\\
+Topograph (s42) & 78 & 13 & 91 & 183 & 169 & 352\\
+Topograph (s43) & 68 & 13 & 81 & 224 & \textbf{110} & \textbf{334}\\
+IoU+Topo & 79 & 13 & 92 & 199 & 142 & 341\\
+clDice+Topo & 65 & 15 & 80 & 180 & 159 & 339\\
+IoU+clDice+Topo & 63 & 18 & 81 & 197 & 161 & 358\\
 \midrule
-Baseline (s42) & B2 & 4,9 & 1,7 & 250 & 68\\
-Baseline (s43) & B2 & 4,3 & 1,8 & 275 & 88\\
-clDice & B2 & 4,5 & 1,9 & 213 & 119\\
-IoU+clDice & B2 & 3,9 & 1,9 & 201 & 110\\
-Topograph (s42) & B2 & 4,7 & 1,5 & 217 & 108\\
-Topograph (s43) & B2 & 3,0 & 2,2 & 300 & 49\\
+\multicolumn{7}{l}{\emph{B2 (Optuna)}}\\
+Baseline (s42) & 43 & 12 & 55 & 250 & 68 & 318\\
+Baseline (s43) & 37 & 13 & 50 & 275 & 88 & 363\\
+IoU & 45 & 13 & 58 & 247 & 95 & 342\\
+clDice & 39 & 15 & 54 & 213 & 119 & 332\\
+IoU+clDice & 34 & 15 & 49 & \textbf{201} & 110 & \textbf{311}\\
+Topograph (s42) & 41 & 12 & 53 & 217 & 108 & 325\\
+Topograph (s43) & \textbf{26} & 14 & \textbf{40} & 300 & \textbf{49} & 349\\
+IoU+Topo & 36 & 13 & 49 & 301 & 54 & 355\\
+clDice+Topo & 37 & 14 & 51 & 240 & 82 & 322\\
+IoU+clDice+Topo & 43 & 15 & 58 & 248 & 82 & 330\\
 \bottomrule
 \end{tabular}
-\caption{Tipos de error en val~$B$ (definiciones oficiales, IoU $>0$).
-Fragmentados, en \% de los 869 filamentos de referencia; fusiones, en
-\% de las predicciones.}
+\caption{Relaciones entre predicciones y referencia en val~$B$ (definición
+oficial, $\mathrm{IoU}>0$), sumadas sobre los pares anotador--imagen.
+P.\,+\,U.: partidos más unidos. S.\,P.\,+\,S.\,F.: filamentos sin
+predicción más predicciones sin filamento.}
 \label{tab:res-asignaciones}
 \end{table}
 
-Sin post-proceso, Topograph divide por dos o por tres las predicciones
-espurias (de 319 y 482 a 169 y 110), pero a cambio deja más filamentos
-sin tocar (de 140 y 100 a 183 y 224). También reduce algo la
-fragmentación, aunque menos que clDice: con IoU+clDice los
-fragmentados bajan del 10,6\,\% al 6,6\,\%, lo que concuerda con que
-clDice premia la continuidad de las estructuras alargadas. Las fusiones
-son raras en todos los casos (1--2\,\%) y aumentan ligeramente con las
-pérdidas topológicas.
+Sin post-proceso, el error dominante de todos los modelos no es
+topológico sino de presencia: las predicciones sin filamento y los
+filamentos sin predicción (334--582) superan entre 3 y 5 veces a los
+partidos y unidos (72--136). Las pérdidas topológicas cumplen su
+objetivo estructural: añadir clDice o Topograph reduce siempre los
+filamentos partidos (de 92--111 en la baseline a 57--79; IoU, sin sesgo
+topológico, llega a 123), mientras que las fusiones son residuales en
+todos los modelos (12--18). Sin embargo, la ganancia de PQ de Topograph
+no viene de ahí, sino de que vuelve al modelo más conservador: reduce
+las predicciones espurias a menos de la mitad (de 319--482 a 110--169) a
+cambio de dejar más filamentos sin detectar (de 100--140 a 183--224), un
+cambio que se repite con ambas semillas.
 
-Con B2, la fragmentación queda entre el 3 y el 5\,\% en todos los
-modelos, y las diferencias entre pérdidas se reducen a la proporción
-entre perdidos y espurias. Es decir, el filtro de área elimina también
-los trozos pequeños de los filamentos fragmentados, de modo que la
-ventaja de clDice y de Topograph en fragmentación deja de notarse.
-Destaca IoU+clDice, que con B2 es el modelo con menos filamentos
-perdidos (201) y más aciertos (474).
+Con B2, el filtro de área elimina precisamente esas espurias y los
+trozos pequeños de los filamentos partidos: las predicciones sin
+filamento caen a 49--119 y los partidos a 26--45 en todos los modelos, y
+la ventaja de las pérdidas topológicas desaparece. El error que queda
+son los filamentos no detectados (201--301). Destaca IoU+clDice, el
+modelo con menos filamentos perdidos y menor suma de errores sin
+contacto.
 
 % ------------------------------------------------------------
 \section{Incertidumbre de las comparaciones}
@@ -250,7 +266,16 @@ ejecución con la baseline (semilla 42) y su intervalo del 95\,\% por
 \cmidrule(lr){2-3}\cmidrule(lr){4-5}
 Pérdida & $\Delta$PQ & IC 95\,\% & $\Delta$PQ & IC 95\,\%\\
 \midrule
-\InputIfFileExists{tablas/bootstrap}{}{\multicolumn{5}{c}{\textbf{[ejecutar scripts/resultados.py]}}\\}
+Baseline (s42) & --- & --- & --- & --- \\
+Baseline (s43) & $-0{,}024^*$ & $[-0{,}039,\,-0{,}009]$ & $-0{,}016$ & $[-0{,}035,\,+0{,}005]$ \\
+IoU & $-0{,}026^*$ & $[-0{,}044,\,-0{,}010]$ & $-0{,}022^*$ & $[-0{,}037,\,-0{,}007]$ \\
+clDice & $+0{,}002$ & $[-0{,}011,\,+0{,}016]$ & $-0{,}019^*$ & $[-0{,}036,\,-0{,}002]$ \\
+IoU+clDice & $+0{,}011$ & $[-0{,}004,\,+0{,}024]$ & $-0{,}010$ & $[-0{,}030,\,+0{,}011]$ \\
+Topograph (s42) & $+0{,}016^*$ & $[+0{,}001,\,+0{,}032]$ & $-0{,}020^*$ & $[-0{,}035,\,-0{,}001]$ \\
+Topograph (s43) & $+0{,}011$ & $[-0{,}008,\,+0{,}029]$ & $-0{,}019^*$ & $[-0{,}035,\,-0{,}003]$ \\
+IoU+Topo & $+0{,}004$ & $[-0{,}017,\,+0{,}025]$ & $-0{,}028^*$ & $[-0{,}047,\,-0{,}008]$ \\
+clDice+Topo & $+0{,}005$ & $[-0{,}010,\,+0{,}022]$ & $-0{,}025^*$ & $[-0{,}044,\,-0{,}006]$ \\
+IoU+clDice+Topo & $+0{,}007$ & $[-0{,}009,\,+0{,}022]$ & $-0{,}037^*$ & $[-0{,}055,\,-0{,}019]$ \\
 \bottomrule
 \end{tabular}
 \caption{Diferencia de PQ en val~$B$ con la baseline (semilla 42) e
@@ -314,41 +339,145 @@ Dos consecuencias:
   compararse con ese techo, no con 1.
 \end{itemize}
 
-\paragraph{Modelos.} La Tabla~\ref{tab:res-barbas} muestra las medidas
-de barbas de la baseline, Topograph y clDice.
+\paragraph{Modelos.} Las ejecuciones de la Sección~\ref{sec:res-perdidas}
+se perdieron antes de poder medir sus barbas, así que se reentrenaron
+las ocho pérdidas con la misma configuración y la semilla 42. Para la
+baseline, Topograph y clDice, el reentrenamiento es el intento de
+referencia del ajuste de la Sección~\ref{sec:res-hp}. Por el no
+determinismo del entrenamiento, su PQ difiere algo del de la
+Tabla~\ref{tab:res-perdidas}. La Tabla~\ref{tab:res-barbas} recoge sus
+medidas de barbas.
 
 \begin{table}[ht]
 \centering
 \small
-\begin{tabular}{@{}llcccc@{}}
+\begin{tabular}{@{}lccccc@{}}
 \toprule
-Pérdida & Post & Cobertura & Precisión & $F_1$ & Ramas inventadas\\
+Pérdida & Cobertura & Precisión & $F_1$ & Ramas inv. & Cob.\ espina\\
 \midrule
-Techo a $512\times512$ & --- & 0,997 & 0,908 & 0,950 & 0,075\\
+Techo a $512\times512$ & 0,997 & 0,908 & 0,950 & 0,075 & 0,999\\
 \midrule
-\multicolumn{6}{c}{\textbf{[completar con \texttt{barbas\_runs.csv}]}}\\
+\multicolumn{6}{l}{\emph{Sin post-proceso}}\\
+Baseline & \textbf{0,563} & \textbf{0,279} & \textbf{0,373} & 0,222 & \textbf{0,772}\\
+IoU & 0,536 & 0,268 & 0,357 & 0,226 & 0,741\\
+clDice & 0,546 & 0,248 & 0,341 & 0,212 & 0,754\\
+IoU+clDice & 0,554 & 0,253 & 0,347 & 0,200 & 0,753\\
+Topograph & 0,512 & 0,232 & 0,320 & 0,169 & 0,715\\
+IoU+Topo & 0,496 & 0,275 & 0,354 & 0,168 & 0,702\\
+clDice+Topo & 0,537 & 0,190 & 0,281 & 0,229 & 0,727\\
+IoU+clDice+Topo & 0,529 & 0,240 & 0,331 & 0,185 & 0,728\\
+\midrule
+\multicolumn{6}{l}{\emph{B2 (Optuna)}}\\
+Baseline & 0,528 & \textbf{0,302} & \textbf{0,384} & 0,174 & 0,699\\
+IoU & 0,521 & 0,294 & 0,376 & 0,186 & 0,670\\
+clDice & \textbf{0,532} & 0,249 & 0,340 & 0,196 & \textbf{0,715}\\
+IoU+clDice & 0,516 & 0,266 & 0,351 & 0,174 & 0,704\\
+Topograph & 0,504 & 0,229 & 0,315 & 0,155 & 0,669\\
+IoU+Topo & 0,508 & 0,275 & 0,357 & 0,171 & 0,693\\
+clDice+Topo & 0,497 & 0,202 & 0,287 & 0,217 & 0,701\\
+IoU+clDice+Topo & 0,517 & 0,252 & 0,339 & 0,171 & 0,706\\
 \bottomrule
 \end{tabular}
-\caption{Medidas de barbas en val~$B$. El techo es la propia anotación
-reducida a $512\times512$ y vuelta a ampliar.}
+\caption{Medidas de barbas en val~$B$ de los reentrenamientos (semilla
+42). «Ramas inv.»: ramas inventadas por filamento. «Cob.\ espina»:
+fracción de la espina cubierta. El techo es la propia anotación reducida
+a $512\times512$ y vuelta a ampliar.}
 \label{tab:res-barbas}
 \end{table}
 
-\textbf{[completar: medido sobre los reentrenamientos de referencia
-(intento 0 del ajuste, misma config que la Tabla~\ref{tab:res-perdidas});
-decirlo en el texto. Si clDice o Topograph cubren más barbas que la
-baseline, y a qué coste en precisión.]}
+Se observan cuatro cosas:
+\begin{itemize}
+  \item \emph{Las barbas son lo que peor se recupera.} Todos los modelos
+  cubren cerca del 75\,\% de la espina pero solo alrededor del 55\,\% de
+  las barbas, con una precisión de $0{,}19$--$0{,}30$ frente al techo de
+  $0{,}91$. Es la parte del filamento con más margen de mejora.
+  \item \emph{Ninguna pérdida topológica mejora las barbas.} La baseline
+  tiene el mejor $F_1$, sin post-proceso y con B2.
+  \item \emph{clDice no ayuda a las barbas, al contrario de lo previsto.}
+  Comparando las cuatro parejas que solo se diferencian en clDice
+  (Dice/clDice, IoU/IoU+clDice, Topograph/clDice+Topo e IoU+Topo/IoU+clDice+Topo),
+  añadir clDice baja el $F_1$ en las cuatro, con y sin post-proceso. La
+  cobertura sube en tres de ellas, pero la precisión baja en todas:
+  clDice hace que el modelo prediga más estructura junto al filamento,
+  no más barbas reales. Una explicación posible es la proporción: el
+  esqueleto de las barbas es solo un 6\,\% del de las espinas, así que la
+  señal de clDice está dominada por la continuidad de la espina.
+  \item \emph{Topograph pierde estructura en general.} Baja la cobertura
+  de barbas y también la de la espina ($0{,}715$ frente a $0{,}772$). No
+  es un efecto específico de las barbas: es el mismo de la
+  Sección~\ref{sec:res-topograph}, que deja más filamentos sin detectar.
+\end{itemize}
+Con B2, la cobertura de barbas baja en todos los modelos, pero la de la
+espina baja más (en la baseline, de $0{,}772$ a $0{,}699$). Por tanto, el
+filtro de área no se lleva sobre todo trozos sueltos de barbas, sino
+filamentos pequeños enteros, con sus barbas incluidas.
 
 % ------------------------------------------------------------
 \section{Ajuste de hiperparámetros}
 \label{sec:res-hp}
 % ------------------------------------------------------------
 
-\textbf{[completar mañana con \texttt{ajuste\_hp.py --resumen}: mejor
-intento de cada modelo (valores, PQ $A$ y $B$, sin post y con B2),
-número de intentos y podados. Comparar la ganancia en $B$ con el ruido
-de $0{,}01$--$0{,}02$. Recordar que el PQ en $A$ del mejor intento está
-inflado por la selección; la cifra válida es la de $B$.]}
+La Tabla~\ref{tab:res-hp} compara, para cada modelo, el intento de
+referencia (la configuración común de la
+Sección~\ref{sec:entrenamiento}) con el mejor intento en val~$A$. Cada
+búsqueda dispuso de 3 horas: la baseline completó 15 intentos y se
+podaron 27; Topograph, 8 y 19, y clDice, 14 y 18.
+
+\begin{table}[ht]
+\centering
+\small
+\begin{tabular}{@{}llccccccc@{}}
+\toprule
+ & & & & & \multicolumn{2}{c}{Sin post} & \multicolumn{2}{c}{B2}\\
+\cmidrule(lr){6-7}\cmidrule(lr){8-9}
+Modelo & Intento & lr & $w_d$ & Peso & PQ $A$ & PQ $B$ & PQ $A$ & PQ $B$\\
+\midrule
+Baseline & ref. & $3{,}0\cdot10^{-4}$ & $10^{-4}$ & 0,50 & 0,296 & 0,297 & 0,359 & \textbf{0,370}\\
+ & mejor & $4{,}0\cdot10^{-4}$ & $3\cdot10^{-6}$ & 0,33 & 0,309 & 0,303 & 0,367 & 0,368\\
+\midrule
+Topograph & ref. & $3{,}0\cdot10^{-4}$ & $10^{-4}$ & 0,040 & 0,307 & 0,316 & 0,350 & 0,348\\
+ & mejor & $4{,}0\cdot10^{-4}$ & $3\cdot10^{-6}$ & 0,015 & 0,333 & \textbf{0,330} & 0,368 & 0,362\\
+\midrule
+clDice & ref. & $3{,}0\cdot10^{-4}$ & $10^{-4}$ & 0,25 & 0,305 & 0,307 & 0,340 & 0,344\\
+ & mejor & $7{,}9\cdot10^{-4}$ & $10^{-6}$ & 0,26 & 0,341 & 0,320 & 0,384 & 0,361\\
+\bottomrule
+\end{tabular}
+\caption{Ajuste de hiperparámetros. «Peso» es el de Dice en la baseline,
+$\alpha$ en Topograph y el de clDice en clDice; $w_d$ es el
+\emph{weight decay}. El mejor intento se elige por el PQ en val~$A$ sin
+post-proceso; su PQ en $A$ está inflado por esa selección.}
+\label{tab:res-hp}
+\end{table}
+
+\paragraph{El ajuste beneficia a las pérdidas topológicas, no a la
+baseline.} Con B2, el mejor intento de la baseline queda igual que la
+referencia ($0{,}368$ frente a $0{,}370$), mientras que Topograph sube
+$0{,}014$ y clDice $0{,}017$. Es decir, la configuración común favorecía
+ligeramente a la baseline. En ambas pérdidas el mejor intento usa una
+tasa de aprendizaje mayor, y en Topograph un peso menor que el fijado a
+priori ($\alpha\approx0{,}015$ frente a $0{,}04$).
+
+\paragraph{Pero no cambia la conclusión.} Tras el ajuste, los tres
+modelos quedan con B2 entre $0{,}361$ y $0{,}370$: dentro del ruido de
+$0{,}01$--$0{,}02$ entre entrenamientos, y con la baseline todavía
+arriba. Las ganancias en $B$ de Topograph y clDice son también de ese
+orden. La selección en $A$ infla las cifras de esa mitad (clDice pasa de
+$0{,}384$ en $A$ a $0{,}361$ en $B$), lo que confirma la necesidad de
+reportar en $B$.
+
+\paragraph{Una tercera réplica.} Los intentos de referencia reproducen,
+con un nuevo entrenamiento, el patrón de la
+Sección~\ref{sec:res-topograph}: sin post-proceso Topograph supera a la
+baseline ($0{,}316$ frente a $0{,}297$, $+0{,}019$) y con B2 queda por
+debajo ($0{,}348$ frente a $0{,}370$). Con las dos semillas de la
+Tabla~\ref{tab:res-perdidas}, son tres entrenamientos independientes
+con el mismo resultado.
+
+\paragraph{Épocas.} En todas las ejecuciones, la época elegida en
+val~$A$ está entre la 8 y la 20 de las 30 entrenadas. Las pérdidas
+topológicas alcanzan su mejor época algo más tarde que la baseline
+(12--20 frente a 8--14), pero todas muy por debajo de 30, de modo que no
+hay indicios de que falten épocas.
 
 % ------------------------------------------------------------
 \section{Resumen}
@@ -359,18 +488,23 @@ inflado por la selección; la cifra válida es la de $B$.]}
   \item El post-proceso clásico es la mejora más grande y más barata:
   el área mínima sube el PQ de la baseline de $0{,}311$ a $0{,}373$,
   porque elimina componentes espurias pequeñas.
-  \item Sin post-proceso, las pérdidas con sesgo topológico mejoran a la
-  baseline. Topograph es la más consistente (mejora con las dos
-  semillas) y la única con una diferencia significativa.
-  \item Topograph mejora sobre todo porque reduce las predicciones
-  espurias, a costa de perder algunos filamentos. clDice reduce más la
-  fragmentación.
+  \item El error dominante no es topológico sino de presencia:
+  predicciones sin filamento y filamentos sin predicción superan entre 3
+  y 5 veces a los partidos y unidos.
+  \item Sin post-proceso, Topograph mejora a la baseline en los tres
+  entrenamientos independientes, entre $+0{,}016$ y $+0{,}035$. Lo
+  consigue sobre todo reduciendo las predicciones espurias, a costa de
+  perder algunos filamentos. clDice reduce más la fragmentación.
   \item El filtro de área corrige esos mismos errores, así que con B2
-  la ventaja de ambas desaparece. Ninguna pérdida supera a la baseline
-  con B2.
+  la ventaja desaparece. Ninguna pérdida supera a la baseline con B2,
+  tampoco tras ajustar sus hiperparámetros.
+  \item Las barbas son lo que peor se recupera (cobertura en torno al
+  55\,\%, frente a casi el 100\,\% que conserva la anotación a esta
+  resolución), y ninguna pérdida topológica las mejora: clDice reduce su
+  precisión.
   \item clDice necesita un término de solapamiento; sin Dice, el
   entrenamiento colapsa.
-  \item La variación entre semillas es del mismo orden que las
+  \item La variación entre entrenamientos es del mismo orden que las
   diferencias entre pérdidas, y el \emph{bootstrap} por días no la
-  recoge. \textbf{[ajustar tras el ajuste de hiperparámetros.]}
+  recoge.
 \end{itemize}

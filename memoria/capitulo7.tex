@@ -41,7 +41,19 @@ filtro de área. Con el post-proceso ajustado, ninguna pérdida supera a
 la baseline. La conclusión es que, en este problema, el sesgo
 topológico introducido en el entrenamiento y el filtro clásico aplicado
 después corrigen el mismo tipo de error, y sus mejoras no se suman.
-\textbf{[completar: barbas y ajuste de hiperparámetros.]}
+El resultado se repite en tres entrenamientos independientes y resiste
+el ajuste de hiperparámetros: ajustadas, Topograph y clDice se acercan
+a la baseline, pero no la superan.
+
+En cuanto a las barbas, la hipótesis de partida no se cumple. Son la
+parte del filamento que peor se recupera, aunque la anotación reducida a
+la resolución de trabajo las conserva casi enteras, y ninguna pérdida
+topológica las mejora. clDice, que se eligió precisamente por ellas,
+hace que el modelo prediga más estructura junto al filamento pero no
+más barbas reales: su precisión baja en todas las combinaciones
+probadas. Las barbas pesan muy poco en el esqueleto total, y una
+pérdida que premia la continuidad del esqueleto acaba optimizando la
+de la espina.
 
 % ------------------------------------------------------------
 \section{Limitaciones}
@@ -56,10 +68,10 @@ después corrigen el mismo tipo de error, y sus mejoras no se suman.
   de la resolución original en cada eje. Para las barbas esto apenas
   importa (la anotación reducida conserva el 99,7\,\% de su esqueleto),
   pero limita la precisión con que se delimita el contorno.
-  \item \emph{Configuración fija.} Las comparaciones de pérdidas usan los
-  mismos hiperparámetros, sin aumentos de datos y con el peso de
-  Topograph fijado a priori. El ajuste de la
-  Sección~\ref{sec:res-hp} cubre solo tres modelos.
+  \item \emph{Ajuste limitado.} La comparación completa de pérdidas usa
+  una configuración común, sin aumentos de datos. El ajuste de la
+  Sección~\ref{sec:res-hp} muestra que esa configuración favorecía algo
+  a la baseline, pero solo cubre tres modelos y 3 horas por modelo.
   \item \emph{Una sola arquitectura}, la U-Net con ResNet-34.
 \end{itemize}
 

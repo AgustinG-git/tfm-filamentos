@@ -9,27 +9,16 @@
 \section{Motivación}
 % ------------------------------------------------------------
 
-Las redes neuronales de segmentación se entrenan casi siempre con
-pérdidas de solapamiento, como la entropía cruzada o el coeficiente de
-Dice, que comparan la predicción con la referencia píxel a píxel. Para
-muchos objetos esto basta. Pero cuando lo que se segmenta son
+Las redes neuronales de segmentación se entrenan casi siempre con pérdidas de solapamiento, como la entropía cruzada o el coeficiente de
+Dice, que comparan la predicción con la referencia píxel a píxel lo cual cubre bien la mayoría de casos. Pero cuando lo que se segmenta son
 estructuras finas y alargadas (vasos sanguíneos, carreteras, fibras),
-los errores que más importan no son los que más píxeles cuestan. Un
-vaso partido en dos por un hueco de tres píxeles apenas cambia el Dice,
-y sin embargo ha dejado de ser un vaso para convertirse en dos. Son
-errores de \emph{forma}: cambian cuántas piezas hay y cómo se conectan.
+los errores que más importan no son los que más píxeles cuestan. Un vaso partido en dos por un hueco de tres píxeles apenas cambia el Dice,
+y sin embargo ha dejado de ser un vaso para convertirse en dos, esto son errores que cambian cuántas piezas hay y cómo se conectan.
 
-La topología es la parte de las matemáticas que estudia precisamente
-esas propiedades, las que no cambian al deformar un objeto sin
-romperlo ni pegarlo. En los últimos años, la topología computacional, y
-en particular la homología persistente, ha dado lugar a métricas y
-pérdidas que penalizan directamente los errores topológicos de una
-segmentación~\cite{hu2019,shit2021,stucki2023,lux2025}. Este trabajo
-estudia esas herramientas y las pone a prueba en un problema real.
+La topología es la parte de las matemáticas que estudia precisamente esas propiedades, las que no cambian al deformar un objeto sin romperlo ni pegarlo. En los últimos años, la topología computacional, y en particular la homología persistente, ha dado lugar a métricas y pérdidas que penalizan directamente los errores topológicos de una segmentación~\cite{hu2019,shit2021,stucki2023,lux2025}. Este trabajo estudia esas herramientas y las pone a prueba en un problema real.
 
 El problema elegido es la segmentación de filamentos solares en
-imágenes H-alfa, propuesto en la competición \emph{Solar Filament
-Segmentation Challenge 2026}~\cite{kaggle2026}. Los filamentos son
+imágenes H-alfa, propuesto en la competición \emph{Solar Filament Segmentation Challenge 2026}~\cite{kaggle2026}. Los filamentos son
 estructuras alargadas, con ramificaciones finas llamadas \emph{barbas},
 y la competición los evalúa con una métrica de instancias, la calidad
 panóptica~\cite{kirillov2019}, que castiga con fuerza los filamentos

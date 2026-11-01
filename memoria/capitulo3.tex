@@ -11,11 +11,10 @@
 
 El análisis topológico de datos (TDA, por sus siglas en inglés) estudia
 la \emph{forma} de los datos: cuántas componentes tienen, si presentan
-agujeros o cavidades y cómo se conectan entre sí. Su herramienta central
-es la homología, que asigna a cada espacio invariantes algebraicos
-computables. Su aportación principal es la homología persistente, que
-extiende esos invariantes a familias de espacios y permite distinguir la
-estructura robusta del ruido. Este capítulo, núcleo teórico del trabajo,
+agujeros o cavidades y cómo se conectan entre sí. Una de sus herramientas más importantes es la homología persistente, que
+estudia cómo evolucionan las componentes y los agujeros de una familia
+creciente de espacios y permite así distinguir la estructura robusta del
+ruido. Este capítulo, núcleo teórico del trabajo,
 presenta estas herramientas siguiendo principalmente a Edelsbrunner y
 Harer~\cite{edelsbrunner2010}: los complejos
 (Sección~\ref{sec:complejos}), la homología
@@ -24,16 +23,14 @@ Harer~\cite{edelsbrunner2010}: los complejos
 entre diagramas de persistencia, que permiten compararlos de forma
 estable (Sección~\ref{sec:distancias}).
 
-La segunda parte del capítulo lleva estas ideas a la segmentación de
-imágenes, donde la forma importa tanto como la precisión: un objeto
+La segunda parte del capítulo nos centramos en explicar técnicas de segmentación de imágenes aplicando TDA, donde la forma importa tanto como la precisión: un objeto
 partido en dos o unido a otro por un puente espurio apenas penaliza una
 métrica de solapamiento, pero cambia su topología. Presentamos primero el
 coeficiente de Dice y clDice (Sección~\ref{sec:dice-cldice}), que miden
 el solapamiento de los píxeles y de los esqueletos, respectivamente. Después
 describimos las métricas y funciones de pérdida basadas en topología
 (Sección~\ref{sec:topo-segmentacion}), con especial atención a
-\emph{Topograph}~\cite{lux2025}. El Capítulo~\ref{cap:contexto} presenta el
-problema concreto al que se aplican: la segmentación de filamentos solares.
+\emph{Topograph}~\cite{lux2025}.
 
 Trabajamos siempre con coeficientes en el cuerpo $\mathbb{F}_2=\{0,1\}$,
 donde $1+1=0$. Esta elección simplifica los cálculos (no hay signos ni
@@ -64,30 +61,21 @@ escribimos $\tau\le\sigma$.
 \end{definicion}
 
 Los símplices de dimensión $0,1,2$ y $3$ son vértices, aristas, triángulos
-y tetraedros.
+y tetraedros. Por ejemplo, el 2-símplice
+$\sigma=\operatorname{conv}\{u_0,u_1,u_2\}$ de la
+Figura~\ref{fig:simplice} es un triángulo, y sus caras son los tres
+vértices, las tres aristas y el propio $\sigma$.
 
 \begin{figure}[ht]
 \centering
-\begin{minipage}[c]{0.4\textwidth}
-\centering
-\begin{tikzpicture}[scale=1.4]
-  \fill[yellow!30] (0,0) -- (2.2,0) -- (0.9,1.6) -- cycle;
-  \draw[thick] (0,0) -- (2.2,0) -- (0.9,1.6) -- cycle;
-  \fill (0,0) circle (1.5pt) node[below left] {$u_0$};
-  \fill (2.2,0) circle (1.5pt) node[below right] {$u_1$};
-  \fill (0.9,1.6) circle (1.5pt) node[above] {$u_2$};
+\begin{tikzpicture}[scale=1.1]
+  \fill[yellow!30] (0,0) -- (2,0) -- (0.9,1.4) -- cycle;
+  \draw[thick] (0,0) -- (2,0) -- (0.9,1.4) -- cycle;
+  \fill (0,0) circle (1.4pt) node[below left] {\small $u_0$};
+  \fill (2,0) circle (1.4pt) node[below right] {\small $u_1$};
+  \fill (0.9,1.4) circle (1.4pt) node[above] {\small $u_2$};
 \end{tikzpicture}
-\end{minipage}
-\begin{minipage}[c]{0.55\textwidth}
-Versión abstracta:
-\[
-  \begin{aligned}
-  \bigl\{&\{u_0\},\{u_1\},\{u_2\},\{u_0,u_1\},\\
-         &\{u_0,u_2\},\{u_1,u_2\},\{u_0,u_1,u_2\}\bigr\}
-  \end{aligned}
-\]
-\end{minipage}
-\caption{Un 2-símplice geométrico (izquierda) y su versión abstracta, la familia de sus caras (derecha).}
+\caption{Un 2-símplice.}
 \label{fig:simplice}
 \end{figure}
 
@@ -101,11 +89,49 @@ complejo simplicial $L\subseteq K$.
 \end{definicion}
 
 La condición (i) dice que el complejo está cerrado por caras y la (ii) que
-los símplices no se cortan de forma impropia. Es frecuente trabajar con la
-versión \emph{abstracta}: una familia finita de conjuntos cerrada por
+los símplices no se cortan de forma impropia. Es frecuente trabajar con el complejo simplicial abstracto: una familia finita de conjuntos cerrada por
 subconjuntos. Todo complejo abstracto de dimensión $d$ admite una
 realización geométrica en $\mathbb{R}^{2d+1}$~\cite[§III.1]{edelsbrunner2010},
 así que ambos puntos de vista son equivalentes.
+
+\begin{ejemplo}
+El complejo $K$ de la Figura~\ref{fig:complejo} está formado por dos
+triángulos, $abc$ y $bcd$, que comparten la arista $bc$, y una arista
+$de$, junto con todas sus caras. Cumple las dos condiciones de la
+definición: contiene las caras de cada uno de sus símplices, y dos
+símplices cualesquiera se cortan en una cara común (los triángulos, en la
+arista $bc$; el triángulo $bcd$ y la arista $de$, en el vértice $d$). Su
+versión abstracta es la familia de conjuntos de vértices
+\[
+  \begin{aligned}
+  \bigl\{&\{a\},\{b\},\{c\},\{d\},\{e\},\\
+         &\{a,b\},\{a,c\},\{b,c\},\{b,d\},\{c,d\},\{d,e\},\\
+         &\{a,b,c\},\{b,c,d\}\bigr\},
+  \end{aligned}
+\]
+que está cerrada por subconjuntos. En cambio, dos triángulos que se
+cortaran en un punto interior de una arista de uno de ellos no formarían
+un complejo simplicial, porque su intersección no sería una cara de
+ambos.
+\end{ejemplo}
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[scale=1.2]
+  \fill[yellow!30] (0,0) -- (1.6,0) -- (0.8,1.3) -- cycle;
+  \fill[yellow!30] (1.6,0) -- (0.8,1.3) -- (2.4,1.3) -- cycle;
+  \draw[thick] (0,0) -- (1.6,0) -- (0.8,1.3) -- cycle;
+  \draw[thick] (1.6,0) -- (2.4,1.3) -- (0.8,1.3);
+  \draw[thick] (2.4,1.3) -- (3.6,0.6);
+  \foreach \p/\n/\pos in {(0,0)/a/below left, (1.6,0)/b/below,
+                          (0.8,1.3)/c/above, (2.4,1.3)/d/above,
+                          (3.6,0.6)/e/right}
+    \fill \p circle (1.4pt) node[\pos] {\small $\n$};
+\end{tikzpicture}
+\caption{Un complejo simplicial con dos triángulos que comparten una
+arista y una arista colgante. Ilustración propia.}
+\label{fig:complejo}
+\end{figure}
 
 \subsection{Complejos cúbicos}
 
@@ -176,9 +202,18 @@ Euler es $12-17+6=1$, la de un disco.}
 \subsection{Imágenes como complejos filtrados}
 \label{sec:imagenes-complejos}
 
-Sea $I\in\mathbb{R}^{m\times n}$ una imagen en escala de grises. Hay dos
-formas estándar de asociarle una función sobre un complejo
-cúbico~\cite{stucki2023}:
+Sea $I\in\mathbb{R}^{m\times n}$ una imagen en escala de grises. Para
+estudiar su topología con homología persistente
+(Sección~\ref{sec:persistencia}) no basta con un único complejo, necesitamos
+una familia creciente de complejos que recorra la imagen nivel a nivel.
+Para ello asignamos a cada celda del complejo de rejilla un valor
+$f_I(\sigma)$, que indica en qué momento entra en la familia. Fijado un
+umbral $r$, nos quedamos con las celdas de valor menor o igual que $r$. Al
+subir $r$, la imagen se va «escaneando»: primero aparecen los píxeles más
+oscuros, después los intermedios y, al final, la imagen completa. Para que
+cada paso de este escaneo sea un complejo, y no un conjunto de celdas
+sueltas, la función $f_I$ debe construirse con cuidado. Hay dos formas
+estándar de hacerlo~\cite{stucki2023}:
 
 \begin{itemize}
   \item \textbf{Construcción V.} Cada píxel es un \emph{vértice} de
@@ -251,6 +286,7 @@ $K_4$ está el complejo completo.}
 \end{figure}
 
 \begin{observacion}
+\label{obs:conectividad}
 La elección de construcción fija qué píxeles se consideran conectados.
 Dos píxeles pueden ser vecinos por un lado (\emph{4-conectividad}) o
 también por una esquina (\emph{8-conectividad}). En la construcción V los
@@ -267,8 +303,6 @@ oblicuas. Una línea diagonal de tres píxeles,
                       \square & \square & \blacksquare \end{smallmatrix}
 \]
 forma tres componentes con 4-conectividad y una sola con 8-conectividad.
-En este trabajo se usa la 8-conectividad, es decir, la construcción T,
-para no fragmentar artificialmente las barbas de los filamentos.
 \end{observacion}
 
 % ------------------------------------------------------------
@@ -278,7 +312,12 @@ para no fragmentar artificialmente las barbas de los filamentos.
 
 La homología formaliza la idea de «agujero» de forma computable. Lo hace de
 manera indirecta: en lugar de describir el agujero, estudia lo que lo
-\emph{rodea}. Exponemos la teoría para un complejo simplicial $K$; para
+\emph{rodea}. Hay agujeros de cada dimensión. En dimensión $0$, la
+homología detecta las \emph{componentes conexas}, es decir, los «huecos»
+que separan unas piezas de otras. En dimensión $1$ detecta los
+\emph{túneles} o lazos, como el agujero de un anillo. En dimensión $2$
+detecta las \emph{cavidades}, como el interior hueco de una esfera, y así
+sucesivamente. Exponemos la teoría para un complejo simplicial $K$; para
 complejos cúbicos basta sustituir «símplice» por «cubo»~\cite{kaczynski2004}.
 
 \subsection{Cadenas, ciclos y bordes}
@@ -320,13 +359,9 @@ algo:
 $\partial_p\circ\partial_{p+1}=0$ para todo $p$.
 \end{lema}
 
-\begin{proof}
-Por linealidad basta comprobarlo sobre un $(p+1)$-símplice $\tau$.
-$\partial_{p+1}\tau$ es la suma de las $p$-caras de $\tau$, y cada
-$(p-1)$-cara de $\tau$ pertenece exactamente a dos de esas $p$-caras.
-Al aplicar $\partial_p$ cada una aparece dos veces y se cancela en
-$\mathbb{F}_2$.
-\end{proof}
+Intuitivamente, cada cara de dimensión $p-1$ de un $(p+1)$-símplice
+aparece en el borde de exactamente dos de sus $p$-caras, y en
+$\mathbb{F}_2$ se cancela.
 
 En consecuencia $B_p(K)\subseteq Z_p(K)$: todo borde es un ciclo. El
 recíproco falla precisamente cuando hay agujeros. Un ciclo que rodea un
@@ -412,11 +447,24 @@ $H_1$ es trivial.}
 \end{figure}
 
 \begin{observacion}[{Homología reducida \cite[§IV.1]{edelsbrunner2010}}]
-Que un disco tenga $\beta_0=1$ resulta incómodo si se interpreta $\beta_0$
-como número de «huecos entre componentes». Añadiendo la aplicación de
-aumento $\varepsilon:C_0(K)\to\mathbb{F}_2$, $\varepsilon(u)=1$, se obtiene
-la \emph{homología reducida} $\tilde H_p$, con $\tilde\beta_0=\beta_0-1$ y
-$\tilde\beta_p=\beta_p$ para $p\ge1$.
+Todo complejo no vacío tiene al menos una componente conexa, por lo que
+siempre $\beta_0\ge1$. En algunas aplicaciones conviene que el caso base,
+una única componente, tenga número de Betti $0$, de modo que $\beta_0$
+cuente los «huecos» que separan componentes y no las componentes en sí.
+Para ello se añade al complejo de cadenas la \emph{aplicación de aumento}
+$\varepsilon:C_0(K)\to\mathbb{F}_2$, definida por $\varepsilon(u)=1$ en
+cada vértice $u$ y extendida por linealidad:
+\[
+  \cdots\xrightarrow{\partial_2}C_1(K)\xrightarrow{\partial_1}C_0(K)
+  \xrightarrow{\varepsilon}\mathbb{F}_2\to0.
+\]
+Los grupos de homología de este complejo aumentado son la
+\emph{homología reducida} $\tilde H_p(K)$. Solo cambia la dimensión $0$:
+ahora los $0$-ciclos son las cadenas con un número par de vértices, y
+\[
+  \tilde\beta_0=\beta_0-1,\qquad \tilde\beta_p=\beta_p\quad(p\ge1).
+\]
+Así, un disco o un punto tienen toda su homología reducida trivial.
 \end{observacion}
 
 \subsection{Inclusiones inducidas}
@@ -440,18 +488,51 @@ En nuestro contexto, $\dim\ker\iota_*$ cuenta las clases que \emph{mueren} al
 pasar de $K'$ a $K$, y $\dim\operatorname{coker}\iota_*$ las clases de $K$ que
 \emph{no proceden} de $K'$. Esta pareja reaparecerá en la métrica DIU de la
 Sección~\ref{sec:topograph}.
+Para enunciar en qué sentido la homología es un invariante necesitamos
+precisar cuándo dos espacios «tienen la misma forma».
 
-\begin{teorema}[{Invariancia y Euler--Poincaré \cite[Cor.~2.11]{hatcher2002}, \cite[§IV.2]{edelsbrunner2010}}]
-La homología no depende de la triangulación elegida, esto es, espacios
-homotópicamente equivalentes tienen grupos de homología isomorfos. En
-particular, la \emph{característica de Euler}, definida como la suma
-alternada del número de símplices de cada dimensión, verifica la fórmula de
-Euler--Poincaré
-\[
-  \chi(K)=\sum_{p\ge0}(-1)^p\,\#\{p\text{-símplices}\}
-         =\sum_{p\ge0}(-1)^p\beta_p(K).
-\]
+\begin{definicion}[{\cite[cap.~0]{hatcher2002}}]
+\label{def:homotopia}
+Dos aplicaciones continuas $f,g:X\to Y$ son \emph{homótopas} si existe una
+aplicación continua $H:X\times[0,1]\to Y$ con $H(\cdot,0)=f$ y
+$H(\cdot,1)=g$; es decir, si $f$ se puede deformar en $g$ de forma
+continua. Una aplicación $f:X\to Y$ es una \emph{equivalencia homotópica}
+si existe $g:Y\to X$ tal que $g\circ f$ y $f\circ g$ son homótopas a la
+identidad; en ese caso decimos que $X$ e $Y$ son \emph{homotópicamente
+equivalentes}. Un subespacio $A\subseteq X$ es un \emph{retracto por
+deformación} de $X$ si existe una homotopía $H:X\times[0,1]\to X$ con
+$H(\cdot,0)=\mathrm{id}_X$, $H(\cdot,1)(X)\subseteq A$ y $H(a,t)=a$ para
+todo $a\in A$ y todo $t$.
+\end{definicion}
+
+Un retracto por deformación es la forma más visual de equivalencia
+homotópica: $X$ se «encoge» sobre $A$ sin romperse ni pegarse, y sin mover
+los puntos de $A$. Por ejemplo, un anillo se retrae por deformación sobre
+su circunferencia central, y un disco sobre su centro. En ambos casos la
+inclusión $A\hookrightarrow X$ es una equivalencia homotópica: el anillo
+tiene la homología de una circunferencia y el disco, la de un punto.
+Encoger o estirar un espacio de esta manera no crea ni destruye
+componentes ni agujeros.
+\begin{teorema}[{Invariancia homotópica \cite[Teor.~2.27 y Cor.~2.11]{hatcher2002}}]
+La homología simplicial de $K$ es isomorfa a la homología (singular) de su
+espacio subyacente $|K|$, por lo que no depende de la triangulación
+elegida. Además, toda equivalencia homotópica $f:X\to Y$ induce
+isomorfismos $f_*:H_p(X)\to H_p(Y)$ para todo $p$. En particular, espacios
+homotópicamente equivalentes tienen los mismos números de Betti.
 \end{teorema}
+
+\begin{proposicion}[{Euler--Poincaré \cite[§IV.2]{edelsbrunner2010}}]
+Sea $n_p$ el número de $p$-símplices de $K$. La \emph{característica de
+Euler} $\chi(K)=\sum_{p\ge0}(-1)^p n_p$ verifica
+\[
+  \chi(K)=\sum_{p\ge0}(-1)^p\beta_p(K).
+\]
+\end{proposicion}
+
+Combinando ambos resultados, $\chi$ solo depende del espacio y no del
+complejo que lo triangula: es un invariante topológico. Por ejemplo, el
+complejo de rejilla de la Figura~\ref{fig:rejilla} tiene $\chi=1$, igual
+que un disco o un punto.
 
 \subsection{Cálculo mediante reducción matricial}
 \label{sec:reduccion}
@@ -497,7 +578,7 @@ fórmula anterior:
 Es la homología de un círculo: una componente y un agujero, generado por
 el ciclo $ab+bc+ac$.
 
-Si añadimos el triángulo $abc$, su borde es la columna
+Si añadimos el triángulo $abc$ a $K$, su borde es la columna
 $\partial_2=(1,1,1)^{T}$, de rango $1$. Ahora
 \[
   \beta_0=1,\qquad \beta_1=3-2-1=0,\qquad \beta_2=1-1-0=0,
@@ -568,9 +649,14 @@ $(0,\infty)$, $(1,8)$ y $(5,6)$.
     \draw[->, red!80!black, thick] (10,8) -- (10.6,8);
     \draw[line width=3pt, green!50!black] (1,5.5) -- (8,5.5);
     \draw[line width=3pt, orange!90!black] (5,3) -- (6,3);
-    \node[right, font=\small] at (10.6,8) {$(0,\infty)$};
-    \node[right, font=\small] at (8.2,5.5) {$(1,8)$};
-    \node[right, font=\small] at (6.2,3) {$(5,6)$};
+    \node[right, font=\small] at (10.6,8) {$[0,\infty)$};
+    \node[right, font=\small] at (8.2,5.5) {$[1,8)$};
+    \node[right, font=\small] at (6.2,3) {$[5,6)$};
+    \fill[red!80!black] (0,8) circle (2.5pt);
+    \fill[green!50!black] (1,5.5) circle (2.5pt);
+    \draw[green!50!black, fill=white] (8,5.5) circle (2.5pt);
+    \fill[orange!90!black] (5,3) circle (2.5pt);
+    \draw[orange!90!black, fill=white] (6,3) circle (2.5pt);
   \end{scope}
 \end{tikzpicture}
 \caption{Izquierda: una función en una dimensión; al subir el nivel $a$
@@ -700,8 +786,10 @@ nacen en $K_i$ y mueren al entrar en $K_j$:
              -\bigl(\beta_p^{i-1,j-1}-\beta_p^{i-1,j}\bigr).
 \]
 El \emph{diagrama de persistencia} $\operatorname{Dgm}_p(f)$ es el
-multiconjunto de puntos $(a_i,a_j)$ con multiplicidad $\mu_p^{i,j}$, junto
-con los puntos de la diagonal con multiplicidad infinita.
+multiconjunto formado por los puntos $(a_i,a_j)$, con $i<j$ y
+$\mu_p^{i,j}>0$, cada uno con multiplicidad $\mu_p^{i,j}$; los puntos
+$(a_i,\infty)$, uno por cada clase independiente que nace en $K_i$ y no
+muere nunca; y los puntos de la diagonal, con multiplicidad infinita.
 \end{definicion}
 
 Todos los puntos están por encima de la diagonal, y la distancia vertical
@@ -734,8 +822,7 @@ esos intervalos es su código de barras.
 
 \subsection{Algoritmo de reducción}
 
-Sorprendentemente, todos los diagramas de una filtración se obtienen con
-una sola reducción matricial. Se ordenan los $m$ símplices de forma
+Se ordenan los $m$ símplices de forma
 \emph{compatible}: $\sigma_1,\dots,\sigma_m$ con $i<j$ si
 $f(\sigma_i)<f(\sigma_j)$ o si $\sigma_i$ es cara de $\sigma_j$. Se
 construye la matriz de borde total $\partial$, de tamaño $m\times m$ y con
@@ -1016,9 +1103,7 @@ el número de iteraciones $K$ es un hiperparámetro que decide hasta qué
 grosor el esqueleto blando se comporta como un esqueleto; usamos $K=10$ en
 todos los experimentos. Tercero, clDice por sí solo no mide la extensión del
 objeto: sin un término de solapamiento, la pérdida puede llegar a soluciones
-degeneradas. Esto lo comprobamos experimentalmente en el capítulo de
-resultados, donde la combinación de entropía cruzada y clDice sin Dice
-colapsa.
+degeneradas. Esto lo comprobamos experimentalmente en el Capítulo~\ref{cap:resultados}, donde la combinación de entropía cruzada y clDice sin Dice colapsa.
 
 % ------------------------------------------------------------
 \section{Topología en la segmentación de imágenes}
@@ -1052,8 +1137,8 @@ persistencia por un grafo de componentes conexas, que tiene en cuenta la
 posición, se calcula en tiempo casi lineal y reparte el gradiente sobre
 regiones enteras.
 
-\paragraph{Grafo de componentes~\cite[§2.1]{lux2025}.} Se modela la imagen
-binaria con la construcción T y se añade una celda de fondo exterior
+\paragraph{Grafo de componentes~\cite[§2.1]{lux2025}.}  Se modela la imagen binaria con la construcción T, es decir, con
+  8-conectividad (Observación~\ref{obs:conectividad}), y se añade una celda de fondo exterior
 $c^\star$ pegada al borde, con lo que el complejo resultante $\tilde{C}$ es
 homeomorfo a la esfera $S^2$. Primer plano $F(I)$ y fondo $B(I)$ se
 descomponen en componentes conexas $F_1,\dots,F_k$ y $B_1,\dots,B_l$. El
@@ -1069,48 +1154,96 @@ agujero de $F_i$ (Figura~\ref{fig:grafo-componentes}).
 
 \begin{figure}[ht]
 \centering
-\begin{tikzpicture}[every node/.style={draw, circle, minimum size=8mm, inner sep=1pt, font=\small}]
-  \node[fill=yellow!40] (F1) at (0,1) {$F_1$};
-  \node[fill=yellow!40] (F2) at (0,-1) {$F_2$};
-  \node[fill=blue!15] (B0) at (3,0) {$c^\star$};
-  \node[fill=blue!15] (B1) at (3,2) {$B_1$};
-  \draw (F1) -- (B0);
-  \draw (F1) -- (B1);
-  \draw (F2) -- (B0);
+\begin{tikzpicture}[
+    nd/.style={draw, circle, minimum size=8mm, inner sep=1pt, font=\small}]
+  \begin{scope}
+    \fill[blue!8] (0,0) rectangle (3.2,2.2);
+    \draw[gray] (0,0) rectangle (3.2,2.2);
+    \fill[yellow!50, even odd rule] (0.3,0.3) rectangle (1.9,1.9)
+                                    (0.8,0.8) rectangle (1.4,1.4);
+    \draw (0.3,0.3) rectangle (1.9,1.9) (0.8,0.8) rectangle (1.4,1.4);
+    \fill[yellow!50] (2.3,0.7) rectangle (2.9,1.3);
+    \draw (2.3,0.7) rectangle (2.9,1.3);
+    \node[font=\small] at (1.1,1.1) {$B_1$};
+    \node[font=\small] at (0.55,1.6) {$F_1$};
+    \node[font=\small] at (2.6,1.0) {$F_2$};
+    \node[font=\small] at (2.75,1.9) {$c^\star$};
+    \node at (1.6,-0.45) {\small Imagen binaria};
+  \end{scope}
+  \begin{scope}[xshift=4.6cm]
+    \node[nd, fill=yellow!50] (F1) at (0,1.6) {$F_1$};
+    \node[nd, fill=yellow!50] (F2) at (0,0.4) {$F_2$};
+    \node[nd, fill=blue!12] (B0) at (2.2,0.4) {$c^\star$};
+    \node[nd, fill=blue!12] (B1) at (2.2,1.6) {$B_1$};
+    \draw (F1) -- (B0); \draw (F1) -- (B1); \draw (F2) -- (B0);
+    \node at (1.1,-0.45) {\small Grafo de componentes};
+  \end{scope}
 \end{tikzpicture}
-\caption{Grafo de componentes de un ejemplo con dos componentes de primer plano.
-$F_1$ tiene un agujero ($B_1$) y $F_2$ no, así que $\beta_0(F)=2$ y
-$\beta_1(F)=(2-1)+(1-1)=1$. Ilustración propia.}
+\caption{Una imagen binaria con dos componentes de primer plano: $F_1$
+tiene un agujero $B_1$ y $F_2$ no. En su grafo de componentes,
+$\beta_0=2$ y $\beta_1=(2-1)+(1-1)=1$. Ilustración propia.}
 \label{fig:grafo-componentes}
 \end{figure}
 
-\paragraph{Grafo combinado~\cite[§2.1]{lux2025}.} Superponiendo $P$ y $G$,
-el plano se cubre con cuatro regiones: verdaderos positivos (TP), verdaderos
-negativos (TN), falsos positivos (FP) y falsos negativos (FN). Para evitar
-problemas de conectividad en los bordes, se engrosa ligeramente el primer
-plano con $\varepsilon$ y $2\varepsilon$. Las componentes conexas de las
-cuatro regiones son los vértices del \emph{grafo combinado}
-$\mathcal{G}(P,G)$, con aristas entre regiones adyacentes. Es bipartito:
-las aristas unen siempre una región correcta (TP o TN) con una errónea (FP
-o FN) (Figura~\ref{fig:grafo-combinado}).
+\paragraph{Grafo combinado~\cite[§2.1]{lux2025}.} Sean $P$ la predicción
+binaria y $G$ la referencia, vistas como regiones del plano mediante la
+construcción T. Para evitar problemas de conectividad en los bordes, sus
+primeros planos se engrosan ligeramente: $F_\varepsilon(P)$ es el de la
+predicción engrosado en $\varepsilon$ y $F_{2\varepsilon}(G)$ el de la
+referencia engrosado en $2\varepsilon$. Superponiéndolos, el plano se
+cubre con cuatro regiones: verdaderos positivos,
+$\mathrm{TP}=F_\varepsilon(P)\cap F_{2\varepsilon}(G)$ (filamento en ambas);
+falsos positivos, FP (filamento solo en la predicción); falsos negativos,
+FN (filamento solo en la referencia), y verdaderos negativos, TN (fondo en
+ambas). Las componentes conexas de las cuatro regiones son los vértices
+del \emph{grafo combinado} $\mathcal{G}(P,G)$, con aristas entre regiones
+adyacentes. Es bipartito: las aristas unen siempre una región correcta
+(TP o TN) con una errónea (FP o FN) (Figura~\ref{fig:grafo-combinado}).
 
 \begin{figure}[ht]
 \centering
-\begin{tikzpicture}[every node/.style={draw, rounded corners, minimum width=2.2cm,
-  minimum height=0.9cm, font=\small}]
-  \node[fill=green!25] (TP) at (0,2) {TP};
-  \node[fill=gray!20] (TN) at (4,2) {TN};
-  \node[fill=red!25] (FP) at (0,0) {FP};
-  \node[fill=orange!25] (FN) at (4,0) {FN};
-  \draw (TP) -- (FP);
-  \draw (TP) -- (FN);
-  \draw (TN) -- (FP);
-  \draw (TN) -- (FN);
+\begin{tikzpicture}[
+    rg/.style={draw, rounded corners, minimum width=1.1cm, minimum height=0.6cm,
+               inner sep=1pt, font=\small}]
+  \begin{scope}[scale=1.35, every node/.append style={transform shape=false}]
+    \fill[gray!12] (0,0) rectangle (3.2,2.4);
+    \draw[gray] (0,0) rectangle (3.2,2.4);
+    \fill[green!35] (0.2,1.1) rectangle (1.35,1.5);
+    \fill[green!35] (1.85,1.1) rectangle (3.0,1.5);
+    \fill[orange!45] (1.35,1.1) rectangle (1.85,1.5);
+    \fill[red!35] (0.45,1.5) rectangle (1.1,1.72);
+    \fill[red!35] (2.5,0.45) circle (0.2);
+    \draw[dashed] (0.2,1.1) rectangle (3.0,1.5);
+    \node[font=\scriptsize] at (0.75,1.3) {TP$_1$};
+    \node[font=\scriptsize] at (2.45,1.3) {TP$_2$};
+    \node[font=\scriptsize] at (1.6,0.9) {FN};
+    \draw[->, thin] (1.6,0.98) -- (1.6,1.15);
+    \node[font=\scriptsize] at (0.78,1.95) {FP$_2$};
+    \node[font=\scriptsize] at (2.95,0.45) {FP$_1$};
+    \node[font=\scriptsize] at (0.35,0.3) {TN};
+    \node at (1.6,-0.35) {\small Predicción y referencia};
+  \end{scope}
+  \begin{scope}[xshift=5.2cm, yshift=0.3cm]
+    \node[rg, fill=gray!15] (TN) at (1.4,2.1) {TN};
+    \node[rg, fill=green!35] (TP1) at (0,0.2) {TP$_1$};
+    \node[rg, fill=green!35] (TP2) at (2.8,0.2) {TP$_2$};
+    \node[rg, fill=orange!45, very thick, draw=red!70!black] (FN) at (1.4,0.2) {FN};
+    \node[rg, fill=red!35] (FP2) at (0,1.15) {FP$_2$};
+    \node[rg, fill=red!35, very thick, draw=red!70!black] (FP1) at (2.8,1.15) {FP$_1$};
+    \draw (TP1) -- (FN); \draw (TP2) -- (FN); \draw (TN) -- (FN);
+    \draw (TP1) -- (FP2); \draw (TN) -- (FP2); \draw (TN) -- (FP1);
+    \node at (1.4,-0.6) {\small Grafo combinado};
+  \end{scope}
 \end{tikzpicture}
-\caption{Esquema del grafo combinado con sus cuatro tipos de región. Las
-aristas unen siempre una región correcta (TP o TN) con una errónea (FP o FN).
-En una imagen real hay muchas componentes de cada tipo, y el grafo tiene un
-vértice por cada una. Ilustración propia.}
+\caption{La referencia es una barra (contorno discontinuo); la predicción
+la parte en dos (hueco FN), sobresale un poco por arriba (FP$_2$) y añade
+una mancha espuria (FP$_1$). En el grafo combinado, FP$_2$ tiene un vecino
+TP y uno TN, así que es regular: solo desplaza un borde. FN (dos vecinos
+TP) y FP$_1$ (ningún vecino TP) son críticos, marcados con borde grueso:
+el primero parte el filamento y el segundo crea una componente nueva. Por
+simplicidad no se dibuja el engrosamiento, que separa siempre las regiones
+TP de las TN con una franja fina de error; por eso el grafo no tiene
+aristas entre TP y TN. Ilustración propia.}
 \label{fig:grafo-combinado}
 \end{figure}
 
@@ -1140,7 +1273,8 @@ Si $\mathcal{L}_{CG}(P,G)=0$, todas las inclusiones del diagrama
   F_\varepsilon(P),\,F_{2\varepsilon}(G)\ \hookrightarrow\
   F_\varepsilon(P)\cup F_{2\varepsilon}(G)
 \]
-son retractos por deformación y, en particular, equivalencias homotópicas.
+son retractos por deformación y, en particular, equivalencias homotópicas
+(Definición~\ref{def:homotopia}).
 \end{proposicion}
 
 La proposición dice más que la igualdad de los números de Betti de $P$ y
