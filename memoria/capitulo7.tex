@@ -25,24 +25,29 @@ mismo orden que las diferencias entre pérdidas, y el \emph{bootstrap}
 por días no la recoge. Sin esta precaución, varias de las comparaciones
 habrían parecido concluyentes.
 
-\paragraph{Diagnóstico (O3).} Leído sobre el diagrama $H_0$, el
-post-proceso clásico es un filtro sobre las componentes del conjunto de
-supernivel que solo mira su tamaño. Su efecto es grande: el área mínima
-sube el PQ de la baseline de $0{,}311$ a $0{,}373$, porque la mayoría de
-los falsos positivos son componentes pequeñas. El umbral, por sí solo,
-no aporta nada.
+\paragraph{Diagnóstico (O3).} Para obtener filamentos, la baseline se
+queda con los píxeles cuya probabilidad supera un umbral, separa el
+resultado en manchas conexas y descarta las demasiado pequeñas. En
+lenguaje topológico, esas manchas son las componentes del conjunto de
+supernivel, es decir, los puntos del diagrama $H_0$ vivos a ese umbral
+(Sección~\ref{sec:lectura-topologica}), y el filtro de área decide cuáles
+conservar mirando solo su tamaño, no su persistencia. Como la mayoría de
+los errores del modelo son manchas pequeñas donde no hay filamento, ese
+filtro tiene un efecto grande: los falsos positivos bajan de 665 a 269 y
+el PQ sube de $0{,}311$ a $0{,}373$. Ajustar solo el umbral apenas cambia
+el PQ ($0{,}314$), porque subirlo no elimina esas manchas, solo las
+encoge o las parte.
 
 \paragraph{Pérdidas topológicas (O4).} Sin post-proceso, Topograph
-mejora a la baseline con las dos semillas probadas, y es la única pérdida
-con una mejora significativa. clDice reduce la fragmentación, coherente
+mejora a la baseline en los tres entrenamientos independientes, y es la
+única pérdida con una mejora significativa. clDice reduce la fragmentación, coherente
 con que premia la continuidad. Pero la mejora de Topograph viene sobre
 todo de eliminar componentes espurias, que es lo mismo que hace el
 filtro de área. Con el post-proceso ajustado, ninguna pérdida supera a
 la baseline. La conclusión es que, en este problema, el sesgo
 topológico introducido en el entrenamiento y el filtro clásico aplicado
 después corrigen el mismo tipo de error, y sus mejoras no se suman.
-El resultado se repite en tres entrenamientos independientes y resiste
-el ajuste de hiperparámetros: ajustadas, Topograph y clDice se acercan
+El resultado resiste además el ajuste de hiperparámetros: ajustadas, Topograph y clDice se acercan
 a la baseline, pero no la superan.
 
 En cuanto a las barbas, la hipótesis de partida no se cumple. Son la
@@ -65,9 +70,11 @@ de la espina.
   semillas, las diferencias pequeñas entre pérdidas no pueden
   confirmarse.
   \item \emph{Resolución.} El modelo trabaja a $512\times512$, un cuarto
-  de la resolución original en cada eje. Para las barbas esto apenas
-  importa (la anotación reducida conserva el 99,7\,\% de su esqueleto),
-  pero limita la precisión con que se delimita el contorno.
+  de la resolución original en cada eje. La anotación reducida a
+  esa resolución conserva el 99,7\,\% del esqueleto de las barbas, así
+  que la salida no las limita; pero en la imagen de entrada una barba
+  mide entre 1 y 3 píxeles, y no se ha comprobado si el modelo
+  detectaría más barbas trabajando a mayor resolución.
   \item \emph{Ajuste limitado.} La comparación completa de pérdidas usa
   una configuración común, sin aumentos de datos. El ajuste de la
   Sección~\ref{sec:res-hp} muestra que esa configuración favorecía algo
@@ -92,9 +99,10 @@ de la espina.
   anotaciones y con los filamentos de la mayoría.
   \item \textbf{Más semillas por pérdida}, para separar las diferencias
   reales del ruido del entrenamiento.
-  \item \textbf{Pérdidas centradas en las barbas.} Como la resolución
-  no es el límite, mejorar las barbas pasa por cambiar lo que aprende
-  la red, por ejemplo dando más peso a la zona de barbas en la pérdida.
+  \item \textbf{Barbas: resolución y pérdidas específicas.} Comprobar si
+  entrenar a mayor resolución, por ejemplo por parches, mejora la
+  detección de las barbas, y probar pérdidas que den más peso a la zona
+  de barbas, ya que clDice optimiza sobre todo la espina.
   \item \textbf{Otras pérdidas topológicas}, como Betti
   matching~\cite{stucki2023}, que garantiza la correspondencia espacial
   de las estructuras a mayor coste computacional.

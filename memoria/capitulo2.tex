@@ -96,8 +96,8 @@ separado~\cite{ahmadzadeh2024}. El acuerdo entre anotadores sobre la
 quiralidad se mide con el estadístico $\kappa$ de Cohen~\cite{cohen1960},
 que compara el acuerdo observado con el que cabría esperar por azar
 ($\kappa=0$: acuerdo casual; $\kappa=1$: acuerdo perfecto). El valor
-obtenido, $\kappa=0{,}66$~\cite{ahmadzadeh2024}, se considera
-«sustancial» según la escala de Landis y Koch~\cite{landis1977}. Para las
+obtenido, $\kappa=0{,}66$, se considera un acuerdo
+«sustancial»~\cite{ahmadzadeh2024}. Para las
 máscaras, que son lo que se evalúa en este trabajo, el artículo no da una
 medida de acuerdo; la estimamos en la Sección~\ref{sec:diagnostico}.
 
@@ -256,31 +256,23 @@ La detección automática de filamentos en imágenes H-alfa tiene una
 trayectoria de más de dos décadas. Podemos distinguir dos etapas.
 
 \paragraph{Métodos clásicos.} Los primeros métodos se basan en que los
-filamentos son más oscuros que su entorno. Shih y Kowalski~\cite{shih2003}
-extraen los filamentos con umbrales locales adaptativos y operaciones
-morfológicas. Qu et al.~\cite{qu2005} combinan umbralización, crecimiento
-de regiones y un clasificador SVM para descartar las manchas solares, que
-también son oscuras. Bernasconi et al.~\cite{bernasconi2005} desarrollan
-un sistema completo que detecta, sigue y caracteriza filamentos, incluida
-su quiralidad a partir de las barbas. Hao et al.~\cite{hao2013} usan un
-umbral adaptativo basado en el método de Otsu y aplican el método a un
-ciclo solar completo de datos H-alfa. Estos métodos son interpretables y
-rápidos, pero dependen de umbrales ajustados a mano, son sensibles a las
-condiciones de observación y tienden a confundir filamentos con manchas
-solares y otras regiones oscuras~\cite{diercke2024}.
+filamentos son más oscuros que su entorno, y los extraen con umbrales,
+operaciones morfológicas y reglas para descartar otras regiones oscuras.
+Un ejemplo representativo es el de Bernasconi et
+al.~\cite{bernasconi2005}, que detecta, sigue y caracteriza filamentos,
+incluida su quiralidad a partir de las barbas. Estos métodos son
+interpretables y rápidos, pero dependen de umbrales ajustados a mano,
+son sensibles a las condiciones de observación y tienden a confundir
+filamentos con manchas solares y otras regiones
+oscuras~\cite{diercke2024}.
 
 \paragraph{Aprendizaje profundo.} Con las redes convolucionales, el
 problema se ha abordado como segmentación semántica o de instancias.
 Zhu et al.~\cite{zhu2019} entrenan una U-Net~\cite{ronneberger2015} sobre
-imágenes H-alfa del observatorio de Big Bear con máscaras obtenidas de
-forma semiautomática. Ahmadzadeh et al.~\cite{ahmadzadeh2019} usan Mask
-R-CNN, que segmenta instancias, entrenada con máscaras derivadas de
-detecciones automáticas previas en lugar de anotaciones manuales.
-Guo et al.~\cite{guo2022} detectan y clasifican filamentos con una red de
-segmentación de instancias. Diercke et al.~\cite{diercke2024} proponen un
-método semisupervisado: un detector YOLOv5 entrenado con cajas anotadas a
-mano genera etiquetas aproximadas sobre el archivo de GONG, y con ellas
-entrenan una U-Net.
+imágenes H-alfa con máscaras obtenidas de forma semiautomática. Diercke
+et al.~\cite{diercke2024} proponen un método semisupervisado: un detector
+YOLOv5 entrenado con cajas anotadas a mano genera etiquetas aproximadas
+sobre el archivo de GONG, y con ellas entrenan una U-Net.
 
 Un rasgo común de estos trabajos es la escasez de anotaciones manuales a
 nivel de píxel: la mayoría entrena con máscaras obtenidas por
