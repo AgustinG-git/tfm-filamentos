@@ -121,13 +121,15 @@ def tune_optuna(probs_full: dict, pairs, gt_idx: dict, ajuste: dict, seed: int =
 
 
 def score_pers(probs512: dict, probs_full: dict, pairs, gt_idx: dict,
-               umbral: float, tau: float, delta: float) -> dict:
-    """PQ en ``pairs`` con el post-proceso por persistencia (E2)."""
-    labels = {s: postproc.persistencia_full(probs512[s], pf, umbral, tau, delta)
+               umbral: float, tau: float, delta: float, area=None) -> dict:
+    """PQ en ``pairs`` con el post-proceso por persistencia (E2).
+    Con ``area`` (a 512), combinado con el filtro de área."""
+    labels = {s: postproc.persistencia_full(probs512[s], pf, umbral, tau, delta, area)
               for s, pf in probs_full.items()}
     counts = [counts_from_labels(gt_idx[ai], *labels[ai.split("-", 1)[1]]) for ai in pairs]
     return {
-        "umbral": umbral, "tau": tau, "delta": delta, "pq": pq_from_counts(counts),
+        "umbral": umbral, "tau": tau, "delta": delta, "area_min_512": area,
+        "pq": pq_from_counts(counts),
         **{k: sum(c[k] for c in counts) for k in ("tp", "fp", "fn")},
     }
 
@@ -142,13 +144,15 @@ def tune_optuna_pers(probs512: dict, probs_full: dict, pairs, gt_idx: dict,
     u_lo, u_hi = ajuste["umbral"]
     t_lo, t_hi = ajuste["tau"]
     d_lo, d_hi = ajuste.get("delta", [0, 0])
+    area_rango = ajuste.get("area_min_512")      # None: E2 puro
     rows = []
 
     def objective(trial):
         u = trial.suggest_float("umbral", u_lo, u_hi)
         t = trial.suggest_float("tau", t_lo, t_hi)
         d = trial.suggest_float("delta", d_lo, min(d_hi, u - 0.01)) if d_hi > d_lo else float(d_lo)
-        rows.append(score_pers(probs512, probs_full, pairs, gt_idx, u, t, d))
+        a = trial.suggest_float("area_min_512", *area_rango) if area_rango else None
+        rows.append(score_pers(probs512, probs_full, pairs, gt_idx, u, t, d, a))
         return rows[-1]["pq"]
 
     study = optuna.create_study(direction="maximize", sampler=optuna.samplers.TPESampler(seed=seed))
@@ -215,8 +219,11 @@ def run_post(
             "tau": float(best["tau"]),
             "delta": float(best["delta"]),
         }
+        if ajuste.get("area_min_512"):
+            post["area_min_512"] = float(best["area_min_512"])
         print(f"Elegido en val_A (persistencia): umbral {post['umbral']:.3f} | "
-              f"tau {post['tau']:.3f} | delta {post['delta']:.3f} | PQ {best['pq']:.4f}")
+              f"tau {post['tau']:.3f} | delta {post['delta']:.3f} | "
+              f"área {post.get('area_min_512', '-')} | PQ {best['pq']:.4f}")
     else:
         post = {
             "metodo": "umbral_cc",
@@ -291,6 +298,7 @@ def run_post(
         "perdida": src_cfg["entrenamiento"]["perdida"],
         "etiquetas": src_cfg["pre"]["etiquetas"], "aumentos": src_cfg["pre"]["aumentos"],
         "post": (f"persistencia u={post['umbral']:.3f} tau={post['tau']:.3f} d={post['delta']:.3f}"
+                 + (f" a={post['area_min_512']:.1f}" if "area_min_512" in post else "")
                  if post["metodo"] == "persistencia"
                  else f"umbral_cc u={post['umbral']:.3f} a={post['area_min_512']:.1f}"),
         "epoca": src.config["selection"]["best_epoch"],

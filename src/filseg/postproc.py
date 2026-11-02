@@ -21,7 +21,7 @@ def umbral_cc(prob, umbral=0.5, area_min=0, conectividad=8):
     return lut[labels], len(keep)
 
 
-def persistencia_512(prob, umbral=0.5, tau=0.0, delta=0.0):
+def persistencia_512(prob, umbral=0.5, tau=0.0, delta=0.0, area_min=None):
     """E2 a 512: filtro por persistencia y fusión por collado.
 
     Trabaja sobre la filtración de superniveles de ``prob``. Una
@@ -30,6 +30,10 @@ def persistencia_512(prob, umbral=0.5, tau=0.0, delta=0.0):
     ``tau`` son esos puntos del diagrama H0). Después, las componentes
     conservadas que están unidas en ``X_{t-delta}`` forman una sola
     instancia. Ambas con 8-conectividad. Devuelve ``(labels, n)``.
+
+    Con ``area_min`` (píxeles a 512) se combina con el filtro de área:
+    una componente se conserva si su área >= area_min **o** su
+    persistencia >= tau. Así no se pierden las pequeñas pero robustas.
     """
     from skimage.morphology import h_maxima      # solo si se usa E2
     xt = (prob > umbral).astype(np.uint8)
@@ -42,6 +46,10 @@ def persistencia_512(prob, umbral=0.5, tau=0.0, delta=0.0):
         keep = keep[keep > 0]
     else:
         keep = np.arange(1, n_t)
+    if area_min is not None:                     # área O persistencia
+        areas = np.bincount(lt.ravel(), minlength=n_t)
+        grandes = np.flatnonzero(areas >= area_min)
+        keep = np.union1d(keep, grandes[grandes > 0])
     vivo = np.isin(lt, keep)
     if delta > 0:                                # fusión por collado
         _, ld = cv2.connectedComponents(
@@ -55,14 +63,14 @@ def persistencia_512(prob, umbral=0.5, tau=0.0, delta=0.0):
     return lut[lab], int((ids > 0).sum())
 
 
-def persistencia_full(prob512, prob_full, umbral=0.5, tau=0.0, delta=0.0):
+def persistencia_full(prob512, prob_full, umbral=0.5, tau=0.0, delta=0.0, area_min=None):
     """E2 a resolución completa: las decisiones se toman a 512.
 
     Cada componente de ``{prob_full > umbral}`` toma la instancia de
     512 que más píxeles le aporta (etiquetas de 512 ampliadas por
     vecino más próximo); si no le corresponde ninguna, se descarta.
     """
-    lab512, n = persistencia_512(prob512, umbral, tau, delta)
+    lab512, n = persistencia_512(prob512, umbral, tau, delta, area_min)
     if n == 0:
         return np.zeros(prob_full.shape, np.int32), 0
     k = prob_full.shape[0] // prob512.shape[0]
@@ -99,6 +107,7 @@ def apply(prob512, post: dict, full: bool = True):
         raise KeyError(f"Post-proceso desconocido: {post['metodo']}")
     if post["metodo"] == "persistencia":
         args = {k: post.get(k, 0.0) for k in ("umbral", "tau", "delta")}
+        args["area_min"] = post.get("area_min_512")  # None: E2 puro
         p512 = prob512.astype(np.float32)
         if not full:
             return persistencia_512(p512, **args)

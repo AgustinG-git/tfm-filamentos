@@ -1,0 +1,15 @@
+# B2+P: filtro de área combinado con persistencia, ajustado en val_A.
+# Una componente de X_t se conserva si su área >= a O su persistencia
+# >= tau: se eliminan las pequeñas y poco persistentes, pero se
+# conservan las pequeñas y robustas. Sin fusión por collado.
+hereda: base.yaml
+nombre: b2p-area-persistencia
+post:
+  metodo: persistencia
+  ajuste:
+    metodo: optuna
+    intentos: 60
+    umbral: [0.2, 0.9]
+    area_min_512: [0, 300]
+    tau: [0.01, 1.0]      # rango completo de persistencias
+    delta: [0.0, 0.0]     # sin fusión
