@@ -1,0 +1,138 @@
+% ============================================================
+% Apéndice A — Código y reproducibilidad
+% ============================================================
+
+\chapter{Código y reproducibilidad}
+\label{ap:codigo}
+
+Todo el código del trabajo es público en
+\url{https://github.com/AgustinG-git/tfm-filamentos}. La versión que
+corresponde a esta memoria está marcada con la etiqueta
+\texttt{v1.0-deposito}. Este apéndice describe cómo está organizado y
+cómo se reproduce cada resultado.
+
+% ------------------------------------------------------------
+\section{Organización}
+% ------------------------------------------------------------
+
+El código se divide en una biblioteca, \texttt{filseg}, con las piezas
+del protocolo, y una serie de \emph{scripts} que las combinan para cada
+experimento (Tablas~\ref{tab:modulos} y~\ref{tab:scripts}). Las
+configuraciones de cada experimento son ficheros YAML en
+\texttt{configs/}, que heredan de la baseline y cambian solo la pieza que
+se estudia.
+
+\begin{table}[ht]
+\centering
+\small
+\begin{tabular}{@{}lp{10.5cm}@{}}
+\toprule
+Módulo & Contenido\\
+\midrule
+\texttt{contract.py} & Decisiones congeladas comunes a todas las ejecuciones (partición, resoluciones, criterio de selección, ficheros de salida). No se modifica.\\
+\texttt{split.py} & Partición entrenamiento / val~$A$ / val~$B$ agrupada por fecha, generada una sola vez.\\
+\texttt{gt.py} & Referencia de evaluación en el formato oficial, a partir del JSON de MAGFiLO.\\
+\texttt{data.py} & Carga de imágenes a $512\times512$ y etiquetas de entrenamiento.\\
+\texttt{model.py} & U-Net con codificador ResNet-34~\cite{iakubovskii2019}.\\
+\texttt{losses.py} & Las pérdidas de la Tabla~\ref{tab:perdidas}: BCE, Dice, IoU, clDice y Topograph, con su calentamiento.\\
+\texttt{train.py} & Una ejecución completa: entrenamiento, selección de la época en val~$A$, evaluación y registro.\\
+\texttt{postproc.py} & Post-procesos: umbral y componentes conexas con filtro de área (B1, B2) filtro por persistencia (E2) y su combinación con el área (B2+P).\\
+\texttt{postrun.py} & Ajuste en val~$A$ de un post-proceso sobre una ejecución ya entrenada, sin reentrenar.\\
+\texttt{official\_metric.py} & Copia literal del cuaderno oficial de autoevaluación de la competición~\cite{kaggle2026}.\\
+\texttt{metrics.py} & Evaluación con la métrica oficial y comprobaciones previas (formato, solapes).\\
+\texttt{compare.py} & Conteos por anotación, relaciones 1:$n$ y $n$:1 y \emph{bootstrap} pareado por días.\\
+\texttt{runs.py} & Identificadores, salidas de cada ejecución y tabla de registro.\\
+\bottomrule
+\end{tabular}
+\caption{Módulos de la biblioteca \texttt{filseg}.}
+\label{tab:modulos}
+\end{table}
+
+\begin{table}[ht]
+\centering
+\small
+\begin{tabular}{@{}lp{10.5cm}@{}}
+\toprule
+\emph{Script} & Uso\\
+\midrule
+\texttt{make\_split.py} & Genera la partición (una sola vez).\\
+\texttt{entrenar.py} & Lanza una ejecución a partir de una configuración.\\
+\texttt{cola.sh} & Encadena varias ejecuciones en la misma GPU.\\
+\texttt{postproceso.py} & Aplica B1 y B2 a las ejecuciones entrenadas (Sección~\ref{sec:res-post}).\\
+\texttt{e2.py} & Aplica los post-procesos por persistencia (E2 y B2+P).\\
+\texttt{ajuste\_hp.py} & Ajuste de hiperparámetros con Optuna (Sección~\ref{sec:res-hp}).\\
+\texttt{resultados.py} & \emph{Bootstrap} y relaciones del Capítulo~\ref{cap:resultados}.\\
+\texttt{barbas.py} & Medida de barbas y techo a $512\times512$ (Sección~\ref{sec:res-barbas}).\\
+\texttt{medir\_topograph.py} & Escala del término de Topograph, para fijar $\alpha$.\\
+\texttt{figura\_magfilo.py} & Figura~\ref{fig:magfilo}.\\
+\bottomrule
+\end{tabular}
+\caption{\emph{Scripts} de los experimentos.}
+\label{tab:scripts}
+\end{table}
+
+Topograph se usa a través de la implementación oficial de sus
+autores~\cite{lux2025}, con su extensión compilada en C++. El
+repositorio incluye además pruebas automáticas (\texttt{tests/}) que
+comprueban, entre otras cosas, que la evaluación propia coincide con la
+oficial y que la partición no comparte días entre subconjuntos.
+
+% ------------------------------------------------------------
+\section{Reproducir un resultado}
+% ------------------------------------------------------------
+
+Cada ejecución lee los datos de la carpeta indicada en
+\texttt{FILSEG\_DATA} y escribe en \texttt{FILSEG\_OUT}. Por ejemplo, la
+baseline y su post-proceso B2:
+
+\begin{verbatim}
+python scripts/entrenar.py configs/base.yaml
+python scripts/postproceso.py --filtro "_base_"
+\end{verbatim}
+
+Cada ejecución crea una carpeta \texttt{runs/<run\_id>}, donde el
+identificador combina la fecha, la configuración y el \emph{commit} del
+código, con la configuración completa, la época elegida, las
+predicciones y los \emph{logits} de validación y el envío para la
+competición. Además añade una fila a \texttt{registro.csv} con sus
+métricas en val~$A$ y val~$B$, y sus conteos a \texttt{conteos.csv}. Las
+tablas del Capítulo~\ref{cap:resultados} salen de esos dos ficheros, que
+están en el repositorio. Como el entrenamiento en GPU no es determinista,
+repetir una ejecución reproduce sus cifras con una diferencia del orden
+de $0{,}01$--$0{,}02$ en PQ (Sección~\ref{sec:evaluacion}).
+
+% ------------------------------------------------------------
+\section{Post-proceso por persistencia}
+% ------------------------------------------------------------
+
+Como ejemplo de cómo se traduce la teoría del
+Capítulo~\ref{cap:fundamentos} a código, este es el núcleo del
+post-proceso por persistencia (comentarios simplificados). Con
+\texttt{area\_min} se obtiene la variante B2+P; sin él, E2. El filtro por persistencia
+se apoya en los $h$-máximos: los máximos regionales de altura al menos
+$\tau$ son exactamente los puntos del diagrama $H_0$ de superniveles con
+persistencia $b-d\ge\tau$. Se ha comprobado, sobre imágenes sintéticas,
+que la selección coincide con la que se obtiene calculando el diagrama
+con \emph{union-find} y la regla del mayor
+(Sección~\ref{sec:persistencia-eficiente}).
+
+\begin{small}
+\begin{verbatim}
+def persistencia_512(prob, umbral, tau, delta, area_min=None):
+    # X_t = {prob > umbral}, componentes 8-conexas
+    xt = (prob > umbral).astype(np.uint8)
+    n_t, lt = cv2.connectedComponents(xt, connectivity=8)
+    # h-maximos: maximos con persistencia b - d >= tau
+    hmax = h_maxima(prob, tau, footprint=np.ones((3, 3))) > 0
+    keep = np.unique(lt[hmax & (xt > 0)])
+    if area_min is not None:     # B2+P: area O persistencia
+        areas = np.bincount(lt.ravel())
+        keep = np.union1d(keep, np.flatnonzero(areas >= area_min))
+    vivo = np.isin(lt, keep[keep > 0])
+    # fusion por collado: unidas en X_{t - delta} -> una instancia
+    _, ld = cv2.connectedComponents(
+        (prob > umbral - delta).astype(np.uint8), connectivity=8)
+    lab = np.where(vivo, ld, 0)
+    return relabel(lab)          # etiquetas 1..n consecutivas
+\end{verbatim}
+\end{small}

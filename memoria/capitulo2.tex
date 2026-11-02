@@ -35,10 +35,11 @@ reciben el nombre de \emph{protuberancias}~\cite[§1]{parenti2014}.
 
 Morfológicamente, un filamento consta de una \emph{espina}, que recorre su
 eje, de la que salen extensiones laterales llamadas
-\emph{barbas}~\cite[§2.1]{parenti2014}. La orientación de las barbas
-respecto a la espina permite inferir la \emph{quiralidad} del filamento
-(dextrógira o levógira), que refleja la configuración de su campo
-magnético~\cite[§2.4.1]{parenti2014}.
+\emph{barbas}~\cite[§2.1]{parenti2014}. Su \emph{quiralidad} es el
+sentido de giro, dextrógiro o levógiro, del campo magnético a lo largo de
+ese eje. No se observa directamente en H-alfa, pero se deduce de las
+barbas: según el lado hacia el que se separan de la espina, el filamento
+es dextrógiro o levógiro~\cite[§2.4.1]{parenti2014}.
 
 Su interés práctico es el clima espacial. Los filamentos pueden
 desestabilizarse y entrar en erupción, asociados a fulguraciones y
@@ -61,19 +62,21 @@ instrumentales, y su calidad varía entre estaciones y días.
 
 \begin{figure}[ht]
 \centering
-\begin{minipage}[t]{0.46\textwidth}
+\begin{minipage}[c]{0.56\textwidth}
 \centering
-\includegraphics[width=\textwidth]{figuras/fragmentado_hueco_real.png}
-\caption*{Fragmentado con hueco real.}
+\includegraphics[width=\textwidth]{figuras/ejemplo_fragmentado.png}
+\caption*{(a) Fragmentado con hueco real.}
 \end{minipage}\hfill
-\begin{minipage}[t]{0.46\textwidth}
+\begin{minipage}[c]{0.38\textwidth}
 \centering
-\includegraphics[width=\textwidth]{figuras/fusionado.png}
-\caption*{Fusionado.}
+\includegraphics[width=\textwidth]{figuras/ejemplo_fusionado.png}
+\caption*{(b) Fusionado.}
 \end{minipage}
 \caption{Dos errores típicos de segmentación sobre observaciones H-alfa de
-GONG. A la izquierda, un filamento partido en trozos separados por un hueco
-real; a la derecha, dos filamentos unidos en una única predicción.}
+GONG, con la referencia en verde y la predicción en rojo. (a) Un filamento
+partido en varios trozos separados por huecos reales. (b) Dos filamentos de
+la referencia (el pequeño, abajo a la izquierda, y el principal) unidos en
+una única predicción.}
 \label{fig:errores-ejemplo}
 \end{figure}
 
@@ -85,9 +88,10 @@ real; a la derecha, dos filamentos unidos en una única predicción.}
 MAGFiLO (\emph{Manually Annotated GONG Filaments in H-alpha Observations})
 es un conjunto de datos de filamentos anotados manualmente sobre
 observaciones H-alfa de GONG~\cite{ahmadzadeh2024}. Su versión 1.0 contiene
-10\,244 filamentos anotados en 958 observaciones entre 2011 y 2022. Para
-cada filamento incluye la máscara de segmentación, la caja contenedora
-mínima, la espina y la quiralidad.
+10\,244 filamentos anotados en 958 observaciones entre 2011 y 2022. Para cada filamento incluye la máscara de segmentación, la caja
+contenedora mínima, la espina (la línea que recorre su eje principal) y la
+quiralidad (el sentido de giro de su campo magnético, deducido de las
+barbas; Sección~\ref{sec:filamentos}).
 
 La anotación supuso más de 1\,000 horas-persona, con un proceso de
 revisión doble ciego: cada observación fue anotada por hasta tres
@@ -174,6 +178,14 @@ panóptica} (\emph{Panoptic Quality}, PQ)~\cite{kirillov2019}. Inicialmente
 la competición usaba el coeficiente Dice, pero los organizadores lo
 sustituyeron por PQ el 7 de agosto de 2026~\cite{kaggle2026}.
 
+La métrica compara \emph{segmentos}. Un segmento es el conjunto de píxeles
+que forman un único filamento, es decir, la máscara binaria de una
+instancia, en la referencia, cada filamento anotado; en la predicción,
+cada instancia que devuelve el modelo, que en este trabajo es una
+componente conexa de la máscara predicha (Sección~\ref{sec:postproceso}).
+Así, una imagen con siete filamentos tiene siete segmentos de referencia,
+y el IoU entre dos segmentos se calcula sobre sus conjuntos de píxeles.
+
 \begin{definicion}[{\cite{kirillov2019}}]
 Sean $Y$ el conjunto de segmentos de referencia e $\hat Y$ el de segmentos
 predichos. Un par $(y,\hat y)\in Y\times\hat Y$ es un \emph{verdadero
@@ -230,7 +242,7 @@ $0{,}35$ es un resultado de gran valor~\cite{kaggle2026}, esta cifra coincide co
 comparan entre sí las anotaciones de distintos anotadores sobre una misma
 imagen, con la misma métrica, se obtiene un PQ de aproximadamente $0{,}34$
 (Sección~\ref{sec:techo-humano}). Un modelo que supere $0{,}35$ se parece,
-por tanto, a cada anotador tanto como los anotadores se parecen entre sí.. Es, por tanto, el umbral con el que conviene comparar nuestros resultados.
+por tanto, a cada anotador tanto como los anotadores se parecen entre sí. Es, por tanto, el umbral con el que conviene comparar nuestros resultados.
 
 \paragraph{Rúbrica.} La clasificación en el \emph{leaderboard} es solo una
 parte de la evaluación final~\cite{kaggle2026}:

@@ -9,21 +9,45 @@
 \section{Motivación}
 % ------------------------------------------------------------
 
-Las redes neuronales de segmentación se entrenan casi siempre con pérdidas de solapamiento, como la entropía cruzada o el coeficiente de
-Dice, que comparan la predicción con la referencia píxel a píxel lo cual cubre bien la mayoría de casos. Pero cuando lo que se segmenta son
-estructuras finas y alargadas (vasos sanguíneos, carreteras, fibras),
-los errores que más importan no son los que más píxeles cuestan. Un vaso partido en dos por un hueco de tres píxeles apenas cambia el Dice,
-y sin embargo ha dejado de ser un vaso para convertirse en dos, esto son errores que cambian cuántas piezas hay y cómo se conectan.
+Las redes neuronales de segmentación se entrenan casi siempre con
+pérdidas de solapamiento, como la entropía cruzada o el coeficiente de
+Dice, que comparan la predicción con la referencia píxel a píxel. Esto
+funciona bien en la mayoría de los casos. Pero cuando lo que se segmenta
+son estructuras finas y alargadas (vasos sanguíneos, carreteras,
+fibras), los errores que más importan no son los que más píxeles
+cuestan. Un vaso partido en dos por un hueco de tres píxeles apenas
+cambia el Dice y, sin embargo, ha dejado de ser un vaso para convertirse
+en dos. Son errores que cambian cuántas piezas hay y cómo se conectan.
 
-La topología es la parte de las matemáticas que estudia precisamente esas propiedades, las que no cambian al deformar un objeto sin romperlo ni pegarlo. En los últimos años, la topología computacional, y en particular la homología persistente, ha dado lugar a métricas y pérdidas que penalizan directamente los errores topológicos de una segmentación~\cite{hu2019,shit2021,stucki2023,lux2025}. Este trabajo estudia esas herramientas y las pone a prueba en un problema real.
+La topología es la parte de las matemáticas que estudia precisamente
+esas propiedades, las que no cambian al deformar un objeto sin romperlo
+ni pegarlo. En los últimos años, la topología computacional, y en
+particular la homología persistente, ha dado lugar a métricas y pérdidas
+que penalizan directamente los errores topológicos de una
+segmentación~\cite{hu2019,shit2021,stucki2023,lux2025}. Este trabajo
+estudia esas herramientas y las pone a prueba en un problema real.
 
 El problema elegido es la segmentación de filamentos solares en
-imágenes H-alfa, propuesto en la competición \emph{Solar Filament Segmentation Challenge 2026}~\cite{kaggle2026}. Los filamentos son
+imágenes H-alfa, propuesto en la competición \emph{Solar Filament
+Segmentation Challenge 2026}~\cite{kaggle2026}. Los filamentos son
 estructuras alargadas, con ramificaciones finas llamadas \emph{barbas},
 y la competición los evalúa con una métrica de instancias, la calidad
 panóptica~\cite{kirillov2019}, que castiga con fuerza los filamentos
 partidos o fusionados. Es, por tanto, un caso en el que los errores
 topológicos tienen un coste directo y medible.
+
+\paragraph{Enfoque.} El trabajo no parte de aplicar una pérdida
+topológica y medir si mejora la métrica, sino de entender primero qué
+errores comete un modelo de referencia. Ese diagnóstico conduce a una
+observación sencilla: el post-proceso habitual, que umbraliza la
+probabilidad y toma componentes conexas, tiene una lectura exacta en
+términos de homología persistente. Las instancias que produce son
+puntos de un diagrama de persistencia, y cada tipo de error deja en él
+una firma reconocible. Esta lectura permite actuar sobre los errores
+topológicos en dos momentos: durante el entrenamiento, con pérdidas
+como clDice y Topograph, y después de él, con un post-proceso que decide
+qué componentes conservar según su persistencia. El trabajo estudia
+ambas vías bajo un mismo protocolo, y cómo interactúan entre sí.
 
 % ------------------------------------------------------------
 \section{Objetivos}
@@ -41,11 +65,12 @@ práctica. Se concreta en cuatro objetivos:
   comparaciones entre métodos no dependan de decisiones tomadas sobre
   los datos de evaluación.
   \item[\textbf{O3.}] Diagnosticar los errores de un modelo de
-  referencia e interpretarlos en términos topológicos.
+  referencia, interpretarlos en términos topológicos y usar esa lectura
+  para diseñar un post-proceso basado en persistencia.
   \item[\textbf{O4.}] Evaluar si las pérdidas con sesgo topológico
   (clDice y Topograph) mejoran a las pérdidas de solapamiento, en la
-  métrica de la competición y en la detección de las barbas, y cómo
-  interactúan con el post-proceso.
+  métrica de la competición, en los tipos de error y en la detección de
+  las barbas, y cómo interactúan con el post-proceso.
 \end{enumerate}
 
 % ------------------------------------------------------------
@@ -53,23 +78,36 @@ práctica. Se concreta en cuatro objetivos:
 % ------------------------------------------------------------
 
 \begin{itemize}
-  \item Una exposición de la homología persistente y de Topograph sin
-  demostraciones, centrada en la intuición y con ejemplos, pensada para
-  un lector con formación matemática pero sin experiencia previa en
-  topología computacional.
-  \item Una lectura topológica del post-proceso habitual (umbral y
-  componentes conexas): el número de instancias predichas es el número
-  de puntos de un cuadrante del diagrama de persistencia $H_0$, y cada
-  tipo de error deja en él una firma reconocible.
+  \item Una exposición de la homología persistente y de Topograph
+  centrada en la intuición y con ejemplos, pensada para un lector con
+  formación matemática pero sin experiencia previa en topología
+  computacional.
+  \item Una lectura topológica del post-proceso habitual: el número de
+  instancias predichas a un umbral es el número de puntos de un
+  cuadrante del diagrama de persistencia $H_0$, y cada tipo de error
+  (fragmentación, fusión, filamento perdido o predicción espuria) deja
+  en él una firma reconocible.
+  \item Un post-proceso basado en persistencia derivado de esa lectura,
+  en dos variantes: E2, que filtra las componentes por persistencia y
+  une las que separa un collado cercano al umbral, y B2+P, que combina
+  el criterio de persistencia con el de área.
   \item Una comparación controlada de diez pérdidas, combinando BCE con
   Dice, IoU y clDice, con y sin Topograph, bajo un mismo protocolo, con
-  separación entre ajuste y reporte e intervalos de confianza.
-  \item El resultado principal: Topograph mejora a la baseline sin
-  post-proceso, sobre todo porque elimina componentes espurias. Pero el
-  filtro de área corrige ese mismo tipo de error, y con él la ventaja
-  desaparece.
+  separación entre ajuste y reporte, intervalos de confianza y un
+  recuento de los tipos de error que distingue los errores de estructura
+  de los de presencia.
+  \item Los resultados principales. Topograph hace predicciones más
+  fiables: sin post-proceso, todas sus variantes tienen mayor precisión
+  y la mitad o menos de predicciones sin filamento, y es la pérdida con
+  mejor PQ. El filtro de área corrige ese mismo tipo de error, y con él
+  las diferencias de PQ quedan dentro del ruido. El post-proceso por
+  persistencia conserva la estructura, sin perder filamentos y
+  reduciendo la fragmentación, pero no separa las predicciones espurias
+  muy seguras. Combinado con el área y con Topograph, da menos errores de
+  estructura que el filtro de área solo.
   \item Una medida de la detección de las barbas basada en la espina
-  anotada en MAGFiLO.
+  anotada en MAGFiLO, con la que se comprueba que ninguna pérdida
+  topológica mejora su detección.
   \item El código, público, con el que se puede reproducir cada
   resultado.
 \end{itemize}
@@ -78,13 +116,16 @@ práctica. Se concreta en cuatro objetivos:
 \section{Estructura de la memoria}
 % ------------------------------------------------------------
 
-El Capítulo~\ref{cap:fundamentos} presenta los fundamentos de
-topología computacional y los métodos topológicos de segmentación. El
+El Capítulo~\ref{cap:fundamentos} presenta los fundamentos de topología
+computacional y los métodos topológicos de segmentación. El
 Capítulo~\ref{cap:contexto} describe el problema: los filamentos
 solares, el conjunto de datos MAGFiLO, la competición y los trabajos
-previos. El Capítulo~\ref{cap:planteamiento} diagnostica los errores
-de un modelo de referencia, los interpreta topológicamente y plantea la
-estrategia de mejora. El Capítulo~\ref{cap:metodologia} detalla el
-protocolo experimental, y el Capítulo~\ref{cap:resultados}, los
-resultados. El Capítulo~\ref{cap:conclusiones} recoge las conclusiones,
-las limitaciones y el trabajo futuro.
+previos. El Capítulo~\ref{cap:planteamiento} diagnostica los errores de
+un modelo de referencia, desarrolla la lectura topológica del
+post-proceso y plantea las hipótesis y las líneas de mejora. El
+Capítulo~\ref{cap:metodologia} detalla el protocolo experimental, y el
+Capítulo~\ref{cap:resultados}, los resultados. El
+Capítulo~\ref{cap:conclusiones} recoge las conclusiones, las
+limitaciones y el trabajo futuro. Por último, el
+Apéndice~\ref{ap:codigo} describe el código y cómo reproducir cada
+experimento.

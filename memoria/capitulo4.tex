@@ -7,38 +7,41 @@
 
 Los capítulos anteriores han presentado las herramientas topológicas
 (Capítulo~\ref{cap:fundamentos}) y el problema práctico
-(Capítulo~\ref{cap:contexto}). Este capítulo explica cómo se combinan
-en el trabajo. La idea guía es no proponer mejoras a ciegas: primero se
-\emph{diagnostica} qué errores comete un modelo de referencia
-(Sección~\ref{sec:diagnostico}). Después se reformula el post-procesado
-en lenguaje topológico, lo que permite leer esos errores en un diagrama
-de persistencia (Sección~\ref{sec:lectura-topologica}). De ahí salen las
-hipótesis y la estrategia de mejora (Sección~\ref{sec:estrategia}) y el
-modo de medir si una mejora funciona (Sección~\ref{sec:medir}).
+(Capítulo~\ref{cap:contexto}). Este capítulo explica cómo se combinan en
+el trabajo. El punto de partida no es proponer mejoras a ciegas, sino
+\emph{diagnosticar} primero qué errores comete un modelo de referencia
+(Sección~\ref{sec:diagnostico}). Después se muestra que el post-proceso
+habitual tiene una lectura topológica directa: las instancias que produce
+son puntos de un diagrama de persistencia, y cada tipo de error deja en
+ese diagrama una firma reconocible (Sección~\ref{sec:lectura-topologica}).
+De esa lectura salen las hipótesis y las líneas de mejora del trabajo
+(Sección~\ref{sec:estrategia}) y la forma de medir si una mejora funciona
+(Sección~\ref{sec:medir}).
 
 % ------------------------------------------------------------
 \section{Diagnóstico de la baseline}
 \label{sec:diagnostico}
 % ------------------------------------------------------------
 
-El punto de partida es una baseline estándar: una U-Net entrenada con
-BCE + Dice cuyas instancias se obtienen umbralizando el mapa de
-probabilidades y tomando componentes conexas. Los detalles se describen
-en el Capítulo~\ref{cap:metodologia}. Lo que interesa aquí es
-\emph{cómo} se equivoca.
+El modelo de referencia, o \emph{baseline}, es una U-Net entrenada con
+BCE + Dice. Para obtener instancias se umbraliza su mapa de
+probabilidades, se toman las componentes conexas y se descartan las de
+área menor que un mínimo. Los detalles se describen en el
+Capítulo~\ref{cap:metodologia}. Lo que interesa aquí es \emph{cómo} se
+equivoca este modelo.
 
 \subsection{Taxonomía de errores}
 
-PQ solo distingue entre aciertos, falsos positivos y falsos negativos.
-Para decidir qué mejorar hace falta más detalle, así que clasificamos cada
-filamento de referencia y cada predicción según cómo se relacionan.
-Decimos que una predicción y un filamento de referencia están
+El PQ solo distingue entre aciertos, falsos positivos y falsos negativos.
+Para decidir qué mejorar hace falta más detalle, así que se clasifica
+cada filamento de referencia y cada predicción según cómo se relacionan
+entre sí. Decimos que una predicción y un filamento de referencia están
 \emph{relacionados} si su IoU es al menos $0{,}1$ o si uno cubre al menos
 el $50\,\%$ del otro. El segundo criterio evita que un trozo pequeño de un
 filamento largo, cuyo IoU es bajo porque la unión es grande, se cuente
 como espurio en lugar de como fragmento. Con esta relación, cada
-filamento de referencia no acertado se clasifica en uno de estos tipos
-(Tabla~\ref{tab:taxonomia}):
+filamento de referencia no acertado, y cada predicción sin filamento, se
+clasifica en uno de los tipos de la Tabla~\ref{tab:taxonomia}.
 
 \begin{table}[ht]
 \centering
@@ -48,9 +51,9 @@ filamento de referencia no acertado se clasifica en uno de estos tipos
 Tipo & Descripción\\
 \midrule
 Perdido & Ninguna predicción relacionada.\\
-Fragmentado (1:$n$) & Relacionado con varias predicciones (sus trozos).\\
+Fragmentado (1:$n$) & Relacionado con varias predicciones, que son sus trozos.\\
 Fusionado ($n$:1) & Su predicción relacionada lo está también con otros filamentos.\\
-Mal delimitado & Una predicción relacionada, pero con $\mathrm{IoU}\le0{,}5$.\\
+Mal delimitado & Una sola predicción relacionada, pero con $\mathrm{IoU}\le0{,}5$.\\
 Espurio (predicción) & Predicción sin ningún filamento relacionado.\\
 \bottomrule
 \end{tabular}
@@ -58,20 +61,43 @@ Espurio (predicción) & Predicción sin ningún filamento relacionado.\\
 \label{tab:taxonomia}
 \end{table}
 
-Esta relación es más exigente que la de las gráficas oficiales de la
-competición, que consideran relacionados una predicción y un filamento en
-cuanto se solapan ($\mathrm{IoU}>0$). En el
+Tres de estos tipos son errores \emph{topológicos} en un sentido preciso:
+cambian el número de componentes. Un filamento fragmentado en $n$ trozos
+aporta $n$ componentes donde debería haber una; $n$ filamentos fusionados
+aportan una donde debería haber $n$, y un espurio aporta una componente
+que no existe en la referencia. En términos de la
+Sección~\ref{sec:homologia}, son discrepancias locales en $\beta_0$. Los
+perdidos y los mal delimitados, en cambio, no se deben a la conectividad
+de la predicción, sino a su presencia o a su forma.
+
+La relación anterior es más exigente que la de las gráficas oficiales de
+la competición, que consideran relacionados una predicción y un filamento
+en cuanto se solapan ($\mathrm{IoU}>0$). En el
 Capítulo~\ref{cap:resultados} los tipos de error se cuentan con la
 definición oficial, para que sean comparables con la rúbrica.
 
-Para los perdidos y los fragmentados medimos además su
-\emph{recuperabilidad}, es decir, si el mapa de probabilidades contiene
-señal que un post-proceso pueda aprovechar. Para un filamento perdido, se
-mira la probabilidad máxima en su interior: si es muy baja, el modelo no
-lo vio y ningún post-proceso lo recuperará. Para uno fragmentado, se
-calcula su \emph{collado}: el umbral más alto al que sus trozos se unen
-dentro del filamento. Un collado de $0$ indica un hueco real en la
-predicción, que ningún umbral cierra.
+\subsection{Recuperabilidad}
+
+Un error solo se puede corregir en el post-proceso si el mapa de
+probabilidades contiene la señal necesaria. Para los perdidos y los
+fragmentados se mide esa \emph{recuperabilidad}:
+\begin{itemize}
+  \item Para un filamento \emph{perdido}, se mira la probabilidad máxima
+  en su interior. Si es muy baja, el modelo no lo vio, y ningún
+  post-proceso lo recuperará. Si queda algo por debajo del umbral, la
+  señal existe.
+  \item Para un filamento \emph{fragmentado}, se calcula su
+  \emph{collado}: el umbral más alto al que sus trozos quedan unidos por
+  un camino dentro del filamento. Si el collado está justo por debajo del
+  umbral, basta con bajarlo un poco para que los trozos se unan. Un
+  collado de $0$ indica un hueco real en la predicción, que ningún umbral
+  cierra.
+\end{itemize}
+El collado es una noción topológica: es el valor del punto de silla en
+el que se funden las componentes de los trozos, es decir, el valor de
+\emph{muerte} de las componentes más jóvenes en la filtración de
+superniveles restringida al filamento (Sección~\ref{sec:persistencia}).
+La Sección~\ref{sec:lectura-topologica} desarrolla esta conexión.
 
 \subsection{Dónde falla el modelo}
 
@@ -79,7 +105,7 @@ Este diagnóstico se hizo con una primera versión de la baseline,
 entrenada antes de fijar el protocolo del
 Capítulo~\ref{cap:metodologia}. Sus cifras no son comparables con las
 del Capítulo~\ref{cap:resultados}, pero sirvieron para decidir la
-estrategia. El análisis sobre la validación revela varios patrones:
+estrategia. El análisis sobre la validación muestra cuatro patrones:
 \begin{itemize}
   \item El \emph{recall} cae en los filamentos pequeños (25\,\%), en los
   cercanos al limbo (15\,\%) y en los que ningún otro anotador marca
@@ -87,85 +113,236 @@ estrategia. El análisis sobre la validación revela varios patrones:
   \item Muchos filamentos sí se detectan, pero los elimina el filtro de
   área mínima: 203 filamentos de validación se pierden solo por él.
   \item Los espurios tienen casi la misma confianza que los aciertos
-  (probabilidad máxima mediana $0{,}917$ frente a $0{,}933$). La confianza
-  por sí sola no los separa.
+  (probabilidad máxima mediana de $0{,}917$ frente a $0{,}933$), así que
+  la confianza por sí sola no los separa.
   \item Aproximadamente el 54\,\% de los espurios los marca otro
   anotador de la misma imagen. Más que errores del modelo, son
   desacuerdos entre anotadores.
 \end{itemize}
+El segundo y el tercer patrón son los que motivan este trabajo. El filtro
+de área elimina filamentos reales, y la confianza no sirve para
+distinguir los espurios. Hace falta otro criterio para decidir qué
+componentes conservar.
 
 \subsection{El techo humano}
 \label{sec:techo-humano}
-Comparando entre sí las anotaciones de imágenes con varios anotadores, con
-el mismo PQ, se obtiene un acuerdo humano de $\mathrm{PQ}\approx0{,}34$.
-Esa primera baseline, comparada con cada anotador, obtiene
-$\approx0{,}38$. El modelo se parece más a cada anotador que los
-anotadores entre sí, porque aprende una especie de consenso. Este dato
-es esencial para interpretar cualquier resultado: con referencias tan
-ruidosas, un PQ cercano a $1$ no es alcanzable, y parte de los
-«errores» son desacuerdos entre expertos.
+
+Comparando entre sí las anotaciones de las imágenes con varios
+anotadores, con el mismo PQ, se obtiene un acuerdo humano de
+$\mathrm{PQ}\approx0{,}34$. Esa primera baseline, comparada con cada
+anotador, obtiene $\approx0{,}38$. El modelo se parece más a cada
+anotador que los anotadores entre sí, porque aprende una especie de
+consenso. Este dato es esencial para interpretar cualquier resultado: con
+referencias tan ruidosas, un PQ cercano a $1$ no es alcanzable, y parte
+de los «errores» son desacuerdos entre expertos.
 
 % ------------------------------------------------------------
-\section{Lectura topológica del post-procesado}
+\section{Lectura topológica del post-proceso}
 \label{sec:lectura-topologica}
 % ------------------------------------------------------------
 
-El post-proceso de la baseline tiene una interpretación topológica
-directa. Dado el mapa de probabilidades $p$ y un umbral $t$, toma el
-conjunto de supernivel
+\subsection{Instancias y diagrama de persistencia}
+
+Sea $p$ el mapa de probabilidades que produce la red. Dado un umbral
+$t$, el post-proceso toma el conjunto de supernivel
 \[
   X_t=\{x : p(x)>t\}
 \]
 y declara que cada componente conexa de $X_t$ es un filamento. Las
 componentes se calculan con 8-conectividad, es decir, con la
 construcción T (Observación~\ref{obs:conectividad}), para no fragmentar
-artificialmente las barbas de los filamentos. Así, el número de
-instancias predichas es $\beta_0(X_t)$.
+artificialmente las barbas. Antes del filtro de área, el número de
+instancias predichas es, por tanto, $\beta_0(X_t)$.
 
 En lugar de mirar un solo umbral, podemos considerar la filtración de
 superniveles completa, con $t$ bajando de $1$ a $0$, y su diagrama de
-persistencia en $H_0$ (Sección~\ref{sec:persistencia}). Cada punto
-$(b,d)$ es una componente que \emph{nace} en un máximo local de $p$, con
-valor $b$, y \emph{muere} en $d$, al fundirse en un punto de silla con
-otra más antigua, según la regla del mayor. Una componente está presente
-en $X_t$ si y solo si $b>t\ge d$. Por tanto:
+persistencia en dimensión $0$ (Sección~\ref{sec:persistencia}). Es la
+situación de la Figura~\ref{fig:elder} con el paisaje del revés: en vez
+de subir el nivel del agua, se baja el umbral. Cada componente
+\emph{nace} en un máximo local de $p$, con valor $b$, y \emph{muere} en
+$d<b$, cuando se funde en un collado con otra componente nacida antes,
+según la regla del mayor. La componente del máximo global no muere
+nunca, y le asignamos $d=-\infty$.
 
-\begin{quote}
-\emph{El número de instancias que produce la baseline, antes del filtro
-de área, es el número de puntos del diagrama en el cuadrante
-$b>t,\ d\le t$.}
-\end{quote}
+\begin{proposicion}
+\label{prop:instancias}
+Supongamos que los valores de $p$ son distintos dos a dos. Para todo
+umbral $t$, el número de instancias de la baseline antes del
+filtro de área es
+\[
+  \beta_0(X_t)=\#\{(b,d)\in\operatorname{Dgm}_0 : b>t\ge d\}.
+\]
+\end{proposicion}
 
-Cada tipo de error deja una firma reconocible en el diagrama
-(Tabla~\ref{tab:firmas}). Así, el post-procesado deja de ser un ajuste de
-dos números y pasa a ser una decisión sobre qué puntos del diagrama
-convertir en instancias.
+\begin{proof}[Idea de la demostración]
+Cada componente de $X_t$ contiene un único máximo más antiguo, el de
+valor más alto. Por la regla del mayor, la componente que nació en ese
+máximo sigue viva en $t$: ya ha nacido, porque $b>t$, y todavía no ha
+muerto, porque cualquier componente con la que se haya fundido era más
+joven, así que $d\le t$. Las demás componentes nacidas dentro de esa
+región ya han muerto al fundirse con ella, con $d>t$. Hay, por tanto, una
+biyección entre las componentes de $X_t$ y los puntos con $b>t\ge d$.
+Es el caso de dimensión $0$ del resultado general según el cual
+$\beta_p$ de un espacio de la filtración es el número de intervalos del
+código de barras que lo contienen~\cite[§VII.1]{edelsbrunner2010}.
+\end{proof}
+
+Es decir, umbralizar en $t$ equivale a quedarse con los puntos del
+diagrama en el cuadrante $\{b>t,\ d\le t\}$, y el post-proceso deja de
+ser un ajuste de dos números para convertirse en una decisión sobre qué
+puntos del diagrama convertir en instancias.
+
+\begin{ejemplo}
+\label{ej:perfil}
+Sea $p$ el perfil de probabilidad a lo largo de una línea de la imagen
+que toma los valores
+$0{,}05,\ 0{,}90,\ 0{,}45,\ 0{,}80,\ 0{,}10,\ 0{,}70,\ 0{,}05$
+(Figura~\ref{fig:perfil}). Los dos primeros máximos, $A$ y $B$,
+pertenecen al mismo filamento, partido por una bajada de la
+probabilidad; el tercero, $C$, es una mancha sin filamento debajo. Al
+bajar el umbral:
+\begin{itemize}
+  \item En $t=0{,}90$ nace la componente de $A$; en $t=0{,}80$, la de
+  $B$; en $t=0{,}70$, la de $C$.
+  \item En $t=0{,}45$ se supera el collado entre $A$ y $B$, y sus
+  componentes se funden. Muere la más joven, la de $B$.
+  \item En $t=0{,}10$ se supera el collado entre $B$ y $C$, ya dentro de
+  la componente de $A$, y muere la de $C$.
+\end{itemize}
+El diagrama es $\{(0{,}90,-\infty),\ (0{,}80,0{,}45),\ (0{,}70,0{,}10)\}$.
+Con $t=0{,}5$, los tres puntos cumplen $b>t\ge d$, y la baseline produce
+tres instancias: el filamento aparece partido en dos y, además, hay un
+espurio.
+\end{ejemplo}
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}
+  % --- perfil: 0,9 cm por posición, 3,6 cm por unidad de probabilidad ---
+  \begin{scope}[x=0.9cm, y=3.6cm]
+    \draw[->] (-0.3,0) -- (6.5,0);
+    \draw[->] (0,-0.05) -- (0,1.08) node[above] {\small $p$};
+    \fill[blue!12] (0,0) -- (0,0.05) -- (1,0.90) -- (2,0.45) -- (3,0.80)
+          -- (4,0.10) -- (5,0.70) -- (6,0.05) -- (6,0) -- cycle;
+    \draw[thick] (0,0.05) -- (1,0.90) -- (2,0.45) -- (3,0.80) -- (4,0.10)
+          -- (5,0.70) -- (6,0.05);
+    \draw[dashed, gray] (0,0.5) -- (6.3,0.5) node[right] {\small $t=0{,}5$};
+    \fill[red!80!black] (1,0.90) circle (2.2pt) node[above=2pt] {\small $A$};
+    \fill[green!50!black] (3,0.80) circle (2.2pt) node[above=2pt] {\small $B$};
+    \fill[orange!90!black] (5,0.70) circle (2.2pt) node[above=2pt] {\small $C$};
+    \node[below, font=\small] at (2,0.45) {$0{,}45$};
+    \node[right, font=\small] at (4.05,0.08) {$0{,}10$};
+    \draw[thick, gray] (0.6,-0.17) -- (3.4,-0.17);
+    \node[below, font=\small] at (2,-0.17) {filamento};
+    \draw[thick, gray] (4.6,-0.17) -- (5.4,-0.17);
+    \node[below, font=\small] at (5,-0.17) {espurio};
+  \end{scope}
+  % --- código de barras: t de 1 (izquierda) a 0 (derecha) ---
+  \begin{scope}[xshift=7.6cm, x=4cm, y=0.55cm]
+    \draw[->] (0,0) -- (1.08,0) node[right] {\small $t$};
+    \foreach \t/\l in {0/1, 0.5/0{,}5, 1/0} {
+      \draw (\t,0.12) -- (\t,-0.12) node[below] {\small $\l$};
+    }
+    % A: de 0,90 a -infinito
+    \draw[line width=3pt, red!80!black] (0.10,4) -- (1.0,4);
+    \draw[->, red!80!black, thick] (0.98,4) -- (1.06,4);
+    % B: de 0,80 a 0,45
+    \draw[line width=3pt, green!50!black] (0.20,2.8) -- (0.55,2.8);
+    % C: de 0,70 a 0,10
+    \draw[line width=3pt, orange!90!black] (0.30,1.6) -- (0.90,1.6);
+    \node[left, font=\small] at (0.08,4) {$A$};
+    \node[left, font=\small] at (0.18,2.8) {$B$};
+    \node[left, font=\small] at (0.28,1.6) {$C$};
+    \draw[dashed, gray] (0.5,0.4) -- (0.5,4.6);
+  \end{scope}
+\end{tikzpicture}
+\caption{Izquierda: perfil de probabilidad del
+Ejemplo~\ref{ej:perfil}. Los máximos $A$ y $B$ son dos trozos del mismo
+filamento y $C$ es una mancha espuria. Derecha: código de barras $H_0$ de
+la filtración de superniveles, con el umbral $t$ bajando de izquierda a
+derecha. La línea discontinua en $t=0{,}5$ corta las tres barras: la
+baseline produce tres instancias. Ilustración propia.}
+\label{fig:perfil}
+\end{figure}
+
+\subsection{La firma de cada error}
+
+Cada tipo de error de la Tabla~\ref{tab:taxonomia} deja una firma
+reconocible en el diagrama (Tabla~\ref{tab:firmas}).
 
 \begin{table}[ht]
 \centering
 \small
-\begin{tabular}{@{}lp{9.5cm}@{}}
+\begin{tabular}{@{}lp{10.5cm}@{}}
 \toprule
-Error & Firma en el diagrama $H_0$\\
+Error & Firma en el diagrama $H_0$ de superniveles\\
 \midrule
-Fragmentado & Varios puntos nacidos dentro del filamento en el cuadrante. Si el hueco es recuperable, sus muertes $d$ están justo por debajo de $t$.\\
-Fusionado & Una sola componente cubre varios filamentos: el punto de silla que los separa tiene $d>t$, o no hay máximos separados.\\
-Perdido & Ningún punto con $b>t$ dentro del filamento. Si hay uno con $b$ algo menor que $t$, hay señal recuperable.\\
-Espurio & Punto aislado en el cuadrante, a menudo con poca persistencia $b-d$.\\
+Fragmentado & Varios puntos del cuadrante nacidos dentro del mismo
+filamento. La muerte $d$ de los más jóvenes es el collado entre trozos:
+si está justo por debajo de $t$, el hueco es recuperable bajando el
+umbral.\\
+Fusionado & Los máximos de dos filamentos se unen en un collado por
+encima de $t$. El más joven muere antes de llegar al umbral ($d>t$), y
+en el cuadrante queda un solo punto para los dos.\\
+Perdido & Ningún punto con $b>t$ dentro del filamento. Si hay uno con
+$b$ algo menor que $t$, la señal existe pero queda por debajo del
+umbral.\\
+Espurio & Un punto del cuadrante sin filamento debajo. Su persistencia
+depende del entorno: es baja si es un pequeño relieve sobre una zona de
+probabilidad intermedia, y alta si es una mancha aislada sobre un fondo
+cercano a $0$.\\
 \bottomrule
 \end{tabular}
-\caption{Firma de cada tipo de error en el diagrama de persistencia $H_0$ de la filtración de superniveles.}
+\caption{Firma de cada tipo de error en el diagrama de persistencia $H_0$
+de la filtración de superniveles, para un umbral $t$.}
 \label{tab:firmas}
 \end{table}
 
+En el Ejemplo~\ref{ej:perfil}, el filamento fragmentado aparece como los
+puntos de $A$ y $B$, y el collado que los separa es la muerte de $B$,
+$d=0{,}45$, a solo $0{,}05$ por debajo del umbral: bajando el umbral a
+$0{,}44$ los dos trozos se unirían. El espurio $C$ ilustra el segundo
+caso de la última fila: está aislado sobre un fondo bajo, de modo que su
+persistencia, $0{,}70-0{,}10=0{,}60$, es mayor que la de $B$,
+$0{,}80-0{,}45=0{,}35$, que es un trozo de un filamento real. La
+persistencia mide la robustez de una componente frente al umbral, no si
+corresponde a un filamento.
+
+\subsection{Área frente a persistencia}
+
+El filtro de área de la baseline es un criterio \emph{geométrico}:
+descarta las componentes de $X_t$ pequeñas, sea cual sea su punto en el
+diagrama. Dos componentes con el mismo par $(b,d)$ pueden tener áreas muy
+distintas, así que el área no es una función del diagrama.
+
+La persistencia ofrece un criterio \emph{topológico}, con una
+justificación teórica. Por el teorema de estabilidad
+(Sección~\ref{sec:distancias}), si la predicción cambia en cada píxel
+como mucho en $\varepsilon$, los puntos del diagrama se desplazan como
+mucho $\varepsilon$, y solo pueden aparecer o desaparecer los de
+persistencia menor que $2\varepsilon$. Las componentes poco persistentes
+son, por tanto, las que dependen de pequeñas fluctuaciones de la
+predicción, y las muy persistentes, las que sobreviven a ellas. Si los
+filamentos pequeños que elimina el filtro de área son robustos y los
+espurios no, un filtro por persistencia los separaría mejor.
+
+El Ejemplo~\ref{ej:perfil} muestra también el límite de esta idea: un
+espurio aislado sobre un fondo bajo es muy persistente. Cuál de los dos
+casos de la última fila de la Tabla~\ref{tab:firmas} domina en la
+práctica es una pregunta empírica, que responde la
+Sección~\ref{sec:res-e2}.
+
 \begin{observacion}
-En la práctica el diagrama se calcula sobre el \emph{logit}
-$z=\log\frac{p}{1-p}$ y no sobre $p$. Como la sigmoide es estrictamente
-creciente, $\{p>t\}=\{z>\operatorname{logit}(t)\}$: la filtración es la
-misma, reparametrizada, y el diagrama tiene los mismos emparejamientos.
-La ventaja es numérica: la red está muy segura y, en precisión reducida,
-muchos valores de $p$ se redondean a $1$, con lo que se pierde el orden
-entre máximos.
+La filtración de superniveles de $p$ y la de su \emph{logit}
+$z=\log\frac{p}{1-p}$ son la misma, reparametrizada: como la sigmoide es
+estrictamente creciente, $\{p>t\}=\{z>\operatorname{logit}(t)\}$, y los
+diagramas tienen los mismos emparejamientos. Lo que cambia son los
+valores $b$ y $d$ y, con ellos, la persistencia $b-d$: la sigmoide
+comprime los valores cercanos a $0$ y a $1$, de modo que una diferencia
+pequeña en $p$ puede ser grande en $z$. Por eso un umbral de
+persistencia $\tau$ solo tiene sentido referido a una escala. En este
+trabajo la persistencia se mide sobre $p$, para que $\tau$ se interprete
+en unidades de probabilidad.
 \end{observacion}
 
 % ------------------------------------------------------------
@@ -173,21 +350,21 @@ entre máximos.
 \label{sec:estrategia}
 % ------------------------------------------------------------
 
-Del diagnóstico se deriva una estrategia en la que cada línea de mejora
-ataca un tipo de error concreto (Tabla~\ref{tab:estrategia}). Las líneas
-se ordenan de menor a mayor coste: primero las que no requieren
-reentrenar.
+Del diagnóstico y de la lectura topológica se derivan cuatro líneas de
+mejora, cada una dirigida a un tipo de error
+(Tabla~\ref{tab:estrategia}). Se ordenan de menor a mayor coste: primero
+las que no requieren reentrenar.
 
 \begin{table}[ht]
 \centering
 \small
-\begin{tabular}{@{}llll@{}}
+\begin{tabular}{@{}lllc@{}}
 \toprule
-   Línea & Error al que apunta & Reentrena & Estado\\
+Línea & Error al que apunta & Reentrena & Estado\\
 \midrule
-E1. Umbral y área mínima & Espurios pequeños & No & Sí\\
-E2. Post-proceso por persistencia & Fragmentación, espurios & No & Planteada\\
-   E3. Pérdidas (IoU, clDice, Topograph) & Fragmentación, barbas & Sí & Hecha\\\\
+E1. Umbral y área mínima & Espurios pequeños & No & Hecha\\
+E2. Post-proceso por persistencia & Fragmentación, espurios & No & Hecha\\
+E3. Pérdidas (IoU, clDice, Topograph) & Espurios, fragmentación, barbas & Sí & Hecha\\
 E4. Etiquetas multianotador & Desacuerdo entre anotadores & Sí & Planteada\\
 \bottomrule
 \end{tabular}
@@ -198,68 +375,113 @@ desarrollado en este trabajo.}
 
 \paragraph{E1. Ajuste del post-proceso clásico.} Se ajustan el umbral $t$
 y el área mínima de las componentes. Es la mejora más barata y sirve de
-segunda referencia para las demás. En lenguaje topológico, el área mínima
-es un filtro sobre las componentes de $X_t$ que ignora su persistencia.
+segunda referencia para las demás. En el lenguaje de la sección
+anterior, el umbral elige el cuadrante del diagrama y el área mínima
+filtra sus puntos con un criterio geométrico.
 
-\paragraph{E2. Post-proceso basado en persistencia.} La lectura de la
-Sección~\ref{sec:lectura-topologica} sugiere sustituir el corte fijo por
-decisiones sobre el diagrama, con dos operaciones:
+\paragraph{E2. Post-proceso basado en persistencia.} Sustituye el
+criterio geométrico por uno topológico. Parte de $X_u$, para un umbral
+$u$, y aplica dos operaciones:
 \begin{itemize}
-  \item \emph{Filtro por persistencia:} descartar las componentes con
-  persistencia $b-d<\tau$, que son poco robustas al umbral, en lugar de
-  descartarlas por su área.
-  \item \emph{Fusión por proximidad del collado:} unir en una instancia
-  las componentes de $X_t$ que se funden en $X_{t-\delta}$, es decir,
-  cuyo punto de silla está a menos de $\delta$ por debajo del umbral. Es
-  la operación que corregiría los fragmentados recuperables, a costa de
-  arriesgarse a crear fusiones.
+  \item \emph{Filtro por persistencia.} Se conserva una componente de
+  $X_u$ solo si contiene un máximo con persistencia $b-d\ge\tau$. En el
+  Ejemplo~\ref{ej:perfil}, con $\tau=0{,}5$ se conservarían las
+  componentes de $A$ y de $C$, y se eliminaría la de $B$.
+  \item \emph{Fusión por collado.} Las componentes conservadas que se
+  unen en $X_{u-\delta}$, es decir, cuyo collado está a menos de $\delta$
+  por debajo del umbral, se cuentan como una sola instancia, sin añadir
+  píxeles. Es la operación dirigida a los fragmentados recuperables, a
+  costa de arriesgarse a crear fusiones. En el ejemplo, si
+  $\tau\le0{,}35$, de modo que $B$ se conserva, y $\delta>0{,}05$, las
+  componentes de $A$ y $B$ formarían una sola instancia.
 \end{itemize}
-Los parámetros $(\tau,\delta)$ se ajustarían en validación. El diagrama
-$H_0$ se calcula con \emph{union-find} en tiempo casi lineal
-(Sección~\ref{sec:persistencia-eficiente}), así que el coste añadido es
-despreciable frente a la inferencia.
+El filtro se aplica antes de la fusión, de modo que un trozo poco
+persistente se elimina aunque esté cerca de otro robusto. También se
+estudia una variante, B2+P, que combina ambos criterios: conserva una
+componente si su área supera el mínimo \emph{o} si su persistencia
+supera $\tau$. Los parámetros se ajustan en validación.
 
-\paragraph{E3. Pérdidas con sesgo topológico.} El post-proceso solo puede
-trabajar con la señal que el modelo ya produce. Para los fragmentados con
-hueco real y las barbas perdidas hay que cambiar lo que aprende la red.
-Se comparan tres alternativas a Dice:
+Para el filtro no hace falta construir el diagrama completo. En
+morfología matemática, los \emph{$h$-máximos} de una
+imagen son los máximos regionales que sobresalen al menos $h$ por
+encima del collado más alto que los une a un máximo
+mayor~\cite{soille2003}. Esa altura es exactamente la persistencia
+$b-d$ que asigna la regla del mayor, así que los $h$-máximos con
+$h=\tau$ son los nacimientos de los puntos con $b-d\ge\tau$. Se ha
+comprobado sobre imágenes sintéticas que la selección coincide con la
+del diagrama calculado con \emph{union-find}
+(Sección~\ref{sec:persistencia-eficiente}). En ambos casos el coste es
+casi lineal en el número de píxeles, despreciable frente a la
+inferencia.
+
+\paragraph{E3. Pérdidas con sesgo topológico.} El post-proceso solo
+puede trabajar con la señal que el modelo ya produce. Para los
+fragmentados con hueco real, para los espurios muy seguros y para las
+barbas perdidas hay que cambiar lo que aprende la red. Se comparan tres
+alternativas a Dice:
 \begin{itemize}
   \item \emph{IoU}, como control: es otra pérdida de solapamiento, sin
   sesgo topológico.
   \item \emph{clDice}~\cite{shit2021}, que mide el solapamiento de los
-  esqueletos. Premia la continuidad de las estructuras alargadas y debería
-  afinar la detección de las barbas.
-  \item \emph{Topograph}~\cite{lux2025}, que penaliza solo las regiones
-  topológicamente críticas, con garantías formales
-  (Sección~\ref{sec:topograph}) y coste casi lineal.
+  esqueletos (Sección~\ref{sec:dice-cldice}). Premia la continuidad de
+  las estructuras alargadas, lo que debería reducir la fragmentación y
+  mejorar la detección de las barbas.
+  \item \emph{Topograph}~\cite{lux2025}, que compara las componentes de
+  la predicción binarizada y de la referencia mediante el grafo
+  combinado y penaliza solo las regiones críticas, las que cambian la
+  topología (Sección~\ref{sec:topograph}). Actúa durante el
+  entrenamiento sobre los mismos errores que la Tabla~\ref{tab:firmas}
+  lee en el diagrama: una componente espuria, un filamento partido o dos
+  filamentos fusionados son discrepancias en el grafo combinado. La
+  diferencia es que Topograph trabaja sobre un único umbral, el de la
+  binarización ($p>0{,}5$), mientras que el post-proceso elige el
+  umbral y puede mirar el diagrama completo.
 \end{itemize}
 
 \paragraph{E4. Estrategias de etiquetas.} Con varias anotaciones por
 imagen, se comparan tres formas de construir la etiqueta de
-entrenamiento: cada anotación como un ejemplo independiente (la opción de
-la baseline), la media de las anotaciones como etiqueta blanda, y los
+entrenamiento: cada anotación como un ejemplo independiente (la opción
+de la baseline), la media de las anotaciones como etiqueta blanda, y los
 filamentos marcados por la mayoría de anotadores. La referencia de
 evaluación no cambia con la estrategia: siempre se evalúa contra cada
 anotación original.
 
-\paragraph{Alcance.} Este trabajo desarrolla por completo las líneas E1
-y E3, incluida Topograph, cuyos resultados se presentan en el
-Capítulo~\ref{cap:resultados}. Las líneas E2 y E4 quedan planteadas y
-se recogen como trabajo futuro en el Capítulo~\ref{cap:conclusiones}.
+\paragraph{Hipótesis.} Las líneas anteriores concretan cuatro hipótesis,
+que el Capítulo~\ref{cap:resultados} contrasta:
+\begin{enumerate}
+  \item[H1.] Los errores dominantes se deben a componentes que sobran o
+  que faltan, por lo que un filtro sobre las componentes (E1) mejora
+  mucho el PQ.
+  \item[H2.] La persistencia separa los filamentos pequeños de los
+  espurios mejor que el área, y la fusión por collado repara parte de
+  los fragmentados (E2).
+  \item[H3.] Una pérdida que penaliza las regiones topológicamente
+  críticas reduce las componentes espurias y la fragmentación sin
+  necesidad de post-proceso (E3, Topograph).
+  \item[H4.] Una pérdida que premia la continuidad del esqueleto mejora
+  la detección de las barbas (E3, clDice).
+\end{enumerate}
+
+\paragraph{Alcance.} Este trabajo desarrolla las líneas E1, E2 y E3,
+cuyos resultados se presentan en el Capítulo~\ref{cap:resultados}. La
+línea E4 queda planteada y se recoge como trabajo futuro en el
+Capítulo~\ref{cap:conclusiones}.
 
 % ------------------------------------------------------------
 \section{Cómo medir una mejora}
 \label{sec:medir}
 % ------------------------------------------------------------
 
-Una mejora del PQ global puede esconder que se arreglan unos filamentos y
-se rompen otros. Por eso cada versión se evalúa de tres formas:
+Una mejora del PQ global puede esconder que se arreglan unos filamentos
+y se rompen otros. Por eso cada versión se evalúa de tres formas:
 \begin{enumerate}
   \item \textbf{Métrica oficial:} PQ global, con SQ y RQ, y las
   distribuciones de la rúbrica (IoU, Dice y relaciones 1:$n$ y $n$:1).
-  \item \textbf{Tipos de error:} cuántos filamentos quedan fragmentados,
-  fusionados o sin detectar, y cuántas predicciones son espurias, además
-  de una medida específica de las barbas.
+  \item \textbf{Tipos de error:} cuántos filamentos quedan partidos,
+  unidos o sin detectar, y cuántas predicciones no tocan ningún
+  filamento. Los dos primeros miden los errores de estructura, las
+  discrepancias locales en $\beta_0$, y los dos últimos, los errores de
+  presencia. Se añade una medida específica de las barbas.
   \item \textbf{Separación ajuste--reporte:} todas las decisiones (época,
   umbrales, parámetros del post-proceso) se toman en una mitad de la
   validación y la cifra se reporta en la otra, para no inflar los

@@ -23,7 +23,7 @@ Harer~\cite{edelsbrunner2010}: los complejos
 entre diagramas de persistencia, que permiten compararlos de forma
 estable (Sección~\ref{sec:distancias}).
 
-La segunda parte del capítulo nos centramos en explicar técnicas de segmentación de imágenes aplicando TDA, donde la forma importa tanto como la precisión: un objeto
+La segunda parte del capítulo se centra en las técnicas de segmentación de imágenes basadas en TDA, donde la forma importa tanto como la precisión: un objeto
 partido en dos o unido a otro por un puente espurio apenas penaliza una
 métrica de solapamiento, pero cambia su topología. Presentamos primero el
 coeficiente de Dice y clDice (Sección~\ref{sec:dice-cldice}), que miden
@@ -1262,8 +1262,14 @@ concentra en ellos:
   \mathcal{L}_{CG}=\alpha\sum_{v\in V_c}\bar y_v,
 \]
 donde $\bar y_v$ es la probabilidad media de la clase predicha en los
-píxeles de $v$. A diferencia de las pérdidas basadas en persistencia, el
-gradiente actúa sobre \emph{todos} los píxeles de cada región crítica.
+píxeles de $v$. La predicción binaria $P$ con la que se construye el
+grafo se obtiene tomando en cada píxel la clase más probable, lo que en
+segmentación binaria equivale a umbralizar la probabilidad en $0{,}5$.
+Esa binarización no es diferenciable, pero no hace falta que lo sea: el
+grafo solo decide qué regiones son críticas, y el gradiente fluye a
+través de $\bar y_v$. A diferencia de las pérdidas basadas en
+persistencia, actúa sobre \emph{todos} los píxeles de cada región
+crítica.
 
 \begin{proposicion}[{\cite[Prop.~2.1]{lux2025}}]
 Si $\mathcal{L}_{CG}(P,G)=0$, todas las inclusiones del diagrama

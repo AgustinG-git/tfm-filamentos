@@ -10,8 +10,12 @@ se parten los datos, cómo se entrena y se elige cada modelo, cómo se
 obtienen las instancias y cómo se evalúan. Todas las ejecuciones siguen
 las mismas reglas, fijadas antes de empezar a comparar. Así, cualquier
 diferencia entre dos resultados se debe a la pieza que cambia (la
-pérdida, el post-proceso o los hiperparámetros) y no al protocolo. El
-código está disponible en \url{https://github.com/AgustinG-git/tfm-filamentos}.
+pérdida, el post-proceso o los hiperparámetros) y no al protocolo. Cada
+una de esas piezas corresponde a una de las líneas de mejora de la
+Sección~\ref{sec:estrategia}, y cada medida de la evaluación, a un tipo
+de error de la Sección~\ref{sec:diagnostico}. El código está disponible
+en \url{https://github.com/AgustinG-git/tfm-filamentos}
+(Apéndice~\ref{ap:codigo}).
 
 % ------------------------------------------------------------
 \section{Datos y partición}
@@ -31,6 +35,7 @@ se evaluaría sobre algo que ya ha visto. Por eso la partición se hace por
 20\,\% de los días para validación, y estos se dividen a su vez en dos
 mitades, $A$ y $B$ (Tabla~\ref{tab:split}). La partición se genera una
 sola vez, con semilla fija, y se guarda junto al código.
+
 Como todas las anotaciones de una imagen comparten fecha, una misma
 imagen nunca aparece en dos subconjuntos, ni siquiera anotada por
 anotadores distintos. En cambio, la partición no separa por anotador: de
@@ -84,7 +89,8 @@ resolución completa.
 El modelo es una U-Net~\cite{ronneberger2015} con codificador
 ResNet-34~\cite{he2016} preentrenado en ImageNet, de la biblioteca
 \emph{Segmentation Models PyTorch}~\cite{iakubovskii2019}. Produce un
-mapa de probabilidades de una sola clase (filamento) a $512\times512$.
+mapa de probabilidades $p$ de una sola clase (filamento) a
+$512\times512$.
 
 Salvo en el ajuste de la Sección~\ref{sec:ajuste-hp}, todas las
 ejecuciones usan la misma configuración: 30 épocas, lotes de 8,
@@ -99,9 +105,12 @@ semilla 43.
 \paragraph{Selección de la época.} Al final de cada época se evalúa el
 modelo en $A$ y se guarda el mejor. El criterio es fijo para todas las
 versiones: PQ global a $512\times512$, con umbral $0{,}5$ y sin filtro
-de área. Se usa un post-proceso estricto a propósito: si la época se
-eligiera con el post-proceso de cada versión, la comparación entre
-pérdidas mezclaría dos efectos.
+de área. En el lenguaje de la Sección~\ref{sec:lectura-topologica}, las
+instancias evaluadas son las componentes de $X_{0{,}5}$, es decir, los
+puntos del diagrama con $b>0{,}5\ge d$
+(Proposición~\ref{prop:instancias}). Se usa este post-proceso mínimo a
+propósito: si la época se eligiera con el post-proceso de cada versión,
+la comparación entre pérdidas mezclaría dos efectos.
 
 % ------------------------------------------------------------
 \section{Pérdidas}
@@ -113,7 +122,10 @@ cambiando una sola pieza respecto a la baseline
 (Tabla~\ref{tab:perdidas}). IoU se definió en la
 Sección~\ref{sec:competicion}, Dice y clDice en la
 Sección~\ref{sec:dice-cldice} y Topograph en la
-Sección~\ref{sec:topograph}; aquí solo se fijan los pesos.
+Sección~\ref{sec:topograph}; aquí solo se fijan los pesos. IoU sirve de
+control sin sesgo topológico; clDice añade un sesgo hacia la
+continuidad del esqueleto, y Topograph, un sesgo hacia la topología de
+las componentes.
 
 \begin{table}[ht]
 \centering
@@ -139,7 +151,7 @@ también con el término de Topograph.}
 al.~\cite{shit2021}, con 10 iteraciones de erosión.
 
 \paragraph{Topograph.} Se usa la implementación oficial~\cite{lux2025},
-con 8-conectividad, la misma que el post-proceso. Dos decisiones fijan
+con 8-conectividad, la misma que el post-proceso. Tres decisiones fijan
 cómo se añade:
 \begin{itemize}
   \item \emph{Peso.} Con un modelo ya entrenado, el término de
@@ -150,33 +162,103 @@ cómo se añade:
   tiene cientos de regiones críticas por imagen y el término no aporta
   una señal útil. Por eso Topograph se activa a partir de la sexta
   época; en las cinco primeras $\alpha=0$.
+  \item \emph{Binarización.} El grafo combinado se construye a partir de
+  una predicción binaria, mientras que la red produce probabilidades. La
+  implementación oficial binariza internamente tomando en cada píxel la
+  clase más probable (\emph{argmax}). La salida de un canal se le pasa
+  como dos canales, $(0, z)$, con $z$ el \emph{logit}, de modo que la
+  clase predicha es «filamento» si y solo si $z>0$, es decir, si
+  $p>0{,}5$. La binarización solo sirve para decidir qué regiones son
+  críticas; el gradiente llega a la red a través de las probabilidades
+  de los píxeles de esas regiones (Sección~\ref{sec:topograph}).
 \end{itemize}
+Topograph actúa, por tanto, sobre las componentes de $X_{0{,}5}$ y de su
+complemento: el mismo conjunto de supernivel con el que se elige la
+época y el que la Sección~\ref{sec:lectura-topologica} lee en el
+diagrama.
 
 % ------------------------------------------------------------
 \section{Post-proceso}
 \label{sec:postproceso}
 % ------------------------------------------------------------
 
-Las instancias se obtienen del mapa de probabilidades $p$ en tres pasos:
-\begin{enumerate}
-  \item se reescala $p$ a $2048\times2048$ (interpolación bilineal);
-  \item se umbraliza, $X_t=\{p>t\}$;
-  \item cada componente 8-conexa de $X_t$ es una instancia, y se
-  descartan las de área menor que $a$.
-\end{enumerate}
-En la lectura de la Sección~\ref{sec:lectura-topologica}, son las
-componentes del conjunto de nivel superior $X_t$ con un filtro que solo
-mira su tamaño. Se consideran dos variantes:
-\begin{itemize}
-  \item \textbf{B1:} solo umbral, $t$ ajustado y $a=0$;
-  \item \textbf{B2:} umbral y área mínima ajustados conjuntamente.
-\end{itemize}
-Los parámetros se buscan en $A$ con Optuna~\cite{akiba2019} (búsqueda
-bayesiana TPE, 60 intentos, semilla fija), en los rangos
-$t\in[0{,}2,\,0{,}9]$ y $a\in[0,\,300]$ píxeles a $512\times512$
-(el área se escala por 16 a resolución completa). Cada intento evalúa
-con la métrica oficial en $A$. El post-proceso se aplica a los
-\emph{logits} ya guardados de cada ejecución, sin reentrenar.
+Las instancias se obtienen del mapa de probabilidades $p$ a
+$512\times512$. Los cuatro post-procesos del trabajo comparten el mismo
+esquema: se umbraliza el mapa, $X_t=\{p>t\}$, se toma cada componente
+8-conexa de $X_t$ como candidata y se decide cuáles conservar. En la
+lectura de la Sección~\ref{sec:lectura-topologica}, las candidatas son
+los puntos del diagrama $H_0$ de superniveles vivos en $t$, y cada
+post-proceso es una regla distinta para decidir cuáles de ellos
+convertir en instancias.
+
+Para una componente $C$ de $X_t$, sean $|C|$ su área en píxeles,
+$D_C$ el conjunto de puntos de $\operatorname{Dgm}_0(p)$ que nacen en
+un máximo de $p$ situado dentro de $C$, y
+\[
+  \pi(C)=\max_{(b,d)\in D_C}\,(b-d)
+\]
+la mayor persistencia de esos máximos. El diagrama es el de
+la filtración de superniveles de $p$ en toda la imagen, no solo por
+encima de $t$, de modo que la muerte $d$ puede ser menor que $t$. La
+Tabla~\ref{tab:postprocesos} recoge la regla de cada post-proceso.
+
+\begin{table}[ht]
+\centering
+\small
+\begin{tabular}{@{}llll@{}}
+\toprule
+Post-proceso & Se conserva $C$ si & Fusión & Parámetros y rangos\\
+\midrule
+B1 & siempre & no & $t\in[0{,}2,\,0{,}9]$\\
+B2 & $|C|\ge a$ & no & $t\in[0{,}2,\,0{,}9]$, $a\in[0,\,300]$\\
+E2 & $\pi(C)\ge\tau$ & sí, con $\delta$ & $t\in[0{,}2,\,0{,}9]$, $\tau\in[0{,}01,\,0{,}5]$, $\delta\in[0,\,0{,}3]$\\
+B2+P & $|C|\ge a$ \textbf{o} $\pi(C)\ge\tau$ & no & $t\in[0{,}2,\,0{,}9]$, $a\in[0,\,300]$, $\tau\in[0{,}01,\,1]$\\
+\bottomrule
+\end{tabular}
+\caption{Regla de cada post-proceso para decidir si se conserva una
+componente $C$ de $X_t$. Las áreas son en píxeles a $512\times512$.}
+\label{tab:postprocesos}
+\end{table}
+
+\paragraph{Filtro de área (B1 y B2).} Se reescala $p$ a
+$2048\times2048$ (interpolación bilineal), se umbraliza y se descartan
+las componentes de área menor que $a$, multiplicada por 16 a resolución
+completa. B1 solo ajusta el umbral ($a=0$); B2 ajusta el umbral y el
+área conjuntamente. Es una regla geométrica: solo mira el tamaño de cada
+componente (Sección~\ref{sec:lectura-topologica}).
+
+\paragraph{Filtro por persistencia (E2).} Sustituye el área por la
+persistencia: se conserva $C$ si contiene un máximo con $b-d\ge\tau$.
+Esos máximos son los $h$-máximos de altura $\tau$~\cite{soille2003}, que
+se calculan con una reconstrucción morfológica en tiempo casi lineal.
+Se ha comprobado sobre imágenes sintéticas que la selección coincide con
+la que da el diagrama calculado con \emph{union-find} y la regla del
+mayor (Sección~\ref{sec:persistencia-eficiente}). Después, dos
+componentes conservadas forman una sola instancia si están en la misma
+componente de $X_{t-\delta}$, es decir, si el collado que las separa
+está a menos de $\delta$ por debajo del umbral (\emph{fusión por
+collado}). La fusión no añade píxeles: solo cambia qué píxeles forman
+cada instancia. Como el filtro se aplica antes de la fusión, un trozo
+poco persistente se elimina aunque esté cerca de otro robusto. La
+persistencia se mide sobre $p$, con $\tau$ en unidades de probabilidad.
+
+\paragraph{Área o persistencia (B2+P).} Combina las dos reglas
+anteriores, sin fusión: se eliminan las componentes pequeñas y poco
+persistentes, pero se conservan las pequeñas y robustas. Con $\tau$ en
+el máximo del rango, ninguna componente pequeña cumple la condición de
+persistencia y B2+P se reduce prácticamente a B2.
+
+En E2 y B2+P, la persistencia y el área se calculan a $512\times512$,
+que es la resolución a la que trabaja el modelo, y la decisión se
+traslada a $2048\times2048$: cada componente de la máscara a resolución
+completa toma la instancia de $512\times512$ con la que más píxeles
+comparte.
+
+\paragraph{Ajuste.} En los cuatro casos, los parámetros se buscan en
+val~$A$ con Optuna~\cite{akiba2019} (búsqueda bayesiana TPE, 60
+intentos, semilla fija), y cada intento se evalúa con la métrica
+oficial. El post-proceso se aplica a las predicciones ya guardadas de
+cada ejecución, sin reentrenar.
 
 % ------------------------------------------------------------
 \section{Ajuste de hiperparámetros}
@@ -195,13 +277,13 @@ tasa de aprendizaje en $[10^{-4},10^{-3}]$, el \emph{weight decay} en
 $[10^{-6},10^{-3}]$ (ambos en escala logarítmica) y un peso propio de
 cada pérdida: el de Dice en la baseline ($[0{,}25,\,0{,}75]$, con
 BCE el resto hasta 1), $\alpha$ en Topograph ($[0{,}01,\,0{,}16]$) y el
-de clDice ($[0{,}10,\,0{,}40]$, restado del de Dice). El primer intento de
-cada búsqueda es la configuración de la Sección~\ref{sec:entrenamiento}.
-El objetivo es el PQ oficial en $A$. Los intentos que, a partir de la
-época 10, van por debajo de la mediana de los anteriores en esa misma
-época se interrumpen. Cada modelo dispone de 3 horas de cómputo en una GPU
-NVIDIA GeForce RTX 3090, lo que da entre 27 y 42 intentos por modelo,
-de los que se completan entre 8 y 15.
+de clDice ($[0{,}10,\,0{,}40]$, restado del de Dice). El primer intento
+de cada búsqueda es la configuración de la
+Sección~\ref{sec:entrenamiento}. El objetivo es el PQ oficial en $A$.
+Los intentos que, a partir de la época 10, van por debajo de la mediana
+de los anteriores en esa misma época se interrumpen. Cada modelo dispone
+de 3 horas de cómputo en una GPU NVIDIA GeForce RTX 3090, lo que da
+entre 27 y 42 intentos por modelo, de los que se completan entre 8 y 15.
 
 % ------------------------------------------------------------
 \section{Evaluación}
@@ -214,42 +296,130 @@ cifra principal es el PQ global en $B$ a resolución completa
 (Sección~\ref{sec:competicion}), con SQ y RQ, y las distribuciones de
 la rúbrica: IoU, Dice y relaciones 1:$n$ y $n$:1.
 
-\paragraph{Medidas propias.} Como complemento, nunca en sustitución de
-las oficiales, se cuentan en $B$:
+\subsection{Tipos de error}
+
+El PQ cuenta aciertos, falsos positivos y falsos negativos, pero no dice
+de qué tipo es cada error. Para contarlos se usa la misma relación que
+las gráficas oficiales de la rúbrica, organizada como un grafo.
+
+\begin{definicion}
+Dada una anotación de una imagen, con filamentos $G_1,\dots,G_m$, y las
+instancias predichas $P_1,\dots,P_k$ para esa imagen, el \emph{grafo de
+contacto} es el grafo bipartito con un vértice por filamento y uno por
+instancia, y una arista entre $G_i$ y $P_j$ si comparten al menos un
+píxel, es decir, si $\mathrm{IoU}(G_i,P_j)>0$.
+\end{definicion}
+
+Si la predicción fuera perfecta, el grafo de contacto sería un
+emparejamiento perfecto: cada filamento tocaría exactamente una
+instancia y viceversa. Cada tipo de error es una forma de alejarse de
+esa situación, y se lee en los grados de los vértices
+(Figura~\ref{fig:contacto}):
 \begin{itemize}
-  \item \emph{partidos y unidos:} filamentos de referencia cubiertos por
-  varias predicciones, más predicciones que cubren varios filamentos;
-  \item \emph{sin contacto:} filamentos sin ninguna predicción que los
-  toque, más predicciones que no tocan ningún filamento.
+  \item \emph{partido}: filamento de grado al menos $2$, tocado por
+  varias instancias;
+  \item \emph{unido}: instancia de grado al menos $2$, que toca varios
+  filamentos;
+  \item \emph{sin predicción}: filamento de grado $0$;
+  \item \emph{sin filamento}: instancia de grado $0$.
 \end{itemize}
 
-\paragraph{Barbas.} PQ no distingue si un acierto incluye las barbas.
-Para medirlo se usa la espina que MAGFiLO anota en cada
-filamento~\cite{ahmadzadeh2024}. Sea $w$ el grosor medio del filamento
-(área entre longitud de la espina). Las \emph{barbas} son la parte del
-esqueleto de la máscara anotada que queda fuera de un tubo de radio
-$1{,}5\cdot w/2$ alrededor de la espina; se descartan trozos de menos de
-6 píxeles. La \emph{zona de barbas} es el entorno del filamento, hasta
-$2w$, sin ese tubo ni los demás filamentos. Sobre ella se definen:
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+    gt/.style={draw, circle, minimum size=7.5mm, inner sep=1pt, font=\small, fill=green!20},
+    pr/.style={draw, circle, minimum size=7.5mm, inner sep=1pt, font=\small, fill=red!15}]
+  \node[gt] (G1) at (0,2.4) {$G_1$};
+  \node[gt] (G2) at (0,1.2) {$G_2$};
+  \node[gt] (G3) at (0,0)   {$G_3$};
+  \node[gt] (G4) at (0,-1.2) {$G_4$};
+  \node[pr] (P1) at (3.2,2.7) {$P_1$};
+  \node[pr] (P2) at (3.2,1.7) {$P_2$};
+  \node[pr] (P3) at (3.2,0.6) {$P_3$};
+  \node[pr] (P4) at (3.2,-0.6) {$P_4$};
+  \draw (G1) -- (P1); \draw (G1) -- (P2);
+  \draw (G2) -- (P3); \draw (G3) -- (P3);
+  \node[right, font=\small] at (3.7,2.2) {$G_1$ partido};
+  \node[right, font=\small] at (3.7,0.6) {$P_3$ unido};
+  \node[right, font=\small] at (3.7,-0.6) {$P_4$ sin filamento};
+  \node[left, font=\small] at (-0.5,-1.2) {sin predicción};
+  \node[font=\small] at (0,3.3) {Referencia};
+  \node[font=\small] at (3.2,3.5) {Predicción};
+\end{tikzpicture}
+\caption{Grafo de contacto de una imagen con cuatro filamentos y cuatro
+instancias predichas. $G_1$ está partido (grado $2$), $P_3$ une $G_2$ y
+$G_3$ (grado $2$), $P_4$ no toca ningún filamento y $G_4$ no lo toca
+ninguna instancia. Ilustración propia.}
+\label{fig:contacto}
+\end{figure}
+
+Los cuatro recuentos se suman sobre todos los pares anotador--imagen de
+$B$ y se agrupan en dos medidas:
 \begin{itemize}
-  \item \emph{cobertura:} fracción de los píxeles de barbas reales que
-  cubre la predicción;
-  \item \emph{precisión:} fracción del esqueleto de la predicción en la
+  \item \emph{Errores de estructura} (P.\,+\,U.): filamentos partidos más
+  instancias unidas. Son las discrepancias locales en $\beta_0$ de la
+  Sección~\ref{sec:diagnostico}: un filamento real representado por
+  varias componentes, o varias por una sola.
+  \item \emph{Errores de presencia} (S.\,P.\,+\,S.\,F.): filamentos sin
+  predicción más instancias sin filamento. Son componentes que faltan o
+  que sobran.
+\end{itemize}
+La separación es útil porque las líneas de mejora apuntan a errores
+distintos. Una pérdida topológica o la fusión por collado deberían
+reducir sobre todo los errores de estructura, y un filtro sobre las
+componentes, los de presencia. El PQ los mezcla: un filamento partido y
+una mancha espuria penalizan de forma parecida. Además, los recuentos
+del grafo de contacto no dependen del umbral de $\mathrm{IoU}>0{,}5$ del
+PQ, así que también registran los errores de las predicciones que tocan
+un filamento sin llegar a acertarlo. Estas medidas complementan a las
+oficiales y nunca las sustituyen.
+
+A partir de las detecciones oficiales se calculan también la
+\emph{precisión}, $\mathrm{TP}/(\mathrm{TP}+\mathrm{FP})$, y la
+\emph{exhaustividad}, $\mathrm{TP}/n_B$, con $n_B=869$ el número de
+filamentos anotados en $B$.
+
+\subsection{Barbas}
+
+El PQ no distingue si un acierto incluye las barbas. Para medirlo se usa
+la espina que MAGFiLO anota en cada filamento~\cite{ahmadzadeh2024} y el
+esqueleto de la máscara. El esqueleto reduce la máscara a un grafo de
+curvas de un píxel de grosor con su misma topología: la espina es su
+camino principal, y las barbas, ramas que salen de él.
+
+Sea $w$ el grosor medio del filamento (área entre longitud de la
+espina). Las \emph{barbas} son la parte del esqueleto de la máscara
+anotada que queda fuera de un tubo de radio $1{,}5\cdot w/2$ alrededor de
+la espina, sin los trozos de menos de 6 píxeles, que son ruido del
+esqueleto. La \emph{zona de barbas} es el entorno del filamento, hasta
+una distancia $2w$, sin ese tubo ni los demás filamentos. Con una
+tolerancia de 3 píxeles para considerar que dos píxeles coinciden, se
+definen:
+\begin{itemize}
+  \item \emph{cobertura}: fracción del esqueleto de las barbas reales
+  que cubre la predicción;
+  \item \emph{precisión}: fracción del esqueleto de la predicción en la
   zona de barbas que cae sobre una barba real;
-  \item su $F_1$ y el número de ramas inventadas por filamento.
+  \item su $F_1$;
+  \item \emph{ramas inventadas}: ramas del esqueleto de la predicción en
+  la zona de barbas que no tocan ninguna barba real, por filamento;
+  \item \emph{cobertura de la espina}: fracción de la espina anotada que
+  cubre la predicción.
 \end{itemize}
 Todo se mide a $2048\times2048$, por anotación de $B$. Es una medida
 propia de este trabajo.
 
-\paragraph{Incertidumbre.} $B$ tiene 66 días, y una diferencia de PQ
-puede deberse a qué días han caído en él. Para estimar esa variabilidad
-se usa un \emph{bootstrap} pareado por días~\cite{efron1993}: se
-remuestrean con reemplazo los días de $B$ (2.000 veces), se recalcula el
-PQ global de cada ejecución con los conteos de esos días y se toma el
-intervalo del 95\,\% de la diferencia con la referencia. El mismo
-remuestreo se aplica a todas las ejecuciones, para que la comparación
-sea pareada. Se remuestrean días, y no pares, porque los pares de un
-mismo día no son independientes.
+\subsection{Incertidumbre}
+
+\paragraph{\emph{Bootstrap} por días.} $B$ tiene 66 días, y una
+diferencia de PQ puede deberse a qué días han caído en él. Para estimar
+esa variabilidad se usa un \emph{bootstrap} pareado por
+días~\cite{efron1993}: se remuestrean con reemplazo los días de $B$
+(2.000 veces), se recalcula el PQ global de cada ejecución con los
+conteos de esos días y se toma el intervalo del 95\,\% de la diferencia
+con la referencia. El mismo remuestreo se aplica a todas las
+ejecuciones, para que la comparación sea pareada. Se remuestrean días, y
+no pares, porque los pares de un mismo día no son independientes.
 
 \paragraph{Variabilidad entre entrenamientos.} El entrenamiento en GPU
 no es determinista: reentrenar la misma configuración con la misma
@@ -264,5 +434,8 @@ menores que eso no se interpretan como mejoras.
 Cada ejecución queda identificada por la fecha, la configuración y el
 \emph{commit} del código, y guarda su configuración completa, la época
 elegida, las predicciones y los \emph{logits} de validación. Una tabla
-única registra una fila por ejecución con sus métricas en $A$ y $B$. Los
-resultados del Capítulo~\ref{cap:resultados} salen de esa tabla.
+única registra una fila por ejecución con sus métricas en $A$ y $B$, y
+otra, los recuentos del grafo de contacto por par anotador--imagen. Los
+resultados del Capítulo~\ref{cap:resultados} salen de esas tablas. El
+Apéndice~\ref{ap:codigo} describe los módulos y cómo reproducir cada
+experimento.
