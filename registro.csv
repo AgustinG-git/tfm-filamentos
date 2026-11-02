@@ -1,52 +1,126 @@
-run_id,fecha,config,commit,perdida,etiquetas,aumentos,post,epoca,pq_A,pq_B,sq_B,rq_B,tp_B,fp_B,fn_B,nota
-20261007-1639_base_df8c991,2026-10-07,base.yaml,df8c991,bce_dice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,15,0.2818,0.2879,0.6427,0.4479,501,867,368,baseline
-20261007-1729_b1-umbral_c624f8c,2026-10-07,b1_umbral.yaml,c624f8c,bce_dice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,15,0.2818,0.2879,0.6427,0.4479,501,867,368,B1
-20261007-1736_b2-umbral-area_c624f8c,2026-10-07,b2_umbral_area.yaml,c624f8c,bce_dice,por_anotacion,ninguno,umbral_cc u=0.5 a=25,15,0.3531,0.36,0.6435,0.5594,485,380,384,B2
-20261007-1748_b1-optuna_ba6ab71,2026-10-07,b1_optuna.yaml,ba6ab71,bce_dice,por_anotacion,ninguno,umbral_cc u=0.528 a=0.0,15,0.2832,0.2916,0.6432,0.4533,505,854,364,B1 optuna
-20261007-1753_b2-optuna_ba6ab71,2026-10-07,b2_optuna.yaml,ba6ab71,bce_dice,por_anotacion,ninguno,umbral_cc u=0.520 a=33.3,15,0.3564,0.3654,0.6448,0.5668,469,317,400,B2 optuna
-20261008-1435_iou_e499ca1,2026-10-08,loss_iou.yaml,e499ca1,bce_iou,por_anotacion,ninguno,umbral_cc u=0.5 a=0,10,0.2883,0.2916,0.6516,0.4475,471,765,398,loss_iou
-20261008-1454_cldice_e499ca1,2026-10-08,loss_cldice.yaml,e499ca1,bce_dice_cldice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,16,0.307,0.3094,0.6332,0.4887,474,597,395,loss_cldice
-20261008-1518_cldice-sin-dice_e499ca1,2026-10-08,loss_cldice_sin_dice.yaml,e499ca1,bce_cldice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,2,0.0428,0.0293,0.5802,0.0505,42,752,827,loss_cldice_sin_dice
-20261008-1542_iou-cldice_e499ca1,2026-10-08,loss_iou_cldice.yaml,e499ca1,bce_iou_cldice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,17,0.304,0.3125,0.6409,0.4875,478,614,391,loss_iou_cldice
-20261009-0650_b2-optuna_e499ca1,2026-10-09,b2_optuna.yaml,e499ca1,bce_iou,por_anotacion,ninguno,umbral_cc u=0.404 a=37.9,10,0.3602,0.3524,0.6542,0.5387,425,284,444,B2 optuna sobre iou
-20261009-0655_b2-optuna_e499ca1,2026-10-09,b2_optuna.yaml,e499ca1,bce_dice_cldice,por_anotacion,ninguno,umbral_cc u=0.548 a=42.0,16,0.3525,0.3465,0.6404,0.5411,434,301,435,B2 optuna sobre cldice
-20261009-0700_b2-optuna_e499ca1,2026-10-09,b2_optuna.yaml,e499ca1,bce_iou_cldice,por_anotacion,ninguno,umbral_cc u=0.639 a=30.5,17,0.3483,0.3549,0.6485,0.5473,469,376,400,B2 optuna sobre iou-cldice
-20261020-0929_base_64410ac,2026-10-20,base.yaml,64410ac,bce_dice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,9,0.2696,0.2773,0.6359,0.436,499,921,370,baseline (repetición)
-20261020-0953_b2-optuna_64410ac,2026-10-20,b2_optuna.yaml,64410ac,bce_dice,por_anotacion,ninguno,umbral_cc u=0.628 a=37.1,9,0.3486,0.349,0.6501,0.5369,429,300,440,B2 optuna sobre base (repetición)
-20261023-1110_base_5125026,2026-10-23,base.yaml,5125026,bce_dice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,10,0.2848,0.2803,0.6504,0.4311,469,838,400,baseline servidor
-20261023-1126_iou_2a5a7f4,2026-10-23,loss_iou.yaml,2a5a7f4,bce_iou,por_anotacion,ninguno,umbral_cc u=0.5 a=0,15,0.2792,0.285,0.6483,0.4395,476,821,393,servidor
-20261023-1142_cldice_beeb24f,2026-10-23,loss_cldice.yaml,beeb24f,bce_dice_cldice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,13,0.3069,0.313,0.6346,0.4932,486,616,383,servidor
-20261023-1201_iou-cldice_11668be,2026-10-23,loss_iou_cldice.yaml,11668be,bce_iou_cldice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,14,0.3076,0.3219,0.6378,0.5047,487,574,382,servidor
-20261023-1220_cldice-sin-dice_11668be,2026-10-23,loss_cldice_sin_dice.yaml,11668be,bce_cldice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,1,0.0119,0.0087,0.5739,0.0152,20,1750,849,servidor
-20261023-1240_topograph_11668be,2026-10-23,loss_topograph.yaml,11668be,bce_dice_topo,por_anotacion,ninguno,umbral_cc u=0.5 a=0,17,0.3219,0.3274,0.6432,0.5091,461,481,408,servidor
-20261023-1305_iou-topograph_11668be,2026-10-23,loss_iou_topograph.yaml,11668be,bce_iou_topo,por_anotacion,ninguno,umbral_cc u=0.5 a=0,16,0.3152,0.3154,0.6453,0.4887,432,467,437,servidor
-20261023-1330_cldice-topograph_11668be,2026-10-23,loss_cldice_topograph.yaml,11668be,bce_dice_cldice_topo,por_anotacion,ninguno,umbral_cc u=0.5 a=0,18,0.3066,0.3166,0.635,0.4986,445,471,424,servidor
-20261023-1358_iou-cldice-topograph_11668be,2026-10-23,loss_iou_cldice_topograph.yaml,11668be,bce_iou_cldice_topo,por_anotacion,ninguno,umbral_cc u=0.5 a=0,18,0.2972,0.3181,0.63,0.5048,443,443,426,servidor
-20261023-1427_cldice-sin-dice-topograph_11668be,2026-10-23,loss_cldice_sin_dice_topograph.yaml,11668be,bce_cldice_topo,por_anotacion,ninguno,umbral_cc u=0.5 a=0,6,0.0245,0.0138,0.5913,0.0233,20,826,849,servidor
-20261023-1454_base_11668be,2026-10-23,base.yaml,11668be,bce_dice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,10,0.2848,0.2803,0.6504,0.4311,469,838,400,servidor repetición
-20261023-1514_b2-optuna_11668be,2026-10-23,b2_optuna.yaml,11668be,bce_dice,por_anotacion,ninguno,umbral_cc u=0.376 a=33.4,10,0.3534,0.3466,0.6492,0.5339,437,331,432,baseline servidor
-20261023-1516_b1-umbral_11668be,2026-10-23,b1_umbral.yaml,11668be,bce_dice,por_anotacion,ninguno,umbral_cc u=0.400 a=0.0,10,0.2864,0.2857,0.6473,0.4414,476,812,393,baseline servidor
-20261023-1521_b2-umbral-area_11668be,2026-10-23,b2_umbral_area.yaml,11668be,bce_dice,por_anotacion,ninguno,umbral_cc u=0.500 a=25.0,10,0.3482,0.3467,0.6529,0.531,445,362,424,baseline servidor
-20261023-1525_b1-optuna_11668be,2026-10-23,b1_optuna.yaml,11668be,bce_dice,por_anotacion,ninguno,umbral_cc u=0.387 a=0.0,10,0.2889,0.2842,0.6468,0.4394,475,818,394,baseline servidor
-20261023-1530_b2-optuna_11668be,2026-10-23,b2_optuna.yaml,11668be,bce_iou,por_anotacion,ninguno,umbral_cc u=0.418 a=35.9,15,0.3511,0.3509,0.6482,0.5414,441,319,428,servidor
-20261023-1535_b2-optuna_11668be,2026-10-23,b2_optuna.yaml,11668be,bce_dice_cldice,por_anotacion,ninguno,umbral_cc u=0.628 a=33.3,13,0.3505,0.3539,0.6427,0.5507,462,347,407,servidor
-20261023-1540_b2-optuna_11668be,2026-10-23,b2_optuna.yaml,11668be,bce_iou_cldice,por_anotacion,ninguno,umbral_cc u=0.581 a=33.3,14,0.3446,0.3632,0.6413,0.5663,474,331,395,servidor
-20261023-1545_b2-optuna_11668be,2026-10-23,b2_optuna.yaml,11668be,bce_cldice,por_anotacion,ninguno,umbral_cc u=0.895 a=124.3,1,0.062,0.0361,0.5859,0.0616,48,641,821,servidor
-20261023-1550_b2-optuna_11668be,2026-10-23,b2_optuna.yaml,11668be,bce_dice_topo,por_anotacion,ninguno,umbral_cc u=0.542 a=18.7,17,0.3537,0.3537,0.6454,0.548,457,342,412,servidor
-20261023-1555_b2-optuna_11668be,2026-10-23,b2_optuna.yaml,11668be,bce_iou_topo,por_anotacion,ninguno,umbral_cc u=0.503 a=34.3,16,0.3461,0.3455,0.649,0.5323,404,245,465,servidor
-20261023-1559_b2-optuna_11668be,2026-10-23,b2_optuna.yaml,11668be,bce_dice_cldice_topo,por_anotacion,ninguno,umbral_cc u=0.599 a=28.6,18,0.3437,0.3482,0.6399,0.5441,438,303,431,servidor
-20261023-1604_b2-optuna_11668be,2026-10-23,b2_optuna.yaml,11668be,bce_iou_cldice_topo,por_anotacion,ninguno,umbral_cc u=0.656 a=20.8,18,0.3331,0.3359,0.6379,0.5265,422,312,447,servidor
-20261023-1609_b2-optuna_11668be,2026-10-23,b2_optuna.yaml,11668be,bce_cldice_topo,por_anotacion,ninguno,umbral_cc u=0.897 a=160.0,6,0.0796,0.0453,0.5705,0.0795,47,267,822,servidor
-20261023-1614_b2-optuna_11668be,2026-10-23,b2_optuna.yaml,11668be,bce_dice,por_anotacion,ninguno,umbral_cc u=0.376 a=33.4,10,0.3534,0.3466,0.6492,0.5339,437,331,432,servidor repetición
-20261023-1617_b1-umbral_11668be,2026-10-23,b1_umbral.yaml,11668be,bce_dice,por_anotacion,ninguno,umbral_cc u=0.400 a=0.0,10,0.2864,0.2857,0.6473,0.4414,476,812,393,servidor repetición
-20261023-1622_b2-umbral-area_11668be,2026-10-23,b2_umbral_area.yaml,11668be,bce_dice,por_anotacion,ninguno,umbral_cc u=0.500 a=25.0,10,0.3482,0.3467,0.6529,0.531,445,362,424,servidor repetición
-20261023-1626_b1-optuna_11668be,2026-10-23,b1_optuna.yaml,11668be,bce_dice,por_anotacion,ninguno,umbral_cc u=0.387 a=0.0,10,0.2889,0.2842,0.6468,0.4394,475,818,394,servidor repetición
-20261025-1053_base_cc3f8d7,2026-10-25,base.yaml,cc3f8d7,bce_dice_f32,por_anotacion,ninguno,umbral_cc u=0.5 a=0,8,0.2971,0.3114,0.6381,0.4879,495,665,374,servidor
-20261025-1108_base-s43_cc3f8d7,2026-10-25,base_s43.yaml,cc3f8d7,bce_dice_f32,por_anotacion,ninguno,umbral_cc u=0.5 a=0,8,0.276,0.287,0.6479,0.443,503,899,366,servidor
-20261025-1123_topograph-s43_4768e3e,2026-10-25,loss_topograph_s43.yaml,4768e3e,bce_dice_topo,por_anotacion,ninguno,umbral_cc u=0.5 a=0,12,0.2984,0.322,0.6458,0.4985,422,402,447,servidor
-20261025-1151_b2-optuna_4768e3e,2026-10-25,b2_optuna.yaml,4768e3e,bce_dice_f32,por_anotacion,ninguno,umbral_cc u=0.658 a=29.0,8,0.3641,0.3732,0.6503,0.5739,458,269,411,servidor
-20261025-1153_b1-umbral_4768e3e,2026-10-25,b1_umbral.yaml,4768e3e,bce_dice_f32,por_anotacion,ninguno,umbral_cc u=0.650 a=0.0,8,0.3061,0.3138,0.6469,0.485,494,674,375,servidor
-20261025-1158_b2-umbral-area_4768e3e,2026-10-25,b2_umbral_area.yaml,4768e3e,bce_dice_f32,por_anotacion,ninguno,umbral_cc u=0.650 a=25.0,8,0.3651,0.3748,0.6493,0.5772,473,297,396,servidor
-20261025-1202_b1-optuna_4768e3e,2026-10-25,b1_optuna.yaml,4768e3e,bce_dice_f32,por_anotacion,ninguno,umbral_cc u=0.660 a=0.0,8,0.3049,0.3129,0.6463,0.4841,494,678,375,servidor
-20261025-1207_b2-optuna_4768e3e,2026-10-25,b2_optuna.yaml,4768e3e,bce_dice_f32,por_anotacion,ninguno,umbral_cc u=0.554 a=39.8,8,0.3477,0.3572,0.6543,0.5459,431,279,438,servidor
-20261025-1212_b2-optuna_4768e3e,2026-10-25,b2_optuna.yaml,4768e3e,bce_dice_topo,por_anotacion,ninguno,umbral_cc u=0.441 a=33.3,12,0.3356,0.3545,0.6458,0.549,412,220,457,servidor
+run_id,fecha,config,commit,perdida,etiquetas,aumentos,post,epoca,pq_A,pq_B,sq_B,rq_B,tp_B,fp_B,fn_B,partidos_unidos_B,sin_contacto_B,nota
+20261007-1639_base_df8c991,2026-10-07,base.yaml,df8c991,bce_dice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,15,0.2818,0.2879,0.6427,0.4479,501,867,368,,,baseline
+20261007-1729_b1-umbral_c624f8c,2026-10-07,b1_umbral.yaml,c624f8c,bce_dice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,15,0.2818,0.2879,0.6427,0.4479,501,867,368,,,B1
+20261007-1736_b2-umbral-area_c624f8c,2026-10-07,b2_umbral_area.yaml,c624f8c,bce_dice,por_anotacion,ninguno,umbral_cc u=0.5 a=25,15,0.3531,0.36,0.6435,0.5594,485,380,384,,,B2
+20261007-1748_b1-optuna_ba6ab71,2026-10-07,b1_optuna.yaml,ba6ab71,bce_dice,por_anotacion,ninguno,umbral_cc u=0.528 a=0.0,15,0.2832,0.2916,0.6432,0.4533,505,854,364,,,B1 optuna
+20261007-1753_b2-optuna_ba6ab71,2026-10-07,b2_optuna.yaml,ba6ab71,bce_dice,por_anotacion,ninguno,umbral_cc u=0.520 a=33.3,15,0.3564,0.3654,0.6448,0.5668,469,317,400,,,B2 optuna
+20261008-1435_iou_e499ca1,2026-10-08,loss_iou.yaml,e499ca1,bce_iou,por_anotacion,ninguno,umbral_cc u=0.5 a=0,10,0.2883,0.2916,0.6516,0.4475,471,765,398,,,loss_iou
+20261008-1454_cldice_e499ca1,2026-10-08,loss_cldice.yaml,e499ca1,bce_dice_cldice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,16,0.307,0.3094,0.6332,0.4887,474,597,395,,,loss_cldice
+20261008-1518_cldice-sin-dice_e499ca1,2026-10-08,loss_cldice_sin_dice.yaml,e499ca1,bce_cldice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,2,0.0428,0.0293,0.5802,0.0505,42,752,827,,,loss_cldice_sin_dice
+20261008-1542_iou-cldice_e499ca1,2026-10-08,loss_iou_cldice.yaml,e499ca1,bce_iou_cldice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,17,0.304,0.3125,0.6409,0.4875,478,614,391,,,loss_iou_cldice
+20261009-0650_b2-optuna_e499ca1,2026-10-09,b2_optuna.yaml,e499ca1,bce_iou,por_anotacion,ninguno,umbral_cc u=0.404 a=37.9,10,0.3602,0.3524,0.6542,0.5387,425,284,444,,,B2 optuna sobre iou
+20261009-0655_b2-optuna_e499ca1,2026-10-09,b2_optuna.yaml,e499ca1,bce_dice_cldice,por_anotacion,ninguno,umbral_cc u=0.548 a=42.0,16,0.3525,0.3465,0.6404,0.5411,434,301,435,,,B2 optuna sobre cldice
+20261009-0700_b2-optuna_e499ca1,2026-10-09,b2_optuna.yaml,e499ca1,bce_iou_cldice,por_anotacion,ninguno,umbral_cc u=0.639 a=30.5,17,0.3483,0.3549,0.6485,0.5473,469,376,400,,,B2 optuna sobre iou-cldice
+20261020-0929_base_64410ac,2026-10-20,base.yaml,64410ac,bce_dice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,9,0.2696,0.2773,0.6359,0.436,499,921,370,,,baseline (repetición)
+20261020-0953_b2-optuna_64410ac,2026-10-20,b2_optuna.yaml,64410ac,bce_dice,por_anotacion,ninguno,umbral_cc u=0.628 a=37.1,9,0.3486,0.349,0.6501,0.5369,429,300,440,,,B2 optuna sobre base (repetición)
+20261023-1110_base_5125026,2026-10-23,base.yaml,5125026,bce_dice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,10,0.2848,0.2803,0.6504,0.4311,469,838,400,,,baseline servidor
+20261023-1126_iou_2a5a7f4,2026-10-23,loss_iou.yaml,2a5a7f4,bce_iou,por_anotacion,ninguno,umbral_cc u=0.5 a=0,15,0.2792,0.285,0.6483,0.4395,476,821,393,,,servidor
+20261023-1142_cldice_beeb24f,2026-10-23,loss_cldice.yaml,beeb24f,bce_dice_cldice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,13,0.3069,0.313,0.6346,0.4932,486,616,383,,,servidor
+20261023-1201_iou-cldice_11668be,2026-10-23,loss_iou_cldice.yaml,11668be,bce_iou_cldice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,14,0.3076,0.3219,0.6378,0.5047,487,574,382,,,servidor
+20261023-1220_cldice-sin-dice_11668be,2026-10-23,loss_cldice_sin_dice.yaml,11668be,bce_cldice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,1,0.0119,0.0087,0.5739,0.0152,20,1750,849,,,servidor
+20261023-1240_topograph_11668be,2026-10-23,loss_topograph.yaml,11668be,bce_dice_topo,por_anotacion,ninguno,umbral_cc u=0.5 a=0,17,0.3219,0.3274,0.6432,0.5091,461,481,408,,,servidor
+20261023-1305_iou-topograph_11668be,2026-10-23,loss_iou_topograph.yaml,11668be,bce_iou_topo,por_anotacion,ninguno,umbral_cc u=0.5 a=0,16,0.3152,0.3154,0.6453,0.4887,432,467,437,,,servidor
+20261023-1330_cldice-topograph_11668be,2026-10-23,loss_cldice_topograph.yaml,11668be,bce_dice_cldice_topo,por_anotacion,ninguno,umbral_cc u=0.5 a=0,18,0.3066,0.3166,0.635,0.4986,445,471,424,,,servidor
+20261023-1358_iou-cldice-topograph_11668be,2026-10-23,loss_iou_cldice_topograph.yaml,11668be,bce_iou_cldice_topo,por_anotacion,ninguno,umbral_cc u=0.5 a=0,18,0.2972,0.3181,0.63,0.5048,443,443,426,,,servidor
+20261023-1427_cldice-sin-dice-topograph_11668be,2026-10-23,loss_cldice_sin_dice_topograph.yaml,11668be,bce_cldice_topo,por_anotacion,ninguno,umbral_cc u=0.5 a=0,6,0.0245,0.0138,0.5913,0.0233,20,826,849,,,servidor
+20261023-1454_base_11668be,2026-10-23,base.yaml,11668be,bce_dice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,10,0.2848,0.2803,0.6504,0.4311,469,838,400,,,servidor repetición
+20261023-1514_b2-optuna_11668be,2026-10-23,b2_optuna.yaml,11668be,bce_dice,por_anotacion,ninguno,umbral_cc u=0.376 a=33.4,10,0.3534,0.3466,0.6492,0.5339,437,331,432,,,baseline servidor
+20261023-1516_b1-umbral_11668be,2026-10-23,b1_umbral.yaml,11668be,bce_dice,por_anotacion,ninguno,umbral_cc u=0.400 a=0.0,10,0.2864,0.2857,0.6473,0.4414,476,812,393,,,baseline servidor
+20261023-1521_b2-umbral-area_11668be,2026-10-23,b2_umbral_area.yaml,11668be,bce_dice,por_anotacion,ninguno,umbral_cc u=0.500 a=25.0,10,0.3482,0.3467,0.6529,0.531,445,362,424,,,baseline servidor
+20261023-1525_b1-optuna_11668be,2026-10-23,b1_optuna.yaml,11668be,bce_dice,por_anotacion,ninguno,umbral_cc u=0.387 a=0.0,10,0.2889,0.2842,0.6468,0.4394,475,818,394,,,baseline servidor
+20261023-1530_b2-optuna_11668be,2026-10-23,b2_optuna.yaml,11668be,bce_iou,por_anotacion,ninguno,umbral_cc u=0.418 a=35.9,15,0.3511,0.3509,0.6482,0.5414,441,319,428,,,servidor
+20261023-1535_b2-optuna_11668be,2026-10-23,b2_optuna.yaml,11668be,bce_dice_cldice,por_anotacion,ninguno,umbral_cc u=0.628 a=33.3,13,0.3505,0.3539,0.6427,0.5507,462,347,407,,,servidor
+20261023-1540_b2-optuna_11668be,2026-10-23,b2_optuna.yaml,11668be,bce_iou_cldice,por_anotacion,ninguno,umbral_cc u=0.581 a=33.3,14,0.3446,0.3632,0.6413,0.5663,474,331,395,,,servidor
+20261023-1545_b2-optuna_11668be,2026-10-23,b2_optuna.yaml,11668be,bce_cldice,por_anotacion,ninguno,umbral_cc u=0.895 a=124.3,1,0.062,0.0361,0.5859,0.0616,48,641,821,,,servidor
+20261023-1550_b2-optuna_11668be,2026-10-23,b2_optuna.yaml,11668be,bce_dice_topo,por_anotacion,ninguno,umbral_cc u=0.542 a=18.7,17,0.3537,0.3537,0.6454,0.548,457,342,412,,,servidor
+20261023-1555_b2-optuna_11668be,2026-10-23,b2_optuna.yaml,11668be,bce_iou_topo,por_anotacion,ninguno,umbral_cc u=0.503 a=34.3,16,0.3461,0.3455,0.649,0.5323,404,245,465,,,servidor
+20261023-1559_b2-optuna_11668be,2026-10-23,b2_optuna.yaml,11668be,bce_dice_cldice_topo,por_anotacion,ninguno,umbral_cc u=0.599 a=28.6,18,0.3437,0.3482,0.6399,0.5441,438,303,431,,,servidor
+20261023-1604_b2-optuna_11668be,2026-10-23,b2_optuna.yaml,11668be,bce_iou_cldice_topo,por_anotacion,ninguno,umbral_cc u=0.656 a=20.8,18,0.3331,0.3359,0.6379,0.5265,422,312,447,,,servidor
+20261023-1609_b2-optuna_11668be,2026-10-23,b2_optuna.yaml,11668be,bce_cldice_topo,por_anotacion,ninguno,umbral_cc u=0.897 a=160.0,6,0.0796,0.0453,0.5705,0.0795,47,267,822,,,servidor
+20261023-1614_b2-optuna_11668be,2026-10-23,b2_optuna.yaml,11668be,bce_dice,por_anotacion,ninguno,umbral_cc u=0.376 a=33.4,10,0.3534,0.3466,0.6492,0.5339,437,331,432,,,servidor repetición
+20261023-1617_b1-umbral_11668be,2026-10-23,b1_umbral.yaml,11668be,bce_dice,por_anotacion,ninguno,umbral_cc u=0.400 a=0.0,10,0.2864,0.2857,0.6473,0.4414,476,812,393,,,servidor repetición
+20261023-1622_b2-umbral-area_11668be,2026-10-23,b2_umbral_area.yaml,11668be,bce_dice,por_anotacion,ninguno,umbral_cc u=0.500 a=25.0,10,0.3482,0.3467,0.6529,0.531,445,362,424,,,servidor repetición
+20261023-1626_b1-optuna_11668be,2026-10-23,b1_optuna.yaml,11668be,bce_dice,por_anotacion,ninguno,umbral_cc u=0.387 a=0.0,10,0.2889,0.2842,0.6468,0.4394,475,818,394,,,servidor repetición
+20261025-1053_base_cc3f8d7,2026-10-25,base.yaml,cc3f8d7,bce_dice_f32,por_anotacion,ninguno,umbral_cc u=0.5 a=0,8,0.2971,0.3114,0.6381,0.4879,495,665,374,,,servidor
+20261025-1108_base-s43_cc3f8d7,2026-10-25,base_s43.yaml,cc3f8d7,bce_dice_f32,por_anotacion,ninguno,umbral_cc u=0.5 a=0,8,0.276,0.287,0.6479,0.443,503,899,366,,,servidor
+20261025-1123_topograph-s43_4768e3e,2026-10-25,loss_topograph_s43.yaml,4768e3e,bce_dice_topo,por_anotacion,ninguno,umbral_cc u=0.5 a=0,12,0.2984,0.322,0.6458,0.4985,422,402,447,,,servidor
+20261025-1151_b2-optuna_4768e3e,2026-10-25,b2_optuna.yaml,4768e3e,bce_dice_f32,por_anotacion,ninguno,umbral_cc u=0.658 a=29.0,8,0.3641,0.3732,0.6503,0.5739,458,269,411,,,servidor
+20261025-1153_b1-umbral_4768e3e,2026-10-25,b1_umbral.yaml,4768e3e,bce_dice_f32,por_anotacion,ninguno,umbral_cc u=0.650 a=0.0,8,0.3061,0.3138,0.6469,0.485,494,674,375,,,servidor
+20261025-1158_b2-umbral-area_4768e3e,2026-10-25,b2_umbral_area.yaml,4768e3e,bce_dice_f32,por_anotacion,ninguno,umbral_cc u=0.650 a=25.0,8,0.3651,0.3748,0.6493,0.5772,473,297,396,,,servidor
+20261025-1202_b1-optuna_4768e3e,2026-10-25,b1_optuna.yaml,4768e3e,bce_dice_f32,por_anotacion,ninguno,umbral_cc u=0.660 a=0.0,8,0.3049,0.3129,0.6463,0.4841,494,678,375,,,servidor
+20261025-1207_b2-optuna_4768e3e,2026-10-25,b2_optuna.yaml,4768e3e,bce_dice_f32,por_anotacion,ninguno,umbral_cc u=0.554 a=39.8,8,0.3477,0.3572,0.6543,0.5459,431,279,438,,,servidor
+20261025-1212_b2-optuna_4768e3e,2026-10-25,b2_optuna.yaml,4768e3e,bce_dice_topo,por_anotacion,ninguno,umbral_cc u=0.441 a=33.3,12,0.3356,0.3545,0.6458,0.549,412,220,457,,,servidor
+20261031-1111_hp-base-t00_89ad688,2026-10-31,hp_base_t00.yaml,89ad688,bce_dice_f32,por_anotacion,ninguno,umbral_cc u=0.5 a=0,14,0.2964,0.2966,0.6451,0.4597,514,853,355,144.0,521.0,ajuste hp base t0
+20261031-1118_hp-base-t01_89ad688,2026-10-31,hp_base_t01.yaml,89ad688,bce_dice_f32,por_anotacion,ninguno,umbral_cc u=0.5 a=0,14,0.2931,0.2841,0.649,0.4378,491,883,378,155,552,ajuste hp base t1
+20261031-1124_hp-base-t02_89ad688,2026-10-31,hp_base_t02.yaml,89ad688,bce_dice_f32,por_anotacion,ninguno,umbral_cc u=0.5 a=0,11,0.3089,0.3027,0.6471,0.4679,473,680,396,112,461,ajuste hp base t2
+20261031-1133_hp-base-t04_89ad688,2026-10-31,hp_base_t04.yaml,89ad688,bce_dice_f32,por_anotacion,ninguno,umbral_cc u=0.5 a=0,8,0.2946,0.2879,0.6359,0.4528,487,795,382,115,529,ajuste hp base t4
+20261031-1145_hp-base-t07_89ad688,2026-10-31,hp_base_t07.yaml,89ad688,bce_dice_f32,por_anotacion,ninguno,umbral_cc u=0.5 a=0,8,0.3011,0.2947,0.6331,0.4656,490,746,379,110,479,ajuste hp base t7
+20261031-1216_hp-base-t16_830591c,2026-10-31,hp_base_t16.yaml,830591c,bce_dice_f32,por_anotacion,ninguno,umbral_cc u=0.5 a=0,8,0.3014,0.3023,0.6303,0.4796,487,675,382,103,431,ajuste hp base t16
+20261031-1223_hp-base-t17_830591c,2026-10-31,hp_base_t17.yaml,830591c,bce_dice_f32,por_anotacion,ninguno,umbral_cc u=0.5 a=0,8,0.2991,0.2938,0.6358,0.462,493,772,376,108,529,ajuste hp base t17
+20261031-1229_hp-base-t18_830591c,2026-10-31,hp_base_t18.yaml,830591c,bce_dice_f32,por_anotacion,ninguno,umbral_cc u=0.5 a=0,16,0.298,0.3093,0.6504,0.4755,486,689,383,113,442,ajuste hp base t18
+20261031-1238_hp-base-t20_830591c,2026-10-31,hp_base_t20.yaml,830591c,bce_dice_f32,por_anotacion,ninguno,umbral_cc u=0.5 a=0,17,0.2958,0.2967,0.6477,0.458,513,858,356,120,572,ajuste hp base t20
+20261031-1301_hp-base-t26_830591c,2026-10-31,hp_base_t26.yaml,830591c,bce_dice_f32,por_anotacion,ninguno,umbral_cc u=0.5 a=0,8,0.2947,0.2946,0.6368,0.4625,503,803,366,135,494,ajuste hp base t26
+20261031-1308_hp-base-t27_830591c,2026-10-31,hp_base_t27.yaml,830591c,bce_dice_f32,por_anotacion,ninguno,umbral_cc u=0.5 a=0,13,0.2869,0.2928,0.6492,0.451,502,855,367,123,571,ajuste hp base t27
+20261031-1321_hp-base-t30_830591c,2026-10-31,hp_base_t30.yaml,830591c,bce_dice_f32,por_anotacion,ninguno,umbral_cc u=0.5 a=0,10,0.2952,0.2869,0.6523,0.4398,471,802,398,131,504,ajuste hp base t30
+20261031-1330_hp-base-t32_830591c,2026-10-31,hp_base_t32.yaml,830591c,bce_dice_f32,por_anotacion,ninguno,umbral_cc u=0.5 a=0,8,0.3006,0.3027,0.643,0.4707,470,658,399,109,423,ajuste hp base t32
+20261031-1337_hp-base-t33_830591c,2026-10-31,hp_base_t33.yaml,830591c,bce_dice_f32,por_anotacion,ninguno,umbral_cc u=0.5 a=0,8,0.3024,0.2949,0.637,0.463,500,791,369,119,502,ajuste hp base t33
+20261031-1405_hp-base-t41_a330de2,2026-10-31,hp_base_t41.yaml,a330de2,bce_dice_f32,por_anotacion,ninguno,umbral_cc u=0.5 a=0,16,0.2945,0.2903,0.6471,0.4486,484,805,385,128,515,ajuste hp base t41
+20261031-1412_hp-topograph-t00_a330de2,2026-10-31,hp_topograph_t00.yaml,a330de2,bce_dice_topo,por_anotacion,ninguno,umbral_cc u=0.5 a=0,14,0.3066,0.316,0.6416,0.4926,463,548,406,102,363,ajuste hp topograph t0
+20261031-1424_hp-topograph-t01_a330de2,2026-10-31,hp_topograph_t01.yaml,a330de2,bce_dice_topo,por_anotacion,ninguno,umbral_cc u=0.5 a=0,18,0.2985,0.3026,0.6394,0.4733,447,573,422,107,352,ajuste hp topograph t1
+20261031-1437_hp-topograph-t02_a330de2,2026-10-31,hp_topograph_t02.yaml,a330de2,bce_dice_topo,por_anotacion,ninguno,umbral_cc u=0.5 a=0,15,0.333,0.3301,0.643,0.5134,460,463,409,88,347,ajuste hp topograph t2
+20261031-1527_hp-topograph-t12_a330de2,2026-10-31,hp_topograph_t12.yaml,a330de2,bce_dice_topo,por_anotacion,ninguno,umbral_cc u=0.5 a=0,17,0.3237,0.3197,0.6489,0.4927,441,480,428,93,339,ajuste hp topograph t12
+20261031-1545_hp-topograph-t14_a330de2,2026-10-31,hp_topograph_t14.yaml,a330de2,bce_dice_topo,por_anotacion,ninguno,umbral_cc u=0.5 a=0,18,0.3151,0.3081,0.6531,0.4717,463,631,406,111,395,ajuste hp topograph t14
+20261031-1558_hp-topograph-t15_a330de2,2026-10-31,hp_topograph_t15.yaml,a330de2,bce_dice_topo,por_anotacion,ninguno,umbral_cc u=0.5 a=0,16,0.3261,0.3292,0.647,0.5088,435,406,434,78,332,ajuste hp topograph t15
+20261031-1629_hp-topograph-t20_a330de2,2026-10-31,hp_topograph_t20.yaml,a330de2,bce_dice_topo,por_anotacion,ninguno,umbral_cc u=0.5 a=0,11,0.322,0.3133,0.6473,0.484,460,572,409,105,408,ajuste hp topograph t20
+20261031-1654_hp-topograph-t24_a330de2,2026-10-31,hp_topograph_t24.yaml,a330de2,bce_dice_topo,por_anotacion,ninguno,umbral_cc u=0.5 a=0,15,0.3131,0.3324,0.6465,0.5142,463,469,406,78,353,ajuste hp topograph t24
+20261031-1715_hp-cldice-t00_a330de2,2026-10-31,hp_cldice_t00.yaml,a330de2,bce_dice_cldice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,20,0.3054,0.3075,0.6403,0.4802,473,628,396,92,400,ajuste hp cldice t0
+20261031-1723_hp-cldice-t01_a330de2,2026-10-31,hp_cldice_t01.yaml,a330de2,bce_dice_cldice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,21,0.2874,0.2836,0.6226,0.4556,451,660,418,86,424,ajuste hp cldice t1
+20261031-1731_hp-cldice-t02_a330de2,2026-10-31,hp_cldice_t02.yaml,a330de2,bce_dice_cldice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,15,0.3044,0.3033,0.6395,0.4743,502,746,367,103,483,ajuste hp cldice t2
+20261031-1742_hp-cldice-t04_8fc812f,2026-10-31,hp_cldice_t04.yaml,8fc812f,bce_dice_cldice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,16,0.33,0.3202,0.6394,0.5008,483,577,386,95,385,ajuste hp cldice t4
+20261031-1750_hp-cldice-t05_8fc812f,2026-10-31,hp_cldice_t05.yaml,8fc812f,bce_dice_cldice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,25,0.3165,0.3154,0.6471,0.4874,483,630,386,97,443,ajuste hp cldice t5
+20261031-1801_hp-cldice-t07_8fc812f,2026-10-31,hp_cldice_t07.yaml,8fc812f,bce_dice_cldice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,20,0.3246,0.3207,0.6446,0.4975,489,608,380,91,390,ajuste hp cldice t7
+20261031-1820_hp-cldice-t11_8fc812f,2026-10-31,hp_cldice_t11.yaml,8fc812f,bce_dice_cldice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,18,0.3407,0.3197,0.6427,0.4975,490,611,379,90,416,ajuste hp cldice t11
+20261031-1828_hp-cldice-t12_8fc812f,2026-10-31,hp_cldice_t12.yaml,8fc812f,bce_dice_cldice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,17,0.3291,0.3186,0.6421,0.4962,490,616,379,96,420,ajuste hp cldice t12
+20261031-1853_hp-cldice-t18_8fc812f,2026-10-31,hp_cldice_t18.yaml,8fc812f,bce_dice_cldice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,21,0.3191,0.3193,0.6386,0.5,485,586,384,93,396,ajuste hp cldice t18
+20261031-1905_hp-cldice-t20_8fc812f,2026-10-31,hp_cldice_t20.yaml,8fc812f,bce_dice_cldice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,20,0.33,0.3222,0.6457,0.499,489,602,380,92,425,ajuste hp cldice t20
+20261031-1914_hp-cldice-t21_8fc812f,2026-10-31,hp_cldice_t21.yaml,8fc812f,bce_dice_cldice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,18,0.3308,0.3188,0.6464,0.4932,474,579,395,94,401,ajuste hp cldice t21
+20261031-1930_hp-cldice-t24_8fc812f,2026-10-31,hp_cldice_t24.yaml,8fc812f,bce_dice_cldice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,15,0.323,0.3214,0.6434,0.4995,487,594,382,88,449,ajuste hp cldice t24
+20261031-2003_hp-cldice-t30_8fc812f,2026-10-31,hp_cldice_t30.yaml,8fc812f,bce_dice_cldice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,15,0.3169,0.3137,0.6379,0.4917,474,585,395,97,393,ajuste hp cldice t30
+20261031-2012_hp-cldice-t31_8fc812f,2026-10-31,hp_cldice_t31.yaml,8fc812f,bce_dice_cldice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,13,0.3246,0.3095,0.6395,0.484,468,597,401,101,407,ajuste hp cldice t31
+20261031-2022_b2-optuna_8fc812f,2026-10-31,b2_optuna.yaml,8fc812f,bce_dice_f32,por_anotacion,ninguno,umbral_cc u=0.498 a=34.8,11,0.3672,0.368,0.648,0.5678,448,261,421,49,327,B2 sobre mejor hp base
+20261031-2025_b2-optuna_8fc812f,2026-10-31,b2_optuna.yaml,8fc812f,bce_dice_topo,por_anotacion,ninguno,umbral_cc u=0.545 a=24.1,15,0.3682,0.3619,0.6457,0.5605,454,297,415,52,326,B2 sobre mejor hp topograph
+20261031-2028_b2-optuna_8fc812f,2026-10-31,b2_optuna.yaml,8fc812f,bce_dice_cldice,por_anotacion,ninguno,umbral_cc u=0.623 a=30.2,18,0.3837,0.3605,0.6557,0.5498,464,355,405,58,316,B2 sobre mejor hp cldice
+20261031-2030_iou_8fc812f,2026-10-31,loss_iou.yaml,8fc812f,bce_iou,por_anotacion,ninguno,umbral_cc u=0.5 a=0,11,0.2895,0.2986,0.6459,0.4623,481,731,388,130,473,familia barbas
+20261031-2037_iou-cldice_8fc812f,2026-10-31,loss_iou_cldice.yaml,8fc812f,bce_iou_cldice,por_anotacion,ninguno,umbral_cc u=0.5 a=0,17,0.3044,0.317,0.6408,0.4947,486,610,383,76,426,familia barbas
+20261031-2045_iou-topograph_8fc812f,2026-10-31,loss_iou_topograph.yaml,8fc812f,bce_iou_topo,por_anotacion,ninguno,umbral_cc u=0.5 a=0,20,0.3145,0.3052,0.6471,0.4716,452,596,417,98,401,familia barbas
+20261031-2057_cldice-topograph_8fc812f,2026-10-31,loss_cldice_topograph.yaml,8fc812f,bce_dice_cldice_topo,por_anotacion,ninguno,umbral_cc u=0.5 a=0,14,0.3068,0.2992,0.6285,0.4761,423,485,446,79,344,familia barbas
+20261031-2111_iou-cldice-topograph_8fc812f,2026-10-31,loss_iou_cldice_topograph.yaml,8fc812f,bce_iou_cldice_topo,por_anotacion,ninguno,umbral_cc u=0.5 a=0,19,0.3038,0.3113,0.6359,0.4895,444,501,425,79,340,familia barbas
+20261031-2127_b2-optuna_8fc812f,2026-10-31,b2_optuna.yaml,8fc812f,bce_dice_f32,por_anotacion,ninguno,umbral_cc u=0.537 a=35.5,14,0.3592,0.3703,0.6504,0.5693,462,292,407,59,321,ajuste hp base t0
+20261031-2129_b1-umbral_8fc812f,2026-10-31,b1_umbral.yaml,8fc812f,bce_dice_f32,por_anotacion,ninguno,umbral_cc u=0.500 a=0.0,14,0.2964,0.2966,0.6451,0.4597,514,853,355,144,521,ajuste hp base t0
+20261031-2132_b2-umbral-area_8fc812f,2026-10-31,b2_umbral_area.yaml,8fc812f,bce_dice_f32,por_anotacion,ninguno,umbral_cc u=0.550 a=25.0,14,0.3613,0.3696,0.6496,0.5689,485,351,384,62,309,ajuste hp base t0
+20261031-2134_b1-optuna_8fc812f,2026-10-31,b1_optuna.yaml,8fc812f,bce_dice_f32,por_anotacion,ninguno,umbral_cc u=0.531 a=0.0,14,0.297,0.2972,0.6459,0.4601,513,848,356,141,524,ajuste hp base t0
+20261031-2137_b2-optuna_8fc812f,2026-10-31,b2_optuna.yaml,8fc812f,bce_dice_topo,por_anotacion,ninguno,umbral_cc u=0.431 a=42.4,14,0.3504,0.3481,0.6453,0.5395,417,260,452,45,345,ajuste hp topograph t0
+20261031-2140_b2-optuna_8fc812f,2026-10-31,b2_optuna.yaml,8fc812f,bce_dice_cldice,por_anotacion,ninguno,umbral_cc u=0.506 a=35.7,20,0.3399,0.3436,0.6429,0.5344,443,346,426,55,329,ajuste hp cldice t0
+20261031-2143_b2-optuna_8fc812f,2026-10-31,b2_optuna.yaml,8fc812f,bce_iou,por_anotacion,ninguno,umbral_cc u=0.466 a=37.4,11,0.3556,0.361,0.6488,0.5565,431,249,438,47,358,familia barbas
+20261031-2146_b2-optuna_8fc812f,2026-10-31,b2_optuna.yaml,8fc812f,bce_iou_cldice,por_anotacion,ninguno,umbral_cc u=0.622 a=33.6,17,0.3439,0.3633,0.6497,0.5592,458,311,411,49,334,familia barbas
+20261031-2149_b2-optuna_8fc812f,2026-10-31,b2_optuna.yaml,8fc812f,bce_iou_topo,por_anotacion,ninguno,umbral_cc u=0.414 a=21.0,20,0.361,0.3494,0.6457,0.5411,448,339,421,57,326,familia barbas
+20261031-2152_b2-optuna_8fc812f,2026-10-31,b2_optuna.yaml,8fc812f,bce_dice_cldice_topo,por_anotacion,ninguno,umbral_cc u=0.608 a=22.2,14,0.3482,0.3353,0.6346,0.5283,425,315,444,58,320,familia barbas
+20261031-2155_b2-optuna_8fc812f,2026-10-31,b2_optuna.yaml,8fc812f,bce_iou_cldice_topo,por_anotacion,ninguno,umbral_cc u=0.526 a=22.8,19,0.3381,0.3378,0.6388,0.5288,436,344,433,58,312,familia barbas
+20261101-1140_e2-humo_eb962aa,2026-11-01,e2_humo.yaml,eb962aa,bce_dice_f32,por_anotacion,ninguno,persistencia u=0.462 tau=0.476 d=0.220,14,0.3026,0.3081,0.6435,0.4787,518,777,351,123,481,E2 humo
+20261101-1153_e2-persistencia_eb962aa,2026-11-01,e2_persistencia.yaml,eb962aa,bce_dice_f32,por_anotacion,ninguno,persistencia u=0.506 tau=0.064 d=0.277,14,0.3063,0.3097,0.6443,0.4807,517,765,352,120,479,E2 persistencia
+20261101-1203_e2-persistencia_eb962aa,2026-11-01,e2_persistencia.yaml,eb962aa,bce_dice_topo,por_anotacion,ninguno,persistencia u=0.384 tau=0.499 d=0.273,14,0.3294,0.3368,0.6361,0.5296,470,436,399,65,321,E2 persistencia
+20261101-1213_e2-persistencia_eb962aa,2026-11-01,e2_persistencia.yaml,eb962aa,bce_dice_cldice,por_anotacion,ninguno,persistencia u=0.468 tau=0.480 d=0.255,20,0.3112,0.3067,0.6403,0.479,468,617,401,85,390,E2 persistencia
+20261101-1223_e2-persistencia_eb962aa,2026-11-01,e2_persistencia.yaml,eb962aa,bce_dice_f32,por_anotacion,ninguno,persistencia u=0.478 tau=0.030 d=0.273,11,0.3263,0.3136,0.6458,0.4856,473,606,396,91,421,E2 persistencia
+20261101-1233_e2-persistencia_eb962aa,2026-11-01,e2_persistencia.yaml,eb962aa,bce_dice_topo,por_anotacion,ninguno,persistencia u=0.558 tau=0.152 d=0.244,15,0.3382,0.3394,0.646,0.5253,457,414,412,76,330,E2 persistencia
+20261101-1243_e2-persistencia_eb962aa,2026-11-01,e2_persistencia.yaml,eb962aa,bce_dice_cldice,por_anotacion,ninguno,persistencia u=0.640 tau=0.207 d=0.256,18,0.3537,0.3334,0.6519,0.5113,496,575,373,84,402,E2 persistencia
+20261101-1254_e2-persistencia_eb962aa,2026-11-01,e2_persistencia.yaml,eb962aa,bce_iou,por_anotacion,ninguno,persistencia u=0.462 tau=0.417 d=0.298,11,0.3099,0.3126,0.6447,0.4849,483,640,386,98,432,E2 persistencia
+20261101-1303_e2-persistencia_eb962aa,2026-11-01,e2_persistencia.yaml,eb962aa,bce_iou_cldice,por_anotacion,ninguno,persistencia u=0.662 tau=0.264 d=0.059,17,0.3177,0.3241,0.6462,0.5016,485,580,384,74,409,E2 persistencia
+20261101-1314_e2-persistencia_eb962aa,2026-11-01,e2_persistencia.yaml,eb962aa,bce_iou_topo,por_anotacion,ninguno,persistencia u=0.380 tau=0.497 d=0.268,20,0.3432,0.3253,0.6427,0.5061,455,474,414,68,342,E2 persistencia
+20261101-1324_e2-persistencia_eb962aa,2026-11-01,e2_persistencia.yaml,eb962aa,bce_dice_cldice_topo,por_anotacion,ninguno,persistencia u=0.677 tau=0.477 d=0.221,14,0.3346,0.3315,0.6358,0.5214,426,339,443,52,336,E2 persistencia
+20261101-1333_e2-persistencia_eb962aa,2026-11-01,e2_persistencia.yaml,eb962aa,bce_iou_cldice_topo,por_anotacion,ninguno,persistencia u=0.598 tau=0.354 d=0.081,19,0.3213,0.3274,0.6422,0.5098,444,429,425,68,325,E2 persistencia
+20261102-1153_b2p-area-persistencia_53665e3,2026-11-02,b2p_area_persistencia.yaml,53665e3,bce_dice_topo,por_anotacion,ninguno,persistencia u=0.453 tau=0.987 d=0.000 a=137.7,14,0.3561,0.3598,0.6434,0.5592,437,257,432,37,333,b2p-area-persistencia
+20261102-1203_b2p-area-persistencia_53665e3,2026-11-02,b2p_area_persistencia.yaml,53665e3,bce_dice_f32,por_anotacion,ninguno,persistencia u=0.430 tau=0.996 d=0.000 a=226.8,14,0.3429,0.3469,0.6431,0.5395,512,517,357,68,362,b2p-area-persistencia
+20261102-1214_b2p-area-persistencia_53665e3,2026-11-02,b2p_area_persistencia.yaml,53665e3,bce_dice_topo,por_anotacion,ninguno,persistencia u=0.509 tau=0.995 d=0.000 a=186.4,15,0.3628,0.3617,0.6433,0.5622,452,287,417,34,328,b2p-area-persistencia
+20261102-1223_b2p-area-persistencia_53665e3,2026-11-02,b2p_area_persistencia.yaml,53665e3,bce_dice_f32,por_anotacion,ninguno,persistencia u=0.540 tau=0.998 d=0.000 a=109.1,11,0.3668,0.3682,0.6487,0.5676,468,312,401,36,329,b2p-area-persistencia
+20261102-1234_b2p-area-persistencia_53665e3,2026-11-02,b2p_area_persistencia.yaml,53665e3,bce_iou_topo,por_anotacion,ninguno,persistencia u=0.410 tau=0.881 d=0.000 a=59.1,20,0.3627,0.3528,0.6452,0.5468,453,335,416,52,337,b2p-area-persistencia
+20261102-1243_b2p-area-persistencia_53665e3,2026-11-02,b2p_area_persistencia.yaml,53665e3,bce_dice_cldice_topo,por_anotacion,ninguno,persistencia u=0.636 tau=0.962 d=0.000 a=282.7,14,0.3532,0.3412,0.6366,0.536,417,270,452,35,332,b2p-area-persistencia
