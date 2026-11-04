@@ -1,53 +1,225 @@
+%!TEX TS-program = pdflatex
+%!TEX encoding = utf8
 % ============================================================
 % TFM — Máster MULCIA (Universidad de Sevilla)
+% Plantilla oficial de TFG/TFM de la Universidad de Sevilla
 % Overleaf: Menu > Compiler = pdfLaTeX, Main document = main.tex
+% Necesita sello.pdf (de la plantilla) en la misma carpeta.
 % ============================================================
-\documentclass[11pt,a4paper,oneside]{report}
-
-% --- Idioma y codificación ---
-\usepackage[utf8]{inputenc}
+\documentclass[12pt, twoside]{book}
 \usepackage[T1]{fontenc}
-\usepackage[spanish,es-tabla,es-noshorthands]{babel}
-\usepackage{lmodern}
-\usepackage{microtype}
+\usepackage[utf8]{inputenc}
+\usepackage[english, spanish, es-noshorthands, es-tabla]{babel}
+%% FONTS: libertine+biolinum+stix
+\usepackage[mono=false]{libertine}
+\usepackage[notext]{stix}
 
-% --- Página ---
-\usepackage[margin=2.5cm]{geometry}
-\usepackage{setspace}
-\onehalfspacing
+% =====================
+% = Datos importantes =
+% =====================
+\title{Métodos topológicos en segmentación de imágenes}
+\author{Agustín Galiana Carballido}
+\date{6 de noviembre de 2026}
+\newcommand{\tutores}[1]{\newcommand{\guardatutores}{#1}}
+\tutores{Manuel Soriano Trigueros}
 
-% --- Matemáticas ---
-\usepackage{amsmath,amssymb,amsthm}
+% Título corto para las cabeceras de página
+\newcommand{\maintitle}{Métodos topológicos en segmentación de imágenes}
 
-% --- Tablas, figuras ---
+% ======================
+% = Páginas de títulos =
+% ======================
+\makeatletter
+\renewcommand\maketitle{%
+  \begin{titlepage}
+  \centering
+  \parskip=0pt
+  {\LARGE\scshape Universidad de Sevilla\par}
+  \vspace{2mm}
+  {\large\scshape Escuela Técnica Superior de Ingeniería Informática\par}
+  \vspace{2mm}
+  {\large Departamento de Ciencias de la Computación e Inteligencia Artificial\par}
+  \vspace{1.2cm}
+  \includegraphics[totalheight=5.5cm]{sello.pdf}\par
+  \vspace{1.2cm}
+  \rule{\linewidth}{0.6pt}\par
+  \vspace{4mm}
+  {\large\itshape Máster Universitario en Lógica, Computación e Inteligencia Artificial\par}
+  \vspace{6mm}
+  {\Large\scshape Trabajo de Fin de Máster\par}
+  \vspace{6mm}
+  {\huge \@title\par}
+  \vspace{6mm}
+  \rule{\linewidth}{0.6pt}\par
+  \vspace{8mm}
+  {\large
+  \begin{minipage}[t]{0.48\linewidth}\raggedright
+    {\scshape Dirigido por:}\\
+    \guardatutores
+  \end{minipage}\hfill
+  \begin{minipage}[t]{0.48\linewidth}\raggedleft
+    {\scshape Realizado por:}\\
+    \@author
+  \end{minipage}\par}
+  \vfill
+  {\large Presentado el \@date\par}
+  \end{titlepage}
+   %%% Esto es necesario...
+   \pagestyle{tfg}
+   \renewcommand{\chaptermark}[1]{\markright{\thechapter.\space ##1}}
+   \renewcommand{\sectionmark}[1]{}
+   \renewcommand{\subsectionmark}[1]{}
+  }
+\makeatother
+
+% ======================================
+% = Color de la Universidad de Sevilla =
+% ======================================
+\usepackage{tikz}
+\definecolor{USred}{cmyk}{0,1.00,0.65,0.34}
+
+% =========
+% = Otros =
+% =========
+\usepackage[]{tabularx}
+\usepackage[]{enumitem}
+\setlist{noitemsep}
+
+% --- Añadidos para la memoria ---
 \usepackage{booktabs}
 \usepackage{graphicx}
-\usepackage{tikz}
 \usepackage{caption}
 \usepackage{float}
+\usepackage{microtype}
+
+% ==========================
+% = Matemáticas y teoremas =
+% ==========================
+\usepackage[]{amsmath}
+\usepackage[]{amsthm}
+\usepackage[]{mathtools}
+\usepackage[]{bm}
+\usepackage[]{thmtools}
+\newcommand{\marcador}{\vrule height 10pt depth 2pt width 2pt \hskip .5em\relax}
+\newcommand{\cabeceraespecial}{%
+    \color{USred}%
+    \normalfont\bfseries}
+\declaretheoremstyle[
+    spaceabove=\medskipamount,
+    spacebelow=\medskipamount,
+    headfont=\cabeceraespecial\marcador,
+    notefont=\cabeceraespecial,
+    notebraces={(}{)},
+    bodyfont=\normalfont\itshape,
+    postheadspace=1em,
+    numberwithin=chapter,
+    headindent=0pt,
+    headpunct={.}
+    ]{importante}
+\declaretheoremstyle[
+    spaceabove=\medskipamount,
+    spacebelow=\medskipamount,
+    headfont=\normalfont\itshape\color{USred},
+    notefont=\normalfont,
+    notebraces={(}{)},
+    bodyfont=\normalfont,
+    postheadspace=1em,
+    numberwithin=chapter,
+    headindent=0pt,
+    headpunct={.}
+    ]{normal}
+\declaretheoremstyle[
+    spaceabove=\medskipamount,
+    spacebelow=\medskipamount,
+    headfont=\normalfont\itshape\color{USred},
+    notefont=\normalfont,
+    notebraces={(}{)},
+    bodyfont=\normalfont,
+    postheadspace=1em,
+    headindent=0pt,
+    headpunct={.},
+    numbered=no,
+    qed=\color{USred}\marcador
+    ]{demostracion}
+
+% Entornos de la memoria, con numeración común por capítulo
+\declaretheorem[name=Teorema, style=importante]{teorema}
+\declaretheorem[name=Definici\'on, style=importante, sibling=teorema]{definicion}
+\declaretheorem[name=Proposici\'on, style=normal, sibling=teorema]{proposicion}
+\declaretheorem[name=Lema, style=normal, sibling=teorema]{lema}
+\declaretheorem[name=Ejemplo, style=normal, sibling=teorema]{ejemplo}
+\declaretheorem[name=Observaci\'on, style=normal, sibling=teorema]{observacion}
+
+\let\proof=\undefined
+\declaretheorem[name=Demostraci\'on, style=demostracion]{proof}
+
+% ============================
+% = Composición de la página =
+% ============================
+\usepackage[
+	a4paper,
+    textwidth=80ex,
+]{geometry}
+
+\linespread{1.069}
+\parskip=10pt plus 1pt minus .5pt
+\frenchspacing
+
+% ==============================
+% = Composición de los títulos =
+% ==============================
+\usepackage[explicit]{titlesec}
+
+\newcommand{\hsp}{\hspace{20pt}}
+\titleformat{\chapter}[hang]
+    {\Huge\sffamily\bfseries\raggedright}
+    {\thechapter\hsp\textcolor{USred}{\vrule width 2pt}\hsp}{0pt}
+    {#1}
+\titleformat{\section}
+  {\normalfont\Large\sffamily\bfseries\raggedright}{\thesection\space\space}
+  {1ex}
+  {#1}
+\titleformat{\subsection}
+  {\normalfont\large\sffamily}{\thesubsection\space\space}
+  {1ex}
+  {#1}
+
+% =======================
+% = Cabeceras de página =
+% =======================
+\usepackage[]{fancyhdr}
+\usepackage[]{emptypage}
+\fancypagestyle{plain}{%
+    \fancyhf{}%
+    \renewcommand{\headrulewidth}{0pt}
+    \renewcommand{\footrulewidth}{0pt}
+}
+\fancypagestyle{tfg}{%
+    \fancyhf{}%
+    \renewcommand{\headrulewidth}{0pt}
+    \renewcommand{\footrulewidth}{0pt}
+    \fancyhead[LE]{{\normalsize\color{USred}\bfseries\thepage}\quad
+                    \small\textsc{\MakeLowercase{\maintitle}}}
+    \fancyhead[RO]{\small\textsc{\MakeLowercase{\rightmark}}%
+                    \quad{\normalsize\bfseries\color{USred}\thepage}}%
+                    }
 
 % --- Enlaces (cargar al final) ---
 \usepackage[hidelinks]{hyperref}
 
-% --- Entornos de teoremas ---
-\newtheorem{teorema}{Teorema}[chapter]
-\newtheorem{lema}[teorema]{Lema}
-\newtheorem{proposicion}[teorema]{Proposición}
-\theoremstyle{definition}
-\newtheorem{definicion}[teorema]{Definición}
-\newtheorem{ejemplo}[teorema]{Ejemplo}
-\theoremstyle{remark}
-\newtheorem{observacion}[teorema]{Observación}
-
-% --- Datos ---
-\title{Título del TFM}
-\author{Agustín Galiana}
-\date{Noviembre de 2026}
-
+% =============================
+% = El documento empieza aquí =
+% =============================
 \begin{document}
 
 \maketitle
+
+\frontmatter
 \tableofcontents
+
+\mainmatter
+
+\include{resumen}
 
 \include{capitulo1}
 \include{capitulo3}
@@ -59,8 +231,10 @@
 
 \appendix
 \include{apendiceA}
+\include{apendiceB}
 
-\bibliographystyle{plain}
+\backmatter
+\bibliographystyle{acm}
 \bibliography{refs}
 
 \end{document}

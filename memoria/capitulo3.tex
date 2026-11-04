@@ -53,9 +53,9 @@ decir, tales que los vectores $u_i-u_0$, $1\le i\le p$, son linealmente
 independientes.
 
 \begin{definicion}[{\cite[§III.1]{edelsbrunner2010}}]
-Un \emph{$p$-símplice} es la envolvente convexa
-$\sigma=\operatorname{conv}\{u_0,\dots,u_p\}$ de $p+1$ puntos afínmente
-independientes; su \emph{dimensión} es $\dim\sigma=p$. Una \emph{cara} de
+Un \emph{$p$-símplice} es la envolvente convexa de $p+1$ puntos
+afínmente independientes $u_0,\dots,u_p$, que se denota
+$\sigma=\operatorname{conv}\{u_0,\dots,u_p\}$; su \emph{dimensión} es $\dim\sigma=p$. Una \emph{cara} de
 $\sigma$ es la envolvente convexa de un subconjunto no vacío de los $u_i$;
 escribimos $\tau\le\sigma$.
 \end{definicion}
@@ -625,6 +625,7 @@ $(0,\infty)$, $(1,8)$ y $(5,6)$.
 
 \begin{figure}[ht]
 \centering
+\resizebox{\linewidth}{!}{%
 \begin{tikzpicture}[x=0.9cm, y=0.35cm]
   % --- paisaje ---
   \begin{scope}
@@ -658,7 +659,7 @@ $(0,\infty)$, $(1,8)$ y $(5,6)$.
     \fill[orange!90!black] (5,3) circle (2.5pt);
     \draw[orange!90!black, fill=white] (6,3) circle (2.5pt);
   \end{scope}
-\end{tikzpicture}
+\end{tikzpicture}}
 \caption{Izquierda: una función en una dimensión; al subir el nivel $a$
 nacen componentes en los mínimos y se funden en los collados. Derecha:
 el intervalo de vida de cada componente. La componente naranja vive muy
@@ -874,7 +875,7 @@ $\operatorname{Dgm}_0=\{(1,\infty),(2,4),(3,5)\}$ y
 $\operatorname{Dgm}_1=\{(6,7)\}$.
 \end{ejemplo}
 
-\subsection{Dimensión 0: árboles de fusión y \emph{union-find}}
+\subsection{Árboles de fusión y \emph{union-find} en dimensión 0}
 \label{sec:persistencia-eficiente}
 
 El algoritmo de reducción sirve en cualquier dimensión, pero su coste en
@@ -1065,7 +1066,7 @@ sin necesidad de valores binarios.
 
 \begin{definicion}[{\cite{shit2021}}]
 Sean $S(P)$ y $S(G)$ los esqueletos de la predicción y de la referencia. Las
-medidas de precisión y sensibilidad topológica son
+medidas de precisión y exhaustividad topológicas son
 \[
   T_{\mathrm{prec}}=\frac{|S(P)\cap G|}{|S(P)|},
   \qquad

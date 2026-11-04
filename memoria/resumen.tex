@@ -1,0 +1,94 @@
+% ============================================================
+% Resumen y English Abstract
+% ============================================================
+
+\chapter*{Resumen}
+\addcontentsline{toc}{chapter}{Resumen}
+\markright{Resumen}
+\enlargethispage{3\baselineskip}
+
+Este trabajo estudia la topología computacional y su uso en la
+segmentación de imágenes. Se exponen los fundamentos de la homología persistente:
+complejos simpliciales y cúbicos, grupos de homología y números de
+Betti, filtraciones y diagramas de persistencia, su cálculo por
+reducción matricial o, en dimensión $0$, por \emph{union-find}, y su
+estabilidad frente a perturbaciones. Después se
+presentan los métodos que llevan la topología a la segmentación, en
+particular Topograph, una pérdida que penaliza solo las regiones que
+cambian la topología de la predicción.
+
+Estos conocimientos se aplican a la segmentación de filamentos solares
+en imágenes H-alfa, un problema en el que los errores que más pesan son
+topológicos: filamentos partidos, fusionados o manchas espurias. La red asigna a
+cada píxel una probabilidad de ser filamento, y el post-proceso
+habitual conserva los píxeles que superan un umbral y descarta las
+componentes pequeñas. Al bajar el umbral, cada componente nace en el
+valor de su máximo y muere al unirse con otra más alta, y ese par de
+valores es un punto del diagrama de persistencia $H_0$. Se demuestra
+que las instancias que deja un umbral son los puntos nacidos por encima
+de él y aún vivos, así que fijar el umbral es elegir qué puntos del
+diagrama pasan a ser instancias. Cada error se reconoce
+además en el diagrama. Un filamento partido da varios puntos, dos
+fusionados dejan uno solo y una mancha espuria es un punto sin
+filamento debajo. Esta lectura
+guía dos formas de corregir esos errores: durante el entrenamiento, con
+pérdidas topológicas como clDice y Topograph, y después, con un
+post-proceso que decide qué componentes conservar según su persistencia.
+
+Topograph hace predicciones más fiables, con mayor precisión y muchas
+menos predicciones espurias, aunque en la métrica se obtienen
+resultados similares simplemente filtrando los segmentos por área. El post-proceso por
+persistencia conserva la estructura y reduce la fragmentación, pero no
+separa las predicciones espurias muy seguras, porque ahí la
+persistencia apenas se distingue de la confianza del modelo. Combinado con el área y con
+Topograph, da los menores errores de estructura.
+En conjunto, la topología aporta
+una forma precisa de entender y clasificar los errores de la
+segmentación, y criterios para corregirlos que el tamaño no
+ofrece.
+
+\chapter*{English Abstract}
+\addcontentsline{toc}{chapter}{English Abstract}
+\markright{English Abstract}
+\enlargethispage{3\baselineskip}
+
+\begin{otherlanguage}{english}
+This work studies computational topology and its use in image
+segmentation. It presents the foundations of persistent homology:
+simplicial and cubical complexes, homology groups and Betti numbers,
+filtrations and persistence diagrams, their computation by matrix
+reduction or, in dimension $0$, by union-find, and their stability
+under perturbations. It then presents
+the methods
+that bring topology into segmentation, in particular Topograph, a loss
+that penalises only the regions that change the topology of the
+prediction.
+
+This knowledge is applied to the segmentation of solar filaments in
+H-alpha images, a problem in which the most costly errors are
+topological: split or merged filaments and spurious blobs. The network assigns
+each pixel a probability of being a filament, and the usual
+post-processing keeps the pixels above a threshold and discards small
+components. As the threshold is lowered, each component is born at the
+value of its maximum and dies when it merges with a higher one, and
+that pair of values is a point of the $H_0$ persistence diagram. We
+prove that the instances left by a threshold are the points born above
+it and still alive, so fixing the threshold amounts to choosing which
+points of the diagram become instances. Each error can also be
+recognised in the diagram. A split filament gives several points, two
+merged filaments leave only one, and a spurious blob is a point with no
+filament underneath. This reading guides two ways of
+correcting those errors: during training, with topological losses such
+as clDice and Topograph, and afterwards, with a post-processing that
+decides which components to keep according to their persistence.
+
+Topograph produces more reliable predictions, with higher precision and
+far fewer spurious predictions, although similar results in the metric
+are obtained simply by filtering the segments by area. Persistence-based
+post-processing preserves structure and reduces fragmentation, but does
+not separate highly confident spurious predictions, because there
+persistence barely differs from the model's confidence. Combined with the
+area filter and with Topograph, it yields the fewest structural errors. Overall, topology provides a precise
+way to understand and classify segmentation errors, and criteria to
+correct them that component size alone does not offer.
+\end{otherlanguage}

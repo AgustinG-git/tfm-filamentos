@@ -1,98 +1,140 @@
 % ============================================================
-% Capítulo 7 — Conclusiones
+% Capítulo 7 — Conclusiones y trabajo futuro
 % ============================================================
 
-\chapter{Conclusiones}
+\chapter{Conclusiones y trabajo futuro}
 \label{cap:conclusiones}
 
 % ------------------------------------------------------------
 \section{Conclusiones}
 % ------------------------------------------------------------
 
-\paragraph{Fundamentos (O1).} La homología persistente ofrece un
-lenguaje preciso para los errores que más pesan en la segmentación de
-estructuras finas. Un filamento partido, dos filamentos fusionados o una
-componente espuria son cambios en el número de Betti $\beta_0$, y su
-robustez frente al umbral se lee en el diagrama de persistencia.
-Topograph traslada esa idea a una pérdida que actúa solo sobre las
-regiones críticas, con un coste casi lineal.
+El trabajo se preguntaba qué aporta la topología a la segmentación de
+los filamentos solares. La respuesta se resume en tres conclusiones, que
+corresponden a los tres usos que se le han dado: describir los errores,
+corregirlos durante el entrenamiento y corregirlos después, en el
+post-proceso.
 
-\paragraph{Protocolo (O2).} Todas las decisiones se toman en una mitad
-de la validación y los resultados se reportan en la otra, con la
-métrica oficial y una partición por días. Esta separación ha sido
-necesaria por dos motivos. Por un lado, la variación entre semillas, de
-hasta $0{,}024$ en PQ, es del mismo orden que las diferencias entre
-pérdidas, y el \emph{bootstrap} por días no la recoge. Por otro, la
-selección en una mitad infla sus cifras: en el ajuste de clDice, el PQ
-del mejor intento baja $0{,}023$ al pasar de val~$A$ a val~$B$. Sin
-estas precauciones, varias comparaciones habrían parecido concluyentes.
+\paragraph{La topología como lenguaje de los errores.} La homología
+persistente describe con precisión los errores que más pesan en este
+problema. Un filamento partido, dos filamentos fusionados o una
+componente espuria son cambios en el número de componentes conexas,
+$\beta_0$. El post-proceso habitual tiene además una lectura exacta en
+el diagrama $H_0$, porque las instancias que deja un umbral son los
+puntos del diagrama nacidos por encima de él y aún no muertos
+(Proposición~\ref{prop:instancias}). En ese lenguaje, el filtro de área
+decide qué puntos conservar mirando solo su tamaño. Con la baseline
+funciona bien, porque la mayoría de sus errores son componentes pequeñas
+sin filamento, y sube el PQ de $0{,}311$ a $0{,}373$, mientras que
+ajustar solo el umbral no lo mejora. Se confirma así la hipótesis H1,
+según la cual los errores dominantes son componentes que sobran o que
+faltan. Pero el filtro de área también elimina filamentos reales
+pequeños, y eso motivó buscar un criterio topológico. Este punto de
+vista ha permitido, por último, separar los errores de estructura
+(partidos y unidos) de los de presencia (filamentos perdidos y
+predicciones espurias), y medir cada método por los errores a los que
+apunta y no solo por el PQ.
 
-\paragraph{Diagnóstico y post-proceso (O3).} Para obtener filamentos,
-la baseline se queda con los píxeles cuya probabilidad supera un umbral,
-separa el resultado en componentes conexas y descarta las demasiado
-pequeñas. En lenguaje topológico, esas componentes son las del conjunto
-de supernivel, es decir, los puntos del diagrama $H_0$ vivos a ese
-umbral (Sección~\ref{sec:lectura-topologica}), y el filtro de área
-decide cuáles conservar mirando solo su tamaño. Como la mayoría de los
-errores del modelo son componentes pequeñas donde no hay filamento, ese
-filtro tiene un efecto grande: los falsos positivos bajan de 665 a 269 y
-el PQ sube de $0{,}311$ a $0{,}373$. Ajustar solo el umbral, en cambio,
-no mejora el PQ.
+\paragraph{Pérdidas topológicas.} La Tabla~\ref{tab:conclusion} reúne
+las ejecuciones de la comparación con el PQ, los errores de estructura,
+los de presencia y la precisión. Se omiten las dos variantes de clDice
+sin Dice, que colapsan sin un término de solapamiento.
 
-El filtro por persistencia (E2), que decide a partir de la robustez de
-cada componente en lugar de su tamaño, se comporta de forma distinta al
-filtro de área. No pierde filamentos reales, conserva la cobertura de la
-espina y, gracias a la fusión por collado, reduce los filamentos
-partidos. Pero elimina pocas predicciones espurias: en la baseline
-tienen casi la misma confianza que los aciertos y son igual de
-persistentes, porque la persistencia en $H_0$ de la probabilidad se
-reduce prácticamente a la confianza del pico. Con Topograph, E2 elimina
-una fracción mayor de las espurias. Combinar área y persistencia (B2+P)
-con modelos entrenados con Topograph da menos errores de estructura y
-mayor precisión que el filtro de área, con un PQ igual o algo mayor. Es la configuración más favorable
-del trabajo desde el punto de vista topológico, aunque la baseline
-ajustada con B2+P queda cerca en errores de estructura.
+\begin{table}[ht]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lcccccccc@{}}
+\toprule
+ & \multicolumn{4}{c}{Sin post-proceso} & \multicolumn{4}{c}{B2}\\
+\cmidrule(lr){2-5}\cmidrule(lr){6-9}
+Pérdida & PQ & P.\,+\,U. & S.\,P.\,+\,S.\,F. & Prec.
+        & PQ & P.\,+\,U. & S.\,P.\,+\,S.\,F. & Prec.\\
+\midrule
+Baseline (s42)  & 0,311 & 104 & 459 & 0,43 & \textbf{0,373} & 55 & 318 & 0,63\\
+Baseline (s43)  & 0,287 & 125 & 582 & 0,36 & 0,357 & 50 & 363 & 0,61\\
+IoU             & 0,285 & 136 & 499 & 0,37 & 0,351 & 58 & 342 & 0,58\\
+clDice          & 0,313 & 90  & 400 & 0,44 & 0,354 & 54 & 332 & 0,57\\
+IoU+clDice      & 0,322 & \textbf{72} & 385 & 0,46 & 0,363 & 49 & \textbf{311} & 0,59\\
+\midrule
+Topograph (s42) & \textbf{0,327} & 91 & 352 & 0,49 & 0,354 & 53 & 325 & 0,57\\
+Topograph (s43) & 0,322 & 81 & \textbf{334} & \textbf{0,51} & 0,355 & \textbf{40} & 349 & \textbf{0,65}\\
+IoU+Topo        & 0,315 & 92 & 341 & 0,48 & 0,346 & 49 & 355 & 0,62\\
+clDice+Topo     & 0,317 & 80 & 339 & 0,49 & 0,348 & 51 & 322 & 0,59\\
+IoU+clDice+Topo & 0,318 & 81 & 358 & 0,50 & 0,336 & 58 & 330 & 0,57\\
+\bottomrule
+\end{tabular}
+\caption{Comparación final de las pérdidas en val~$B$, sin post-proceso
+y con B2. P.\,+\,U.: filamentos partidos más predicciones que unen
+varios filamentos (errores de estructura). S.\,P.\,+\,S.\,F.: filamentos
+sin predicción más predicciones sin filamento (errores de presencia).
+Prec.: aciertos entre predicciones. En negrita, el mejor valor de cada
+columna. Las cifras completas están en el Apéndice~\ref{ap:resultados}.}
+\label{tab:conclusion}
+\end{table}
 
-\paragraph{Pérdidas topológicas (O4).} El efecto más consistente de
-Topograph es la fiabilidad de sus predicciones. Sin post-proceso, todas
-las variantes con Topograph tienen mayor precisión y menos predicciones
-sin filamento que cualquier variante sin él, y añadir Topograph reduce a
-la mitad o menos las predicciones sin filamento en las cuatro parejas
-comparadas. A cambio, encuentra algo menos filamentos. Topograph es
-también la pérdida con mejor PQ sin post-proceso, con mejora sobre la
-baseline en tres entrenamientos independientes. clDice, por su parte,
-reduce la fragmentación, lo que es coherente con que premia la
-continuidad.
+Sin post-proceso, la tabla separa con claridad los modelos con
+Topograph de los demás. Todas sus variantes, con las dos semillas, tienen
+entre 334 y 358 errores de presencia y una precisión de $0{,}48$ a
+$0{,}51$, frente a 385--582 errores y $0{,}36$--$0{,}46$ de precisión sin
+él. La diferencia viene de las predicciones sin filamento, que bajan
+entre un 38 y un 63\,\% al añadir Topograph, a cambio de que el modelo
+encuentre algo menos filamentos. Los errores de estructura bajan con
+cualquiera de las dos pérdidas topológicas, de 104--136 en la baseline
+e IoU a 72--92 con clDice o Topograph. Topograph es además la pérdida
+con mejor PQ, y mejora a la baseline en los tres entrenamientos en que
+se han comparado, las dos semillas y el reentrenamiento del ajuste de
+hiperparámetros. Sin post-proceso se confirma, por tanto, la hipótesis
+H3, según la cual una pérdida que penaliza las regiones críticas reduce
+las componentes espurias y la fragmentación.
 
-Con el post-proceso ajustado, las diferencias de PQ entre pérdidas
-quedan dentro del ruido entre entrenamientos. Topograph y el filtro de
-área corrigen el mismo tipo de error, las componentes espurias, uno
-durante el entrenamiento y el otro después, y sus mejoras en PQ no se
-suman. Aun así, con la semilla 43, Topograph con B2 es el modelo más
-fiable del trabajo, con la mayor precisión y el menor número de
-predicciones sin filamento. El ajuste de hiperparámetros acerca a
-Topograph y clDice a la baseline, pero no cambia esta conclusión.
+Con B2 la tabla se comprime. Todas las ejecuciones bajan a 40--58
+errores de estructura y a 311--363 de presencia, y la mayoría de las
+diferencias de PQ son del mismo orden que la que separa a las dos
+semillas de la baseline. Topograph y el filtro de área corrigen el mismo
+tipo de error, las predicciones espurias, uno durante el entrenamiento y
+el otro después, y sus mejoras en PQ no se suman. Aun así, Topograph con
+la semilla 43 y B2 es el modelo más fiable de la comparación, con menos
+errores de estructura y la mayor precisión, y el ajuste de
+hiperparámetros no cambia esta lectura. Las pérdidas topológicas, por
+tanto, mejoran la estructura y la fiabilidad de las predicciones más que
+la métrica de la competición, que con el filtro de área apenas distingue
+unas de otras.
 
-En cuanto a las barbas, la hipótesis de partida no se cumple. Son la
-parte del filamento que peor se recupera, aunque la anotación reducida a
-la resolución de trabajo las conserva casi enteras, y ninguna pérdida
-topológica las mejora. clDice, que se eligió precisamente por ellas,
-hace que el modelo prediga más estructura alrededor del filamento, pero
-no más barbas reales: su $F_1$ baja en todas las combinaciones
-probadas. Una posible explicación es que las barbas pesan muy poco en el
-esqueleto total, de modo que clDice optimiza sobre todo la continuidad
-de la espina.
+La excepción son las barbas, que ninguna pérdida topológica mejora, de
+modo que la hipótesis H4 no se cumple. clDice, elegida precisamente por
+ellas, baja su $F_1$ en todas las combinaciones, posiblemente porque las
+barbas pesan muy poco en el esqueleto total y la pérdida optimiza sobre
+todo la continuidad de la espina.
 
-\paragraph{Hipótesis.} De las cuatro hipótesis de la
-Sección~\ref{sec:estrategia}, la primera se confirma: los errores
-dominantes son componentes que sobran o que faltan, y un filtro sobre
-las componentes es la mejora más grande del PQ. La segunda se confirma
-en parte: la persistencia conserva los filamentos y la fusión por
-collado reduce la fragmentación, pero la persistencia no separa los
-espurios mejor que el área. La tercera se confirma sin post-proceso:
-Topograph reduce las componentes espurias y los filamentos partidos,
-aunque con el filtro de área su ventaja en PQ queda dentro del ruido. La
-cuarta no se cumple: clDice no mejora la detección de las barbas.
+\paragraph{Post-proceso por persistencia.} El filtro por persistencia
+(E2) no pierde filamentos reales, conserva la cobertura de la espina y,
+con la fusión por collado, reduce los filamentos partidos. Lo que no
+consigue es eliminar las predicciones espurias mejor que el área. En la
+baseline, muchas espurias son manchas aisladas sobre un fondo cercano a
+$0$, de modo que mueren cerca de $0$ y su persistencia es casi igual a
+la confianza de su pico, que es tan alta como la de los aciertos. La
+hipótesis H2 se cumple, por tanto, solo en parte, en lo que se refiere a
+la fragmentación. La persistencia funciona mejor como complemento del
+área que como sustituto. Combinadas (B2+P) y aplicadas a los cinco
+modelos entrenados con Topograph, dan menos errores de estructura y
+mayor precisión que B2, con un PQ igual o algo mayor, mientras que sin
+Topograph la precisión baja en todos los casos. Es la configuración más
+favorable del trabajo desde el punto de vista topológico, aunque la
+baseline con B2+P queda cerca en errores de estructura.
+
+Estas conclusiones se apoyan en lo que se repite entre semillas y no en
+diferencias aisladas, porque la variación entre entrenamientos, de hasta
+$0{,}024$ en PQ, es del mismo orden que las diferencias entre pérdidas.
+Por eso todas las decisiones se tomaron en una mitad de la validación y
+los resultados se reportan en la otra.
+
+En conjunto, la topología no ha dado una mejora clara en la métrica de
+la competición, que un filtro de área ya resuelve en buena parte, pero
+sí ha aportado lo que el tamaño no ofrece. Ha dado una forma precisa de
+entender y clasificar los errores, una pérdida que produce predicciones
+más fiables y con menos fragmentación, y un post-proceso que conserva la
+estructura de los filamentos.
 
 % ------------------------------------------------------------
 \section{Limitaciones}
@@ -134,10 +176,12 @@ cuarta no se cumple: clDice no mejora la detección de las barbas.
   se reduce casi a la confianza del pico. Queda por explorar filtraciones
   que tengan en cuenta también el tamaño o la forma de las componentes,
   y un ajuste de B2+P con más intentos.
-  \item \textbf{Estrategias de etiquetas (E4).} Comparar el
-  entrenamiento con cada anotación por separado con el entrenamiento con
-  la media de las anotaciones y con los filamentos en los que coincide
-  la mayoría.
+  \item \textbf{Estrategias de etiquetas.} Para abordar el desacuerdo
+  entre anotadores, comparar el entrenamiento con cada anotación como un
+  ejemplo independiente, que es la opción de la baseline, con el
+  entrenamiento con la media de las anotaciones como etiqueta blanda y
+  con los filamentos que marca la mayoría. La evaluación seguiría
+  haciéndose contra cada anotación original.
   \item \textbf{Más semillas por pérdida}, para separar las diferencias
   reales del ruido del entrenamiento.
   \item \textbf{Barbas: resolución y pérdidas específicas.} Comprobar si

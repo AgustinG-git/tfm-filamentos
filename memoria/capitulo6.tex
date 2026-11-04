@@ -5,35 +5,40 @@
 \chapter{Experimentos y resultados}
 \label{cap:resultados}
 
-Este capítulo presenta los resultados en el orden de la estrategia del
-Capítulo~\ref{cap:planteamiento}. Empieza por el post-proceso clásico de
-la baseline (E1) y sigue con la comparación de pérdidas (E3), que se
-analiza en dos niveles: el PQ y el tipo de errores que comete cada
-modelo. Después se estudia cómo interactúan las pérdidas con el
-post-proceso, la incertidumbre de las comparaciones y el post-proceso
-basado en persistencia (E2). El capítulo termina con la detección de las
-barbas, el ajuste de hiperparámetros y el test de la competición. Todas las decisiones (la época, el post-proceso y los hiperparámetros)
-se toman en val~$A$, y los resultados se reportan en val~$B$, que no
-interviene en ninguna de ellas (Capítulo~\ref{cap:metodologia}). Por
-eso, salvo que se indique lo contrario, las cifras de este capítulo son
-de val~$B$; las de val~$A$ aparecen solo cuando ayudan a entender una
-decisión.
+Este capítulo trata de responder a la pregunta que guía el trabajo, la
+de qué aporta la topología a la segmentación de los filamentos. Para
+ello conviene saber primero qué errores comete el modelo de referencia y
+hasta dónde llega un criterio puramente geométrico como el filtro de
+área (Sección~\ref{sec:res-post}). Con esa referencia, se estudia la
+topología en dos momentos, durante el entrenamiento, con Topograph
+(Sección~\ref{sec:res-perdidas}), y después de él, con un post-proceso
+basado en persistencia (Sección~\ref{sec:res-e2}). El capítulo termina
+delimitando el alcance de los resultados (Sección~\ref{sec:res-alcance}).
 
-Conviene tener presente desde el principio la escala del ruido.
-Reentrenar la misma configuración cambia el PQ en $B$ entre $0{,}01$ y
-$0{,}02$ (Sección~\ref{sec:evaluacion}), y cambiar la semilla puede
-moverlo más: la baseline pasa de $0{,}311$ con la semilla 42 a $0{,}287$
-con la 43. Las diferencias entre pérdidas deben leerse con esa escala.
+Para no perder el hilo, el texto compara sobre todo la baseline con
+Topograph, que es el contraste central del trabajo, y deja las tablas
+completas para el Apéndice~\ref{ap:resultados}. Todas las decisiones se
+toman en val~$A$ y las cifras se reportan en val~$B$
+(Capítulo~\ref{cap:metodologia}). Hay que tener presente, además, que
+reentrenar la misma configuración cambia el PQ entre $0{,}01$ y
+$0{,}02$, y que cambiar la semilla puede moverlo más. Las diferencias de
+ese tamaño no se interpretan como mejoras.
 
 % ------------------------------------------------------------
-\section{Post-proceso clásico (E1)}
+\section{Punto de partida}
 \label{sec:res-post}
 % ------------------------------------------------------------
 
-B1 ajusta solo el umbral, y B2 ajusta a la vez el umbral y el área
-mínima de las componentes (Sección~\ref{sec:postproceso}). La
-Tabla~\ref{tab:res-post} compara ambas variantes con la baseline sin
-post-proceso (semilla 42), sobre el mismo modelo entrenado.
+El post-proceso clásico ya corrige buena parte de los errores de la
+baseline, pero no por el umbral, sino por el área mínima. Subir o bajar
+el umbral apenas cambia el PQ, mientras que descartar las componentes
+pequeñas lo sube de $0{,}311$ a $0{,}373$
+(Tabla~\ref{tab:res-post}). La mejora viene de eliminar falsos
+positivos, que bajan a menos de la mitad a cambio de perder unos pocos
+aciertos, y por eso se refleja en la detección (RQ) y no en la
+delimitación (SQ). Con ella, la baseline supera el valor de $0{,}35$ que
+los organizadores señalan como referencia
+(Sección~\ref{sec:competicion}).
 
 \begin{table}[ht]
 \centering
@@ -43,841 +48,319 @@ post-proceso (semilla 42), sobre el mismo modelo entrenado.
 Post-proceso & $t$ & $a$ & PQ & SQ & RQ & TP & FP / FN\\
 \midrule
 Sin post-proceso & 0,50 & 0 & 0,311 & 0,638 & 0,488 & 495 & 665 / 374\\
-B1 (rejilla) & 0,65 & 0 & 0,314 & 0,647 & 0,485 & 494 & 674 / 375\\
-B1 (Optuna) & 0,66 & 0 & 0,313 & 0,646 & 0,484 & 494 & 678 / 375\\
-B2 (rejilla) & 0,65 & 25 & \textbf{0,375} & 0,649 & 0,577 & 473 & 297 / 396\\
-B2 (Optuna) & 0,66 & 29 & 0,373 & 0,650 & 0,574 & 458 & 269 / 411\\
+B1 (umbral) & 0,66 & 0 & 0,313 & 0,646 & 0,484 & 494 & 678 / 375\\
+B2 (umbral y área) & 0,66 & 29 & \textbf{0,373} & 0,650 & 0,574 & 458 & 269 / 411\\
 \bottomrule
 \end{tabular}
-\caption{Post-proceso de la baseline (semilla 42) en val~$B$. $t$ es el
-umbral y $a$ el área mínima en píxeles a $512\times512$, ambos ajustados
-en val~$A$.}
+\caption{Post-proceso clásico de la baseline (semilla 42) en val~$B$,
+ajustado con Optuna en val~$A$. $t$ es el umbral y $a$ el área mínima en
+píxeles a $512\times512$. La comparación con la búsqueda en rejilla
+está en la Tabla~\ref{tab:anx-post}.}
 \label{tab:res-post}
 \end{table}
 
-Al modificar solo el umbral no se observa mejora: con $t=0{,}65$ el PQ
-es prácticamente el mismo que con $t=0{,}5$, y los falsos positivos
-aumentan ligeramente, posiblemente porque algunas componentes se dividen
-al subir el umbral. La mejora real aparece al introducir el área mínima: con
-B2, el PQ pasa de $0{,}311$ a $0{,}373$, los falsos positivos bajan de
-665 a 269 y se pierden 37 aciertos. Esto indica que buena parte de los
-falsos positivos de la baseline son componentes pequeñas. La mejora se
-concentra en la detección y no en la delimitación: SQ apenas varía (de
-$0{,}64$ a $0{,}65$), mientras que RQ pasa de $0{,}49$ a $0{,}57$.
+Que un criterio tan simple funcione tan bien dice mucho del tipo de
+error que comete el modelo. Al clasificar los errores con la relación de
+la rúbrica (Sección~\ref{sec:evaluacion}), los de presencia, es decir,
+filamentos sin predicción y predicciones sin filamento, son varias veces
+más numerosos que los de estructura, los filamentos partidos o unidos
+(Figura~\ref{fig:tipos-error}, barras de la baseline). Lo que más pesa no es cómo se conectan
+las predicciones, sino si existen donde deben. En la lectura de la
+Sección~\ref{sec:lectura-topologica}, se trata de componentes de $H_0$
+que sobran o que faltan, y el filtro de área elimina muchas de las que
+sobran porque suelen ser pequeñas.
 
-Con B2, el PQ de la baseline supera el valor de $0{,}35$ que los
-organizadores señalan como referencia (Sección~\ref{sec:competicion}).
-La búsqueda en rejilla y la búsqueda con Optuna dan resultados
-similares, lo que indica que la rejilla ya cubría la zona de buenos
-valores. En el resto del capítulo se utiliza B2 ajustado con Optuna.
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\linewidth]{figuras/fig_tipos_error.pdf}
+\caption{Tipos de error en val~$B$ de la baseline y de Topograph, con las
+dos semillas, sin post-proceso (izquierda) y con B2 (derecha). Las
+predicciones sin filamento y los filamentos sin predicción son errores
+de presencia; los partidos y unidos, de estructura. Los valores están
+en la Tabla~\ref{tab:res-asignaciones}.}
+\label{fig:tipos-error}
+\end{figure}
+
+Esto aconseja también no quedarse solo con el PQ. La métrica resume en
+un número errores de naturaleza muy distinta, y penaliza de forma
+parecida no detectar un filamento, predecir uno donde no lo hay o partir
+uno en dos. Por eso el resto del capítulo mira, además del PQ, qué
+errores comete cada método, y usa B2 como post-proceso de referencia.
 
 % ------------------------------------------------------------
-\section{Comparación de pérdidas (E3)}
+\section{La topología en el entrenamiento}
 \label{sec:res-perdidas}
 % ------------------------------------------------------------
 
-La Tabla~\ref{tab:res-perdidas} compara el PQ de todas las pérdidas de la
-Tabla~\ref{tab:perdidas}, sin post-proceso y con B2. A continuación se
-analiza qué errores comete cada una (Tablas~\ref{tab:res-asignaciones}
-y~\ref{tab:res-fiabilidad}), que es donde se ve qué aporta realmente el
-sesgo topológico.
+Para estudiar el efecto de las pérdidas topológicas se compararon diez
+combinaciones de BCE con Dice, IoU y clDice, cada una con y sin
+Topograph (Tabla~\ref{tab:perdidas}). Una de las pérdidas falla por
+completo, con y sin Topograph. clDice sin Dice no llega a entrenar, porque compara
+esqueletos pero no controla la extensión de la máscara
+(Sección~\ref{sec:dice-cldice}), y se deja fuera del análisis.
 
-\begin{table}[ht]
+\subsection{Predicciones más fiables}
+
+El efecto más claro de Topograph no está en cuántos filamentos encuentra,
+sino en la fiabilidad de lo que predice. Sin post-proceso, todas las
+variantes con Topograph son más precisas que todas las variantes sin él,
+y los dos grupos quedan separados en la Figura~\ref{fig:prec-exh}
+(izquierda). La diferencia procede de las predicciones sin filamento,
+que se reducen entre un 38 y un 63\,\% al añadir Topograph a
+cualquiera de las pérdidas; con Dice, por ejemplo, pasan de 319 a 169. El precio es
+una exhaustividad algo menor, porque el modelo deja de predecir algunos
+filamentos dudosos.
+
+\begin{figure}[ht]
 \centering
-\small
-\begin{tabular}{@{}lccccc@{}}
-\toprule
- & & \multicolumn{2}{c}{Sin post-proceso} & \multicolumn{2}{c}{B2 (Optuna)}\\
-\cmidrule(lr){3-4}\cmidrule(lr){5-6}
-Pérdida & Época & PQ $A$ & PQ $B$ & PQ $A$ & PQ $B$\\
-\midrule
-Baseline (s42) & 8 & 0,297 & 0,311 & \textbf{0,364} & \textbf{0,373}\\
-Baseline (s43) & 8 & 0,276 & 0,287 & 0,348 & 0,357\\
-IoU & 15 & 0,279 & 0,285 & 0,351 & 0,351\\
-clDice & 13 & 0,307 & 0,313 & 0,351 & 0,354\\
-IoU+clDice & 14 & 0,308 & 0,322 & 0,345 & 0,363\\
-clDice sin Dice & 1 & 0,012 & 0,009 & 0,062 & 0,036\\
-\midrule
-Topograph (s42) & 17 & \textbf{0,322} & \textbf{0,327} & 0,354 & 0,354\\
-Topograph (s43) & 12 & 0,298 & 0,322 & 0,336 & 0,355\\
-IoU+Topo & 16 & 0,315 & 0,315 & 0,346 & 0,346\\
-clDice+Topo & 18 & 0,307 & 0,317 & 0,344 & 0,348\\
-IoU+clDice+Topo & 18 & 0,297 & 0,318 & 0,333 & 0,336\\
-clDice sin Dice+Topo & 6 & 0,025 & 0,014 & 0,080 & 0,045\\
-\bottomrule
-\end{tabular}
-\caption{PQ de cada pérdida en val~$A$ y val~$B$, sin post-proceso
-(umbral $0{,}5$, sin filtro de área) y con B2 ajustado en val~$A$ para
-cada ejecución. La «Época» es la elegida en val~$A$ y la semilla se fija en 42 salvo que
-se indique.}
-\label{tab:res-perdidas}
-\end{table}
+\includegraphics[width=\linewidth]{figuras/fig_precision_exhaustividad.pdf}
+\caption{Precisión frente a exhaustividad en val~$B$, sin post-proceso
+(izquierda) y con B2 (derecha). Cada punto es un modelo (las ocho
+pérdidas, con las dos semillas de la baseline y de Topograph); en
+naranja, las variantes con Topograph. Los valores están en
+la Tabla~\ref{tab:res-fiabilidad}.}
+\label{fig:prec-exh}
+\end{figure}
 
-\subsection{El PQ}
+Este comportamiento es el que cabe esperar de cómo actúa la pérdida
+(Sección~\ref{sec:topograph}). Una componente predicha que no
+corresponde a ningún filamento es una región crítica, un error que
+cambia el número de componentes, y Topograph la penaliza. El modelo
+aprende así a no predecir una componente salvo que esté bien respaldada
+por la imagen. En este problema, en el que dos expertos solo coinciden
+en un PQ de aproximadamente $0{,}34$ (Sección~\ref{sec:techo-humano}),
+un modelo cuyas detecciones son casi siempre filamentos reales tiene un
+valor que el PQ no recoge del todo.
 
-Comenzamos con una lectura del PQ de la Tabla~\ref{tab:res-perdidas},
-primero sin post-proceso y después con B2.
+Aun así, la mejora llega también al PQ. Sin post-proceso, Topograph es
+la pérdida con mejor resultado, en val~$A$ y en val~$B$, y la única cuya
+ventaja sobre la baseline se repite en tres entrenamientos
+independientes. Las demás variantes topológicas también superan a la
+baseline, mientras que IoU, sin sesgo topológico, queda por debajo. La
+estructura mejora en la misma dirección, ya que añadir clDice o Topograph
+reduce siempre los filamentos partidos, y las fusiones son poco
+frecuentes en todos los modelos.
 
-Antes conviene descartar un caso. La combinación de BCE y clDice sin
-Dice no llega a entrenar, el mejor modelo en $A$ corresponde a la
-primera época (a la sexta cuando se añade Topograph), y su PQ queda por
-debajo de $0{,}05$ incluso con post-proceso. El resultado es coherente
-con lo visto en la Sección~\ref{sec:dice-cldice} dado que clDice compara
-esqueletos, pero no controla la extensión de la máscara, por lo que
-necesita un término de solapamiento que lo haga. Por este motivo, estas
-dos ejecuciones no se incluyen en el resto del análisis.
-
-Sin post-proceso, Topograph obtiene el mejor PQ, tanto en $A$ como en
-$B$. Es además la única pérdida cuya mejora sobre la baseline se
-mantiene con las dos semillas: $+0{,}016$ con la semilla 42 ($0{,}327$
-frente a $0{,}311$) y $+0{,}035$ con la 43 ($0{,}322$ frente a
-$0{,}287$). El resto de variantes con clDice o con Topograph también
-superan a la baseline de la semilla 42, mientras que IoU queda por debajo.
-
-Al aplicar B2, las diferencias se reducen hasta quedar dentro del ruido
-entre entrenamientos: la baseline obtiene entre $0{,}357$ y $0{,}373$
-según la semilla, y Topograph entre $0{,}354$ y $0{,}355$.
-
-Esta lectura tiene, sin embargo, una limitación. El PQ resume en un solo
-número errores de naturaleza muy distinta como son no detectar un filamento,
-predecir uno donde no lo hay o partir un filamento en dos penalizan de
-forma parecida. Para entender qué cambia realmente cada pérdida es
-necesario analizar qué errores comete.
-
-\subsection{Qué errores comete cada pérdida}
-
-La Tabla~\ref{tab:res-asignaciones} descompone los errores con las
-relaciones de la rúbrica oficial (Sección~\ref{sec:evaluacion}):
-filamentos \emph{partidos} (tocados por varias predicciones, 1:$n$),
-predicciones que \emph{unen} varios filamentos ($n$:1), filamentos
-\emph{sin predicción} que los toque y predicciones \emph{sin filamento}.
-Las dos últimas columnas agrupan estos errores en las dos medidas
-definidas en la Sección~\ref{sec:evaluacion}: los errores de estructura
-(partidos más unidos) y los errores de presencia (filamentos sin
-predicción más predicciones sin filamento). La
-Tabla~\ref{tab:res-fiabilidad} resume, a partir de las detecciones, la
-fiabilidad de cada modelo: qué fracción de sus predicciones son aciertos
-(precisión), qué fracción de los filamentos encuentra (exhaustividad) y
-qué fracción de sus predicciones no toca ningún filamento.
-
-\begin{table}[p]
-\centering
-\small
-\begin{tabular}{@{}lcccccc@{}}
-\toprule
-Pérdida & Partidos & Unidos & P.\,+\,U. & Sin pred. & Sin fil. & S.\,P.\,+\,S.\,F.\\
-\midrule
-\multicolumn{7}{l}{\emph{Sin post-proceso}}\\
-Baseline (s42) & 92 & \textbf{12} & 104 & 140 & 319 & 459\\
-Baseline (s43) & 111 & 14 & 125 & \textbf{100} & 482 & 582\\
-IoU & 123 & 13 & 136 & 119 & 380 & 499\\
-clDice & 73 & 17 & 90 & 122 & 278 & 400\\
-IoU+clDice & \textbf{57} & 15 & \textbf{72} & 124 & 261 & 385\\
-Topograph (s42) & 78 & 13 & 91 & 183 & 169 & 352\\
-Topograph (s43) & 68 & 13 & 81 & 224 & \textbf{110} & \textbf{334}\\
-IoU+Topo & 79 & 13 & 92 & 199 & 142 & 341\\
-clDice+Topo & 65 & 15 & 80 & 180 & 159 & 339\\
-IoU+clDice+Topo & 63 & 18 & 81 & 197 & 161 & 358\\
-\midrule
-\multicolumn{7}{l}{\emph{B2 (Optuna)}}\\
-Baseline (s42) & 43 & \textbf{12} & 55 & 250 & 68 & 318\\
-Baseline (s43) & 37 & 13 & 50 & 275 & 88 & 363\\
-IoU & 45 & 13 & 58 & 247 & 95 & 342\\
-clDice & 39 & 15 & 54 & 213 & 119 & 332\\
-IoU+clDice & 34 & 15 & 49 & \textbf{201} & 110 & \textbf{311}\\
-Topograph (s42) & 41 & \textbf{12} & 53 & 217 & 108 & 325\\
-Topograph (s43) & \textbf{26} & 14 & \textbf{40} & 300 & \textbf{49} & 349\\
-IoU+Topo & 36 & 13 & 49 & 301 & 54 & 355\\
-clDice+Topo & 37 & 14 & 51 & 240 & 82 & 322\\
-IoU+clDice+Topo & 43 & 15 & 58 & 248 & 82 & 330\\
-\bottomrule
-\end{tabular}
-\caption{Tipos de error en val~$B$, sumados sobre todos los pares
-anotador--imagen. \emph{Partidos}: filamentos de referencia tocados por
-dos o más predicciones. \emph{Unidos}: predicciones que tocan dos o más
-filamentos. \emph{Sin pred.}: filamentos que ninguna predicción toca.
-\emph{Sin fil.}: predicciones que no tocan ningún filamento. «Tocar»
-significa solaparse en al menos un píxel ($\mathrm{IoU}>0$), como en la
-definición oficial. P.\,+\,U.\ y S.\,P.\,+\,S.\,F.\ son las sumas que
-miden los errores de estructura y de presencia
-(Sección~\ref{sec:evaluacion}). En negrita, el menor valor de cada
-columna dentro de cada bloque.}
-\label{tab:res-asignaciones}
-
-\end{table}
-
-\begin{table}[p]
-\centering
-\small
-\begin{tabular}{@{}lcccccc@{}}
-\toprule
- & \multicolumn{3}{c}{Sin post-proceso} & \multicolumn{3}{c}{B2 (Optuna)}\\
-\cmidrule(lr){2-4}\cmidrule(lr){5-7}
-Pérdida & Prec. & Exh. & Sin fil.\ (\%) & Prec. & Exh. & Sin fil.\ (\%)\\
-\midrule
-Baseline (s42) & 0,43 & 0,57 & 27,5 & 0,63 & 0,53 & 9,4\\
-Baseline (s43) & 0,36 & 0,58 & 34,4 & 0,61 & 0,50 & 12,4\\
-IoU & 0,37 & 0,55 & 29,3 & 0,58 & 0,51 & 12,5\\
-clDice & 0,44 & 0,56 & 25,2 & 0,57 & 0,53 & 14,7\\
-IoU+clDice & 0,46 & 0,56 & 24,6 & 0,59 & 0,55 & 13,7\\
-\midrule
-Topograph (s42) & \textbf{0,49} & 0,53 & \textbf{18,0} & 0,57 & 0,53 & 13,5\\
-Topograph (s43) & \textbf{0,51} & 0,49 & \textbf{13,4} & \textbf{0,65} & 0,47 & \textbf{7,8}\\
-IoU+Topo & \textbf{0,48} & 0,50 & \textbf{15,8} & 0,62 & 0,46 & \textbf{8,3}\\
-clDice+Topo & \textbf{0,49} & 0,51 & \textbf{17,4} & 0,59 & 0,50 & 11,1\\
-IoU+clDice+Topo & \textbf{0,50} & 0,51 & \textbf{18,2} & 0,57 & 0,49 & 11,2\\
-\bottomrule
-\end{tabular}
-\caption{Fiabilidad de las detecciones en val~$B$. Prec.: aciertos entre
-predicciones, $\mathrm{TP}/(\mathrm{TP}+\mathrm{FP})$. Exh.: aciertos
-entre filamentos de referencia, $\mathrm{TP}/869$. Sin fil.: porcentaje
-de predicciones que no tocan ningún filamento. En negrita, los valores
-en los que todas las variantes con Topograph mejoran a todas las
-variantes sin él.}
-\label{tab:res-fiabilidad}
-\end{table} 
-
-\paragraph{El error dominante es de presencia.} Sin post-proceso, las
-predicciones sin filamento y los filamentos sin predicción (334--582)
-superan entre 3 y 5 veces a los partidos y unidos (72--136) en todos los
-modelos. Lo que más pesa en el PQ no es cómo se conectan las
-predicciones, sino si existen donde deben.
-
-\paragraph{Topograph hace predicciones más fiables.} Es el efecto más
-consistente de los observados. Sin post-proceso, las cinco variantes con
-Topograph tienen la mayor precisión (0,48--0,51, frente a 0,36--0,46 de
-las variantes sin él) y la menor proporción de predicciones sin filamento
-(13--18\,\%, frente a 25--34\,\%). No hay solapamiento entre los dos
-grupos, y el efecto se repite con las dos semillas. Comparando pareja a
-pareja, añadir Topograph reduce siempre a la mitad o menos las
-predicciones sin filamento: de 319 a 169 con Dice, de 380 a 142 con IoU,
-de 278 a 159 con clDice y de 261 a 161 con IoU+clDice. El precio es una
-exhaustividad algo menor (0,49--0,53 frente a 0,55--0,58): el modelo
-deja de predecir algunos filamentos dudosos.
-
-La explicación está en cómo actúa la pérdida
-(Sección~\ref{sec:topograph}). Topograph penaliza las regiones críticas,
-y una componente predicha que no corresponde a ningún filamento es
-exactamente una región crítica: un error que cambia el número de
-componentes. El modelo aprende así a no predecir una componente salvo
-que esté bien respaldada por la imagen. En otras palabras, cuando un
-modelo entrenado con Topograph hace una predicción, hay mucha
-certidumbre de que sea realmente un filamento.
-
-Este resultado tiene especial valor en este problema. Las anotaciones
-tienen una incertidumbre grande: dos expertos que anotan la misma imagen
-solo coinciden en un PQ de aproximadamente $0{,}34$
-(Sección~\ref{sec:techo-humano}). En ese contexto, un modelo cuyas
-detecciones son casi siempre filamentos reales ofrece algo que el PQ no
-recoge del todo: predicciones fiables, aunque no
-encuentre todos los filamentos.
-
-\paragraph{La estructura también mejora.} Añadir clDice o Topograph
-reduce siempre los filamentos partidos, de 92--111 en la baseline a
-57--79, mientras que IoU, sin sesgo topológico, llega a 123. Las
-fusiones son residuales en todos los modelos (12--18). En partidos y
-unidos, clDice es tan eficaz como Topograph, lo que concuerda con que
-premia la continuidad de las estructuras alargadas.
-
-% ------------------------------------------------------------
-\section{Interacción con el post-proceso}
+\subsection{Topograph y el filtro de área}
 \label{sec:res-topograph}
-% ------------------------------------------------------------
 
-El filtro de área de B2 también elimina predicciones sin filamento, y lo
-hace con cualquier modelo. Al aplicarlo, la precisión de todos los
-modelos sube a 0,57--0,65, la proporción de predicciones sin filamento
-baja al 8--15\,\% (Tabla~\ref{tab:res-fiabilidad}) y las diferencias
-entre pérdidas se reducen. La Tabla~\ref{tab:res-topo} lo muestra con
-las detecciones de la baseline y de Topograph para las dos semillas.
+La pregunta natural es qué ocurre cuando, además, se aplica el filtro de
+área, que también elimina predicciones sin filamento y lo hace con
+cualquier modelo. Con B2, la precisión de todos los modelos sube y los
+dos grupos de la Figura~\ref{fig:prec-exh} (derecha) se mezclan. La
+Tabla~\ref{tab:res-topo} y el panel derecho de la
+Figura~\ref{fig:tipos-error} muestran qué queda entonces de la
+diferencia entre la baseline y Topograph.
 
 \begin{table}[ht]
 \centering
 \small
-\begin{tabular}{@{}llcccc@{}}
+\begin{tabular}{@{}llccccc@{}}
 \toprule
-Pérdida & Post & PQ & TP & FP & FN\\
+Pérdida & Post & PQ & P.\,+\,U. & Sin fil. & FP & Prec.\\
 \midrule
-Baseline (s42) & sin & 0,311 & 495 & 665 & 374\\
-Topograph (s42) & sin & 0,327 & 461 & 481 & 408\\
-Baseline (s43) & sin & 0,287 & 503 & 899 & 366\\
-Topograph (s43) & sin & 0,322 & 422 & 402 & 447\\
+Baseline (s42)  & sin & 0,311 & 104 & 319 & 665 & 0,43\\
+Topograph (s42) & sin & 0,327 & 91  & 169 & 481 & 0,49\\
+Baseline (s43)  & sin & 0,287 & 125 & 482 & 899 & 0,36\\
+Topograph (s43) & sin & 0,322 & 81  & 110 & 402 & 0,51\\
 \midrule
-Baseline (s42) & B2 & 0,373 & 458 & 269 & 411\\
-Topograph (s42) & B2 & 0,354 & 457 & 342 & 412\\
-Baseline (s43) & B2 & 0,357 & 431 & 279 & 438\\
-Topograph (s43) & B2 & 0,355 & 412 & 220 & 457\\
+Baseline (s42)  & B2 & \textbf{0,373} & 55 & 68  & 269 & 0,63\\
+Topograph (s42) & B2 & 0,354 & 53 & 108 & 342 & 0,57\\
+Baseline (s43)  & B2 & 0,357 & 50 & 88  & 279 & 0,61\\
+Topograph (s43) & B2 & 0,355 & \textbf{40} & \textbf{49} & \textbf{220} & \textbf{0,65}\\
 \bottomrule
 \end{tabular}
-\caption{Detecciones en val~$B$ de la baseline y de Topograph, con las
-dos semillas, sin post-proceso y con B2.}
+\caption{Baseline y Topograph en val~$B$, con las dos semillas, sin
+post-proceso y con B2. P.\,+\,U.: filamentos partidos más unidos
+(errores de estructura). Sin fil.: predicciones que no tocan ningún
+filamento. FP: falsos positivos de la métrica oficial. Prec.:
+precisión. En negrita, el mejor valor de cada columna. Las diez pérdidas
+están en las Tablas~\ref{tab:res-asignaciones}
+y~\ref{tab:res-fiabilidad}.}
 \label{tab:res-topo}
 \end{table}
 
-Sin post-proceso, Topograph tiene muchos menos falsos positivos que la
-baseline con las dos semillas (481 frente a 665 y 402 frente a 899). Con
-B2 la diferencia se reduce y deja de ser consistente. Con la semilla 43,
-Topograph con B2 es el modelo más fiable de todo el trabajo: el que
-tiene menos partidos y unidos (40), menos predicciones sin filamento
-(49), menos falsos positivos (220) y mayor precisión (0,65). Le sigue
-IoU+Topograph con B2, con 54 predicciones sin filamento. Con la semilla
-42, en cambio, Topograph con B2 tiene más falsos positivos que la
-baseline (342 frente a 269).
+Con la semilla 43, Topograph con B2 es el modelo que menos filamentos
+parte o une, el que menos predicciones sin filamento y menos falsos
+positivos comete, y el de mayor precisión de toda la comparación de
+pérdidas. Sus predicciones son, por tanto, las que con más frecuencia
+corresponden a un filamento real, algo que, de nuevo, tiene valor dado
+el desacuerdo entre los propios expertos.
 
-La lectura topológica de la Sección~\ref{sec:lectura-topologica} ayuda a
-entender por qué las dos mejoras no se suman en el PQ. Una predicción
-sin filamento es una componente de $H_0$ sin correspondencia en la
-referencia. Topograph enseña al modelo a no crearla durante el
-entrenamiento, y el filtro de área la elimina después mediante una
-regla de tamaño. Ambos actúan, por tanto, sobre la misma clase de error,
-y una vez aplicado el filtro queda poco margen para que la pérdida
-marque la diferencia.
+Esta ventaja, sin embargo, no aparece en el PQ, y la lectura topológica
+ayuda a entender por qué. Una predicción sin filamento es una componente
+de $H_0$ sin correspondencia en la referencia. Topograph enseña al
+modelo a no crearla, y el filtro de área la elimina después por su
+tamaño, así que los dos actúan sobre la misma clase de error. El filtro
+mejora también mucho a la baseline, y las diferencias de PQ entre ambas
+quedan dentro del ruido. Lo que queda de ventaja de Topograph se ve en
+la estructura y en la fiabilidad de las predicciones, más que en la
+métrica.
 
-El filtro de área tiene, además, un coste: elimina también los
-filamentos reales pequeños. Con B2, los filamentos sin predicción
-aumentan en todos los modelos, hasta 201--301
-(Tabla~\ref{tab:res-asignaciones}), y pasan a ser el error principal.
-Esto plantea si es posible conservar la fiabilidad que aporta Topograph
-sin perder esos filamentos, que es lo que estudia la
-Sección~\ref{sec:res-e2}.
+Conviene matizar que esta ventaja con B2 es clara con una semilla y
+mucho menor con la otra. Con la semilla 42, Topograph solo mejora
+ligeramente a la baseline en partidos y unidos, y no en predicciones sin
+filamento ni en precisión. Sin post-proceso, en cambio, la mejora en
+fiabilidad se repite con las dos semillas.
 
-% ------------------------------------------------------------
-\section{Incertidumbre de las comparaciones}
-\label{sec:res-bootstrap}
-% ------------------------------------------------------------
+La semilla fija la inicialización de la red y el orden en que se le
+presentan los datos durante el entrenamiento. Con todo lo demás igual,
+pasar de la semilla 42 a la 43 cambia la comparación entre Topograph y
+la baseline con B2, así que hay que ser prudente con las diferencias que
+salen de una sola ejecución. Para medir la incertidumbre
+de cada comparación se usa un \emph{bootstrap} pareado por días
+(Capítulo~\ref{cap:metodologia}). Este método simula qué habría pasado
+si val~$B$ estuviera formada por otros días. Una diferencia entre dos
+modelos se considera significativa si su intervalo del 95\,\% no
+contiene el $0$, es decir, si en casi todos los remuestreos uno de los
+dos modelos queda por encima del otro. Pero
+los modelos que compara son siempre los mismos, ya entrenados, así que
+no tiene en cuenta que, al volver a entrenarlos, saldrían algo
+distintos. Esto se ve al comparar la baseline consigo misma. Las
+semillas 42 y 43 corresponden a la misma configuración, y aun así el
+\emph{bootstrap} da la de la semilla 43 como significativamente peor,
+con $0{,}024$ menos de PQ sin post-proceso
+(Sección~\ref{sec:res-bootstrap}). Una diferencia «significativa» puede
+deberse, por tanto, a que una ejecución salió especialmente bien o mal,
+y por eso el trabajo se fija sobre todo en lo que se repite entre
+semillas. Topograph mejora a la baseline sin post-proceso con ambas, lo
+que apunta a una mejora real. Con B2, en cambio, las diferencias son del
+mismo orden que la que separa a las dos semillas de la baseline.
 
-Las diferencias de PQ entre pérdidas son pequeñas, por lo que conviene
-estimar su incertidumbre. La Tabla~\ref{tab:res-bootstrap} recoge la
-diferencia de PQ de cada ejecución con la baseline (semilla 42) y su
-intervalo de confianza del 95\,\%, obtenido por \emph{bootstrap}
-pareado por días (Capítulo~\ref{cap:metodologia}).
-
-\begin{table}[ht]
-\centering
-\small
-\begin{tabular}{@{}lcccc@{}}
-\toprule
- & \multicolumn{2}{c}{Sin post-proceso} & \multicolumn{2}{c}{B2 (Optuna)}\\
-\cmidrule(lr){2-3}\cmidrule(lr){4-5}
-Pérdida & $\Delta$PQ & IC 95\,\% & $\Delta$PQ & IC 95\,\%\\
-\midrule
-Baseline (s42) & --- & --- & --- & --- \\
-Baseline (s43) & $-0{,}024^*$ & $[-0{,}039,\,-0{,}009]$ & $-0{,}016$ & $[-0{,}035,\,+0{,}005]$ \\
-IoU & $-0{,}026^*$ & $[-0{,}044,\,-0{,}010]$ & $-0{,}022^*$ & $[-0{,}037,\,-0{,}007]$ \\
-clDice & $+0{,}002$ & $[-0{,}011,\,+0{,}016]$ & $-0{,}019^*$ & $[-0{,}036,\,-0{,}002]$ \\
-IoU+clDice & $+0{,}011$ & $[-0{,}004,\,+0{,}024]$ & $-0{,}010$ & $[-0{,}030,\,+0{,}011]$ \\
-Topograph (s42) & $+0{,}016^*$ & $[+0{,}001,\,+0{,}032]$ & $-0{,}020^*$ & $[-0{,}035,\,-0{,}001]$ \\
-Topograph (s43) & $+0{,}011$ & $[-0{,}008,\,+0{,}029]$ & $-0{,}019^*$ & $[-0{,}035,\,-0{,}003]$ \\
-IoU+Topo & $+0{,}004$ & $[-0{,}017,\,+0{,}025]$ & $-0{,}028^*$ & $[-0{,}047,\,-0{,}008]$ \\
-clDice+Topo & $+0{,}005$ & $[-0{,}010,\,+0{,}022]$ & $-0{,}025^*$ & $[-0{,}044,\,-0{,}006]$ \\
-IoU+clDice+Topo & $+0{,}007$ & $[-0{,}009,\,+0{,}022]$ & $-0{,}037^*$ & $[-0{,}055,\,-0{,}019]$ \\
-\bottomrule
-\end{tabular}
-\caption{Diferencia de PQ en val~$B$ con la baseline (semilla 42) e
-intervalo del 95\,\% (\emph{bootstrap} pareado por días, 2.000
-remuestreos). $^*$: el intervalo no contiene el 0.}
-\label{tab:res-bootstrap}
-\end{table}
-
-Sin post-proceso, solo Topograph con la semilla 42 mejora a la baseline
-de forma significativa ($+0{,}016$, IC $[+0{,}001,\,+0{,}032]$).
-Topograph con la semilla 43 también la mejora ($+0{,}011$), pero su
-intervalo incluye el 0. IoU es significativamente peor. Con B2, siete
-de las nueve ejecuciones quedan significativamente por debajo de la
-baseline.
-
-Estos intervalos deben interpretarse con cuidado. La baseline con la
-semilla 43 es significativamente peor que con la 42 sin post-proceso
-($-0{,}024$, IC $[-0{,}039,\,-0{,}009]$), y casi lo es con B2
-($-0{,}016$), a pesar de tratarse de la misma configuración. El motivo
-es que el \emph{bootstrap} por días mide cuánto depende el PQ de los
-días que forman val~$B$, pero no la variabilidad del propio
-entrenamiento. Con una sola ejecución por pérdida, una diferencia
-«significativa» puede deberse a que la ejecución de referencia salió
-especialmente bien o mal. Por eso es más fiable comparar con las dos
-semillas: Topograph mejora a la baseline sin post-proceso con ambas, lo
-que apunta a una mejora real, mientras que con B2 las diferencias son
-del mismo orden que la que separa a las dos semillas de la baseline.
+Queda un último aspecto de la Figura~\ref{fig:tipos-error}, visible al
+comparar sus dos paneles. El filtro de
+área no es gratuito, porque elimina también filamentos reales pequeños,
+y con B2 los filamentos sin predicción pasan a ser el error principal en
+todos los modelos. Esto abre la pregunta de la siguiente sección, la de si un
+criterio topológico, en lugar del tamaño, podría eliminar las
+componentes espurias sin perder esos filamentos.
 
 % ------------------------------------------------------------
-\section{Post-proceso basado en persistencia (E2 y B2+P)}
+\section{La topología en el post-proceso}
 \label{sec:res-e2}
 % ------------------------------------------------------------
 
-El filtro de área decide qué componentes conservar mirando solo su
-tamaño. La lectura topológica de la Sección~\ref{sec:lectura-topologica}
-sugiere otro criterio: conservar las componentes robustas, es decir, las
-que tienen una persistencia alta en el diagrama $H_0$, aunque sean
-pequeñas. Si los filamentos pequeños que elimina B2 son robustos y las
-predicciones espurias no lo son, un filtro por persistencia podría
-eliminar las segundas sin perder los primeros.
+La lectura topológica sugiere sustituir el tamaño por la robustez, es
+decir, conservar las componentes con persistencia alta en el diagrama
+$H_0$ aunque sean pequeñas. Si los filamentos pequeños son robustos y
+las predicciones espurias no, un filtro así eliminaría las segundas sin
+perder los primeros. Se probaron dos variantes
+(Sección~\ref{sec:postproceso}). E2 sustituye el área por la
+persistencia y une las componentes separadas por un collado cercano al
+umbral, y B2+P conserva una componente si es grande \emph{o} si es
+robusta. La Tabla~\ref{tab:res-e2-resumen} las compara en dos modelos
+representativos, y la Sección~\ref{sec:anx-e2} recoge los once modelos
+en los que se probaron. En PQ las diferencias son pequeñas, así que la
+comparación se centra en qué errores corrige cada una.
 
-Se probaron dos variantes (Sección~\ref{sec:postproceso}). E2 sustituye
-el filtro de área por un filtro por persistencia y añade la fusión por
-collado, que une las componentes que se tocan al bajar el umbral en
-$\delta$. B2+P conserva una componente si su área supera el mínimo
-\emph{o} si su persistencia supera $\tau$, de modo que las componentes
-grandes se conservan como en B2 y las pequeñas solo si son robustas.
-
-Ambas se aplicaron a ejecuciones reentrenadas con la semilla 42: las
-ocho pérdidas con la configuración común (\emph{ref.}) y los mejores
-intentos del ajuste de hiperparámetros de la baseline, clDice y
-Topograph (\emph{mejor}, Sección~\ref{sec:res-hp}). Las ejecuciones de
-la Sección~\ref{sec:res-perdidas} no se conservaron, y por el no
-determinismo del entrenamiento las cifras de los reentrenamientos
-difieren algo de las de la Tabla~\ref{tab:res-perdidas}. E2 se aplicó a
-las once ejecuciones y B2+P a seis de ellas. La Tabla~\ref{tab:res-e2}
-recoge el PQ, y la Tabla~\ref{tab:res-e2-errores}, los tipos de error
-de las seis ejecuciones con los cuatro post-procesos.
-
-\begin{table}[tbp]
+\begin{table}[ht]
 \centering
 \small
-\begin{tabular}{@{}lccccc@{}}
+\begin{tabular}{@{}llccccc@{}}
 \toprule
-Modelo & Sin post & B2 & E2 & B2+P & $\tau$ (E2)\\
+Modelo & Post & PQ & P.\,+\,U. & Sin pred. & Sin fil. & Prec.\\
 \midrule
-Baseline (ref.) & 0,297 & \textbf{0,370} & 0,310 & 0,347 & 0,06\\
-Baseline (mejor) & 0,303 & \textbf{0,368} & 0,314 & \textbf{0,368} & 0,03\\
-IoU & 0,299 & \textbf{0,361} & 0,313 & --- & 0,42\\
-clDice (ref.) & 0,307 & \textbf{0,344} & 0,307 & --- & 0,48\\
-clDice (mejor) & 0,320 & \textbf{0,361} & 0,333 & --- & 0,21\\
-IoU+clDice & 0,317 & \textbf{0,363} & 0,324 & --- & 0,26\\
+Baseline & sin  & 0,303 & 112 & 143 & 318 & 0,41\\
+         & B2   & \textbf{0,368} & 49  & 255 & 72  & 0,63\\
+         & E2   & 0,314 & 91  & 142 & 279 & 0,44\\
+         & B2+P & \textbf{0,368} & 36  & 213 & 116 & 0,60\\
 \midrule
-Topograph (ref.) & 0,316 & 0,348 & 0,337 & \textbf{0,360} & 0,50\\
-Topograph (mejor) & 0,330 & \textbf{0,362} & 0,339 & \textbf{0,362} & 0,15\\
-IoU+Topo & 0,305 & 0,349 & 0,325 & \textbf{0,353} & 0,50\\
-clDice+Topo & 0,299 & 0,335 & 0,332 & \textbf{0,341} & 0,48\\
-IoU+clDice+Topo & 0,311 & \textbf{0,338} & 0,327 & --- & 0,35\\
+Topograph & sin  & 0,330 & 88  & 189 & 158 & 0,50\\
+          & B2   & \textbf{0,362} & 52  & 237 & 89  & 0,61\\
+          & E2   & 0,339 & 76  & 191 & 139 & 0,52\\
+          & B2+P & \textbf{0,362} & \textbf{34} & 235 & 93 & 0,61\\
 \bottomrule
 \end{tabular}
-\caption{PQ en val~$B$ de los modelos reentrenados con cuatro
-post-procesos: ninguno, B2 (umbral y área), E2 (umbral, persistencia y
-fusión por collado) y B2+P (umbral, y área o persistencia), los tres
-últimos ajustados en val~$A$. \emph{ref.}: configuración común;
-\emph{mejor}: mejor intento del ajuste de hiperparámetros
-(Sección~\ref{sec:res-hp}). $\tau$ es la persistencia mínima elegida
-para E2. En negrita, el mejor post-proceso de cada modelo.}
-\label{tab:res-e2}
+\caption{Post-procesos en val~$B$ sobre el mejor intento del ajuste de
+hiperparámetros de la baseline y de Topograph. En negrita, el mejor PQ
+de cada modelo y el menor número de partidos y unidos. P.\,+\,U.: filamentos
+partidos más unidos (errores de estructura). Sin pred.\ y Sin fil.:
+errores de presencia. Prec.: precisión. Los once modelos están en las
+Tablas~\ref{tab:res-e2} y~\ref{tab:res-e2-errores}.}
+\label{tab:res-e2-resumen}
 \end{table}
 
-\begin{table}[tbp]
-\centering
-\small
-\begin{tabular}{@{}llccccccc@{}}
-\toprule
-Modelo & Post & Partidos & Unidos & Sin pred. & Sin fil. & Prec. & Exh. & Cob.\ espina\\
-\midrule
-Baseline (ref.) & sin  & 132 & 12 & 97  & 424 & 0,376 & 0,591 & 0,772\\
-                & B2   & 47  & 12 & 238 & 83  & 0,613 & 0,532 & 0,699\\
-                & E2   & 107 & 13 & 97  & 382 & 0,403 & 0,595 & 0,772\\
-                & B2+P & 56  & 12 & 129 & 233 & 0,498 & 0,589 & 0,749\\
-\midrule
-Baseline (mejor) & sin  & 97  & 15 & 143 & 318 & 0,410 & 0,544 & 0,739\\
-                 & B2   & 34  & 15 & 255 & 72  & 0,632 & 0,516 & 0,687\\
-                 & E2   & 74  & 17 & 142 & 279 & 0,438 & 0,544 & 0,741\\
-                 & B2+P & 21  & 15 & 213 & 116 & 0,600 & 0,539 & 0,688\\
-\midrule
-Topograph (ref.) & sin  & 88  & 14 & 164 & 199 & 0,458 & 0,533 & 0,715\\
-                 & B2   & 31  & 14 & 281 & 64  & 0,616 & 0,480 & 0,669\\
-                 & E2   & 45  & 20 & 156 & 165 & 0,519 & 0,541 & 0,733\\
-                 & B2+P & 23  & 14 & 260 & 73  & 0,630 & 0,503 & 0,666\\
-\midrule
-Topograph (mejor) & sin  & 75  & 13 & 189 & 158 & 0,498 & 0,529 & 0,707\\
-                  & B2   & 39  & 13 & 237 & 89  & 0,605 & 0,522 & 0,686\\
-                  & E2   & 60  & 16 & 191 & 139 & 0,525 & 0,526 & 0,703\\
-                  & B2+P & 22  & 12 & 235 & 93  & 0,612 & 0,520 & 0,673\\
-\midrule
-IoU+Topo & sin  & 88  & 10 & 168 & 233 & 0,431 & 0,520 & 0,702\\
-         & B2   & 43  & 14 & 224 & 102 & 0,569 & 0,516 & 0,693\\
-         & E2   & 51  & 17 & 165 & 177 & 0,490 & 0,524 & 0,717\\
-         & B2+P & 38  & 14 & 227 & 110 & 0,575 & 0,521 & 0,692\\
-\midrule
-clDice+Topo & sin  & 54  & 25 & 172 & 172 & 0,466 & 0,487 & 0,727\\
-            & B2   & 36  & 22 & 234 & 86  & 0,574 & 0,489 & 0,701\\
-            & E2   & 33  & 19 & 229 & 107 & 0,557 & 0,490 & 0,686\\
-            & B2+P & 13  & 22 & 254 & 78  & 0,607 & 0,480 & 0,670\\
-\bottomrule
-\end{tabular}
-\caption{Tipos de error en val~$B$ de seis modelos reentrenados con los
-cuatro post-procesos. Partidos, Unidos, Sin pred.\ y Sin fil.\ como en
-la Tabla~\ref{tab:res-asignaciones}; Prec.\ y Exh.\ como en la
-Tabla~\ref{tab:res-fiabilidad}. «Cob.\ espina»: fracción de la espina
-anotada cubierta por la predicción (Sección~\ref{sec:res-barbas}).}
-\label{tab:res-e2-errores}
-\end{table}
+E2 hace lo que se esperaba de un filtro que decide por robustez y no por
+tamaño. No pierde filamentos, porque los que quedan sin predicción son
+prácticamente los mismos que sin post-proceso, mientras que B2 pierde
+muchos. De hecho, la baseline de referencia con E2 tiene la mayor
+exhaustividad de todas las combinaciones probadas, $0{,}595$, incluso
+ligeramente por encima de la predicción sin post-proceso
+(Tabla~\ref{tab:res-e2-errores}). Además, reduce los filamentos partidos por dos vías. La fusión
+por collado une trozos separados por un hueco pequeño, y el filtro
+elimina trozos poco persistentes, como el máximo $B$ del
+Ejemplo~\ref{ej:perfil}.
 
-\paragraph{PQ.} E2 mejora siempre el resultado sin post-proceso, pero
-queda por debajo de B2 en los once modelos: entre $0{,}03$ y $0{,}06$
-sin Topograph, y entre $0{,}004$ y $0{,}024$ con Topograph. B2+P iguala
-o mejora ligeramente a B2 con los cuatro modelos con Topograph (hasta
-$+0{,}012$), y no lo mejora con la baseline. Todas estas diferencias son
-del orden del ruido entre entrenamientos. Sin embargo, el PQ no recoge
-bien lo que motiva estos filtros, que es qué estructura conservan y qué
-errores corrigen. La Tabla~\ref{tab:res-e2-errores} permite verlo.
-
-\paragraph{E2 no pierde filamentos.} En cinco de los seis modelos, los
-filamentos sin predicción con E2 quedan al nivel de la predicción sin
-post-proceso (por ejemplo, 97 en ambos casos en la baseline de
-referencia, y de 164 a 156 en Topograph de referencia), mientras que B2
-los aumenta en entre 48 y 141. En esos mismos cinco modelos, E2 es,
-de los tres post-procesos, el que conserva más espina, prácticamente al
-nivel de la predicción sin post-proceso. La excepción es
-clDice+Topo, para el que el ajuste elige un umbral más alto
-($0{,}68$), que hace perder 57 filamentos. Es lo que se esperaba de un
-filtro que decide por robustez y no por tamaño: no elimina los
-filamentos reales pequeños.
-
-\paragraph{La fusión por collado reduce los filamentos partidos.} El
-ajuste elige $\delta$ entre $0{,}22$ y $0{,}30$ en nueve de los once
-modelos, es decir, la fusión sí actúa. En los seis modelos de la
-Tabla~\ref{tab:res-e2-errores}, E2 reduce los partidos respecto a la
-predicción sin post-proceso, de 132 a 107 en la baseline de referencia
-y de 88 a 45 en Topograph de referencia. El coste en fusiones es
-pequeño: los unidos suben como mucho en 7, y en clDice+Topo bajan. B2
-deja aún menos partidos en cinco de los seis modelos, pero lo consigue
-eliminando componentes pequeñas, entre ellas fragmentos, y con ello
-también filamentos enteros.
-
-\paragraph{Pero E2 elimina pocas predicciones espurias.} En la baseline,
-E2 reduce las predicciones sin filamento solo un 10--12\,\% (de 424 a
-382 en la de referencia), frente a un 80\,\% con B2 (de 424 a 83). El
-ajuste elige para la baseline un $\tau$ casi nulo ($0{,}03$--$0{,}06$),
-porque un umbral de persistencia mayor eliminaría también muchos
-aciertos: las predicciones espurias de la baseline son tan persistentes
-como los filamentos reales.
-
-Esto es coherente con cómo se comporta la persistencia en un modelo muy
-seguro de sus predicciones. Una mancha aislada con un pico de
-probabilidad de $0{,}9$, rodeada de un fondo cercano a 0, solo se une a
-otra componente cuando el umbral baja casi hasta 0, de modo que su
-persistencia es $b-d\approx0{,}9$, tan alta como la de un filamento
-real. En ese caso, la persistencia de una componente en $H_0$ se reduce
-prácticamente a la confianza de su pico, y el diagnóstico de la
-Sección~\ref{sec:diagnostico} ya mostraba que las predicciones espurias
-de la baseline tienen casi la misma confianza que los aciertos. Lo que
-las distingue de los filamentos es su tamaño, que la persistencia de
-$H_0$ no tiene en cuenta.
-
-Con Topograph, E2 elimina una fracción mayor de las predicciones sin
-filamento: entre un 12 y un 38\,\% en los cuatro modelos con Topograph
-(en clDice+Topo, a costa de perder filamentos), frente a un
-3--12\,\% en las cinco ejecuciones sin él para las que se dispone de
-la comparación. Es lo que cabe esperar si
-Topograph, además de predecir menos componentes espurias
-(Sección~\ref{sec:res-perdidas}), hace que las que quedan sean menos
-robustas. Aun así, la reducción queda lejos de la del filtro de área, y
-por eso E2 no alcanza a B2 en PQ.
-
-\subsection{Área y persistencia combinadas}
-
-B2+P busca lo mejor de ambos criterios: eliminar por tamaño las
-componentes pequeñas y rescatar las que sean robustas. Con los cuatro
-modelos con Topograph, B2+P mejora a B2 en estructura y en fiabilidad a
-la vez. Tiene menos partidos y unidos en los cuatro (de 45 a 37, de 52 a
-34, de 57 a 52 y de 58 a 35) y mayor precisión en los cuatro (por
-ejemplo, de $0{,}616$ a $0{,}630$ en Topograph de referencia y de
-$0{,}574$ a $0{,}607$ en clDice+Topo), con una exhaustividad y unos
-errores de presencia parecidos a los de B2.
-
-Con la baseline el resultado es distinto. Con el mejor intento, B2+P
-reduce los partidos y unidos (de 49 a 36) pero baja la precisión (de
-$0{,}632$ a $0{,}600$). Con la de referencia, rescata muchos filamentos
-(los sin predicción bajan de 238 a 129), pero conserva también muchas
-más espurias (de 83 a 233), y su PQ queda por debajo del de B2.
-
-Los parámetros elegidos muestran cómo actúa la combinación. El ajuste
-elige siempre un $\tau$ muy alto ($0{,}88$--$1{,}00$) y un área mínima
-mayor que la de B2 (entre 59 y 283 píxeles, frente a 21--42). Es decir,
-filtra por tamaño de forma más estricta, lo que elimina más fragmentos
-pequeños, y rescata solo las componentes pequeñas con un pico de
-probabilidad cercano a 1 y aisladas del resto. En la práctica, la
-persistencia actúa aquí como un criterio de confianza, y funciona mejor
-con Topograph, lo que concuerda con la mayor precisión de sus
-predicciones.
-
-Hay que tener en cuenta, además, una limitación del ajuste. Con $\tau$
-en el máximo del rango, B2+P se reduce prácticamente a B2, así que en
-val~$A$ su ajuste debería igualar al menos a B2. No ocurre con la
-baseline de referencia ni con el mejor intento de Topograph, cuyo PQ en
-$A$ queda por debajo del de B2 ($0{,}343$ frente a $0{,}359$ y $0{,}363$
-frente a $0{,}368$). Con tres parámetros y 60 intentos, la búsqueda no
-siempre encuentra el óptimo.
-
-\paragraph{Balance.} Desde el punto de vista topológico, E2 y B2+P
-mejoran cosas distintas, y conviene separarlas.
-
-E2 es el post-proceso que mejor \emph{conserva} la estructura que el
-modelo ya predice: no pierde filamentos, mantiene la cobertura de la
-espina y repara parte de la fragmentación. Su debilidad son las
-predicciones espurias muy seguras. Por eso, con la baseline, sus
-errores de presencia son muy superiores a los de B2 (421--479 frente a
-321--327). Con Topograph, en cambio, los errores de presencia de E2 y de
-B2 son del mismo orden (321--342 frente a 320--345), aunque con una
-composición distinta: E2 pierde menos filamentos y deja más
+Su debilidad está en las predicciones espurias. Con la baseline, E2
+apenas las reduce, y el ajuste elige un umbral de persistencia casi
+nulo, porque uno mayor eliminaría también muchos aciertos. La razón es
+que la baseline está muy segura incluso cuando se equivoca. Una mancha
+aislada con un pico de probabilidad de $0{,}9$ sobre un fondo cercano a
+0 tiene una persistencia $b-d\approx0{,}9$, tan alta como la de un
+filamento real, de modo que en un modelo así la persistencia se reduce
+prácticamente a la confianza del pico. El diagnóstico de la
+Sección~\ref{sec:diagnostico} ya mostraba que las espurias tienen casi
+la misma confianza que los aciertos. Lo que las distingue es su tamaño,
+y eso es justo lo que la persistencia de $H_0$ no tiene en cuenta. Con
+Topograph, cuyas espurias son menos robustas, E2 elimina bastantes más,
+y sus errores de presencia llegan a ser del mismo orden que los de B2,
+aunque repartidos de otra forma, con menos filamentos perdidos y más
 espurias.
 
-B2+P es el post-proceso que menos errores de \emph{estructura} deja.
-Tiene menos partidos y unidos que B2 en cinco de los seis modelos, y
-los valores más bajos de toda la comparación (34--37, en Topograph de
-referencia, Topograph mejor, clDice+Topo y la baseline mejor), con
-errores de presencia parecidos a los de B2. Esta reducción no es
-exclusiva de Topograph: la baseline mejor también la consigue. Lo que
-aporta Topograph es que no cuesta precisión: con Topograph, B2+P tiene
-mayor precisión que B2 en los cuatro modelos; con la baseline, no.
-
-En conjunto, la combinación de un modelo entrenado con Topograph y
-B2+P es la configuración más favorable de este trabajo desde el punto
-de vista topológico: la que menos filamentos parte o une, con más
-precisión que B2 y una exhaustividad parecida. Hay que leerlo con dos
-cautelas: la baseline mejor con B2+P queda cerca en errores de estructura, y todas
-estas cifras proceden de un único entrenamiento por modelo, con
-diferencias de PQ dentro del ruido.
+Combinar ambos criterios resuelve en parte el problema. B2+P filtra por
+tamaño de forma más estricta que B2 y rescata solo las componentes
+pequeñas casi seguras, así que la persistencia actúa aquí como un
+criterio de confianza. En los dos modelos de la tabla iguala el PQ de B2 y deja muy pocos
+errores de estructura. Aplicado a los once modelos
+(Sección~\ref{sec:anx-e2}), el resultado depende de Topograph. En los
+cinco modelos entrenados con él, B2+P iguala o mejora ligeramente el PQ
+de B2, con menos errores de estructura y mayor precisión. En los seis
+entrenados sin él, el PQ queda igual o por debajo y la precisión baja
+siempre, porque la persistencia rescata también espurias muy seguras.
+Parte de esa diferencia puede deberse al ajuste, que en cinco de esos
+seis modelos no llega a igualar a B2 en val~$A$ aunque podría hacerlo.
+La combinación de Topograph y B2+P es, por tanto, la más favorable del
+trabajo desde el punto de vista topológico, con la cautela de que la
+baseline queda cerca y de que todo procede de un único entrenamiento por
+modelo.
 
 % ------------------------------------------------------------
-\section{Barbas}
+\section{Alcance de los resultados}
+\label{sec:res-alcance}
+% ------------------------------------------------------------
+
+\subsection{Barbas}
 \label{sec:res-barbas}
-% ------------------------------------------------------------
 
-El PQ no distingue si un acierto recoge o no las barbas. Antes de
-comparar los modelos conviene saber cuánto pesan las barbas en los datos
-y cuánto se pierde solo por trabajar a $512\times512$. Las medidas
-utilizadas se definen en el Capítulo~\ref{cap:metodologia}.
+Las barbas, que motivaron el uso de clDice, son la parte del filamento
+que peor se recupera, y ninguna pérdida topológica mejora su detección.
+Los modelos cubren la mayor parte de la espina, pero solo alrededor de la
+mitad de las barbas. El problema no está en la resolución de salida,
+porque la anotación reducida a $512\times512$ conserva casi todas las
+barbas, y los post-procesos por persistencia tampoco cambian su
+detección. clDice, en concreto, la empeora en todas las combinaciones, porque hace que el modelo prediga más estructura
+alrededor del filamento pero no más barbas reales. Los detalles están en
+la Sección~\ref{sec:anx-barbas}.
 
-\paragraph{Las barbas en val~$B$.} De los 869 filamentos anotados, el
-41,4\,\% tiene al menos una barba, con una media de $0{,}70$ barbas por
-filamento. Son estructuras pequeñas: su esqueleto mide en total un
-6\,\% de la longitud de las espinas, y el grosor mediano de un
-filamento es de $11{,}4$ píxeles a resolución completa (menos de 3 a
-$512\times512$). Por eso el PQ apenas las tiene en cuenta: un acierto
-con o sin barbas tiene casi el mismo IoU.
-
-\paragraph{Techo a $512\times512$.} Para separar lo que pierde el
-modelo de lo que se pierde por la resolución, se reduce cada máscara
-anotada a $512\times512$, se vuelve a ampliar, como ocurre con la
-predicción del modelo, y se compara con la original. El resultado es
-una cobertura de barbas de $0{,}997$, una precisión de $0{,}908$ y un
-$F_1$ de $0{,}950$, con $0{,}075$ ramas inventadas por filamento. De
-aquí se extraen dos consecuencias:
-\begin{itemize}
-  \item \emph{La máscara a $512\times512$ conserva las barbas.} Lo que
-  el modelo no recupera no se explica por la resolución de la salida.
-  Queda abierto si se explica por la de la entrada: a esa escala una
-  barba mide entre 1 y 3 píxeles y tiene poco contraste, y es posible
-  que el modelo no llegue a distinguirla.
-  \item \emph{La precisión tiene un techo de $0{,}91$.} El reescalado
-  suaviza el contorno y crea pequeñas ramas en el esqueleto, que la
-  medida cuenta como inventadas. Las precisiones de los modelos deben
-  compararse con ese techo, no con 1.
-\end{itemize}
-
-\paragraph{Modelos.} Las medidas de barbas se calcularon sobre los
-reentrenamientos con la configuración común de la
-Sección~\ref{sec:res-e2}, ya que las ejecuciones originales no se
-conservaron. La Tabla~\ref{tab:res-barbas} recoge los resultados.
-
-\begin{table}[ht]
-\centering
-\small
-\begin{tabular}{@{}lccccc@{}}
-\toprule
-Pérdida & Cobertura & Precisión & $F_1$ & Ramas inv. & Cob.\ espina\\
-\midrule
-Techo a $512\times512$ & 0,997 & 0,908 & 0,950 & 0,075 & 0,999\\
-\midrule
-\multicolumn{6}{l}{\emph{Sin post-proceso}}\\
-Baseline & \textbf{0,563} & \textbf{0,279} & \textbf{0,373} & 0,222 & \textbf{0,772}\\
-IoU & 0,536 & 0,268 & 0,357 & 0,226 & 0,741\\
-clDice & 0,546 & 0,248 & 0,341 & 0,212 & 0,754\\
-IoU+clDice & 0,554 & 0,253 & 0,347 & 0,200 & 0,753\\
-Topograph & 0,512 & 0,232 & 0,320 & 0,169 & 0,715\\
-IoU+Topo & 0,496 & 0,275 & 0,354 & 0,168 & 0,702\\
-clDice+Topo & 0,537 & 0,190 & 0,281 & 0,229 & 0,727\\
-IoU+clDice+Topo & 0,529 & 0,240 & 0,331 & 0,185 & 0,728\\
-\midrule
-\multicolumn{6}{l}{\emph{B2 (Optuna)}}\\
-Baseline & 0,528 & \textbf{0,302} & \textbf{0,384} & 0,174 & 0,699\\
-IoU & 0,521 & 0,294 & 0,376 & 0,186 & 0,670\\
-clDice & \textbf{0,532} & 0,249 & 0,340 & 0,196 & \textbf{0,715}\\
-IoU+clDice & 0,516 & 0,266 & 0,351 & 0,174 & 0,704\\
-Topograph & 0,504 & 0,229 & 0,315 & 0,155 & 0,669\\
-IoU+Topo & 0,508 & 0,275 & 0,357 & 0,171 & 0,693\\
-clDice+Topo & 0,497 & 0,202 & 0,287 & 0,217 & 0,701\\
-IoU+clDice+Topo & 0,517 & 0,252 & 0,339 & 0,171 & 0,706\\
-\bottomrule
-\end{tabular}
-\caption{Medidas de barbas en val~$B$ de los reentrenamientos (semilla
-42). «Ramas inv.»: ramas inventadas por filamento. «Cob.\ espina»:
-fracción de la espina cubierta. El techo es la propia anotación reducida
-a $512\times512$ y vuelta a ampliar.}
-\label{tab:res-barbas}
-\end{table}
-
-Se observan cuatro cosas:
-\begin{itemize}
-  \item \emph{Las barbas son la parte que peor se recupera.} Todos los
-  modelos cubren cerca del 75\,\% de la espina, pero solo alrededor del
-  55\,\% de las barbas, con una precisión de $0{,}19$--$0{,}30$ frente
-  al techo de $0{,}91$.
-  \item \emph{Ninguna pérdida topológica mejora las barbas.} La baseline
-  tiene el mejor $F_1$, tanto sin post-proceso como con B2.
-  \item \emph{clDice no mejora las barbas, al contrario de lo esperado.}
-  En las cuatro parejas que solo se diferencian en clDice (Dice/clDice,
-  IoU/IoU+clDice, Topograph/clDice+Topo e IoU+Topo/IoU+clDice+Topo),
-  añadir clDice baja el $F_1$, con y sin post-proceso. Sin
-  post-proceso, la cobertura sube en tres de ellas, pero la precisión
-  baja en las cuatro: con clDice el modelo predice más estructura
-  alrededor del filamento, pero no más barbas reales. Una posible
-  explicación es la proporción: el esqueleto de las barbas es solo un
-  6\,\% del de las espinas, de modo que la señal de clDice está dominada
-  por la continuidad de la espina.
-  \item \emph{Topograph cubre menos, tanto barbas como espina.} La
-  cobertura de la espina baja de $0{,}772$ a $0{,}715$. No es un efecto
-  específico de las barbas, sino el mismo de la
-  Sección~\ref{sec:res-perdidas}: Topograph predice menos y deja más
-  filamentos sin detectar, a cambio de predicciones más fiables.
-\end{itemize}
-Con B2, la cobertura de barbas baja en casi todos los modelos, pero la
-de la espina baja más (en la baseline, de $0{,}772$ a $0{,}699$). Esto
-indica que el filtro de área no elimina sobre todo trozos sueltos de
-barbas, sino filamentos pequeños enteros, con sus barbas.
-
-% ------------------------------------------------------------
-\section{Ajuste de hiperparámetros}
+\subsection{Ajuste de hiperparámetros}
 \label{sec:res-hp}
-% ------------------------------------------------------------
 
-La comparación de pérdidas usa una configuración común para todos los
-modelos (Sección~\ref{sec:entrenamiento}). Para comprobar si esa
-configuración favorece a alguno, se ajustaron con Optuna los
-hiperparámetros de los tres modelos principales: la baseline, Topograph
-y clDice. Cada búsqueda dispuso de 3 horas: la baseline completó 15
-intentos y se podaron 27; Topograph, 8 y 19, y clDice, 14 y 18. La
-Tabla~\ref{tab:res-hp} compara, para cada modelo, el intento de
-referencia (la configuración común) con el mejor intento en val~$A$.
+La comparación de pérdidas usa una configuración común, que podría
+favorecer a algún modelo. Para comprobarlo se ajustaron los
+hiperparámetros de la baseline, Topograph y clDice
+(Sección~\ref{sec:anx-hp}). El ajuste mejora algo a las dos pérdidas
+topológicas y no a la baseline, pero tras él los tres modelos quedan
+dentro del ruido, así que la comparación no cambia.
 
-\begin{table}[ht]
-\centering
-\small
-\begin{tabular}{@{}llccccccc@{}}
-\toprule
- & & & & & \multicolumn{2}{c}{Sin post} & \multicolumn{2}{c}{B2}\\
-\cmidrule(lr){6-7}\cmidrule(lr){8-9}
-Modelo & Intento & lr & $w_d$ & Peso & PQ $A$ & PQ $B$ & PQ $A$ & PQ $B$\\
-\midrule
-Baseline & ref. & $3{,}0\cdot10^{-4}$ & $10^{-4}$ & 0,50 & 0,296 & 0,297 & 0,359 & \textbf{0,370}\\
- & mejor & $4{,}0\cdot10^{-4}$ & $3\cdot10^{-6}$ & 0,33 & 0,309 & 0,303 & 0,367 & 0,368\\
-\midrule
-Topograph & ref. & $3{,}0\cdot10^{-4}$ & $10^{-4}$ & 0,040 & 0,307 & 0,316 & 0,350 & 0,348\\
- & mejor & $4{,}0\cdot10^{-4}$ & $3\cdot10^{-6}$ & 0,015 & 0,333 & \textbf{0,330} & 0,368 & 0,362\\
-\midrule
-clDice & ref. & $3{,}0\cdot10^{-4}$ & $10^{-4}$ & 0,25 & 0,305 & 0,307 & 0,340 & 0,344\\
- & mejor & $7{,}9\cdot10^{-4}$ & $10^{-6}$ & 0,26 & 0,341 & 0,320 & 0,384 & 0,361\\
-\bottomrule
-\end{tabular}
-\caption{Ajuste de hiperparámetros. «Peso» es el de Dice en la baseline,
-$\alpha$ en Topograph y el de clDice en clDice; $w_d$ es el
-\emph{weight decay}. El mejor intento se elige por el PQ en val~$A$ sin
-post-proceso; su PQ en $A$ está inflado por esa selección.}
-\label{tab:res-hp}
-\end{table}
-
-\paragraph{Efecto del ajuste.} Con B2, el mejor intento de la baseline
-queda prácticamente igual que la referencia ($0{,}368$ frente a
-$0{,}370$), mientras que Topograph sube $0{,}014$ y clDice $0{,}017$.
-Esto sugiere que la configuración común, fijada a priori, se adaptaba
-mejor a la baseline que a las pérdidas topológicas. En ambas pérdidas el
-mejor intento usa una tasa de aprendizaje mayor, y en Topograph, además,
-un peso menor que el fijado a priori ($\alpha\approx0{,}015$ frente a
-$0{,}04$).
-
-\paragraph{Comparación tras el ajuste.} Tras el ajuste, los tres
-modelos quedan con B2 entre $0{,}361$ y $0{,}370$, una diferencia
-dentro del ruido de $0{,}01$--$0{,}02$ entre entrenamientos, con la
-baseline todavía por encima. Las mejoras de Topograph y clDice en $B$
-son también de ese orden, por lo que no permiten afirmar que el ajuste
-cambie la comparación. Además, la selección en $A$ infla las cifras de
-esa mitad (clDice pasa de $0{,}384$ en $A$ a $0{,}361$ en $B$), lo que
-confirma la necesidad de reportar en $B$.
-
-\paragraph{Una tercera réplica.} Los intentos de referencia son un
-nuevo entrenamiento de cada modelo con la configuración común, y
-reproducen el patrón de la Sección~\ref{sec:res-topograph}: sin
-post-proceso, Topograph supera a la baseline ($0{,}316$ frente a
-$0{,}297$, $+0{,}019$), y con B2 queda por debajo ($0{,}348$ frente a
-$0{,}370$). Junto con las dos semillas de la
-Tabla~\ref{tab:res-perdidas}, son tres entrenamientos independientes
-con el mismo resultado.
-
-\paragraph{Épocas.} En todas las ejecuciones, la época elegida en
-val~$A$ está entre la 8 y la 20 de las 30 entrenadas. Las pérdidas
-topológicas alcanzan su mejor época algo más tarde que la baseline
-(12--20 frente a 8--14), pero siempre lejos de la última, por lo que no
-hay indicios de que el entrenamiento necesite más épocas.
-
-% ------------------------------------------------------------
-\section{Test de la competición}
+\subsection{Test de la competición}
 \label{sec:res-test}
-% ------------------------------------------------------------
 
-Por último, se enviaron a la competición los mejores intentos del
-ajuste de los tres modelos, con B2. En el \emph{leaderboard} público
-obtienen un PQ de $0{,}27$ (baseline y Topograph) y $0{,}30$ (clDice),
-entre $0{,}06$ y $0{,}10$ por debajo de su PQ en val~$B$.
-
-Se comprobaron dos posibles causas de esta caída. La distribución de
-estaciones es equivalente en entrenamiento y test (entre el 14 y el
-19\,\% de las imágenes en cada una), y la de años es parecida (un
-17\,\% de imágenes de 2018--2022 en el test frente a un 13\,\% en
-entrenamiento). Ninguna de las dos explica la diferencia, y no es
-posible estudiarla más a fondo porque las anotaciones del test no son
-públicas y el \emph{leaderboard} público usa solo la mitad de sus
-imágenes. Que clDice quede por delante tampoco permite sacar
-conclusiones, ya que se trata de un solo envío por modelo.
-
-% ------------------------------------------------------------
-\section{Resumen}
-\label{sec:res-resumen}
-% ------------------------------------------------------------
-
-\begin{itemize}
-  \item El área mínima es la mejora más grande y la más barata: sube el
-  PQ de la baseline de $0{,}311$ a $0{,}373$, porque elimina componentes
-  espurias pequeñas. Ajustar solo el umbral no mejora el PQ.
-  \item El error dominante es de presencia, no de estructura: las
-  predicciones sin filamento y los filamentos sin predicción superan
-  entre 3 y 5 veces a los partidos y unidos.
-  \item Topograph hace predicciones más fiables. Sin post-proceso, todas
-  sus variantes tienen mayor precisión (0,48--0,51) y menos predicciones
-  sin filamento (13--18\,\%) que cualquier variante sin él, a cambio de
-  una exhaustividad algo menor. Es también la pérdida con mejor PQ sin
-  post-proceso, con mejora en tres entrenamientos independientes.
-  \item clDice y Topograph reducen los filamentos partidos; las fusiones
-  son poco frecuentes en todos los modelos.
-  \item El filtro de área corrige la misma clase de error que
-  Topograph, por lo que con B2 las diferencias de PQ quedan dentro del
-  ruido. Con la semilla 43, Topograph con B2 es el modelo más fiable del
-  trabajo. El error que queda son los filamentos pequeños que el filtro
-  elimina.
-  \item El filtro por persistencia (E2) conserva la estructura: no
-  pierde filamentos, mantiene la cobertura de la espina y, con la fusión
-  por collado, reduce los filamentos partidos. Pero elimina pocas
-  predicciones espurias, porque en la baseline son tan persistentes como
-  los filamentos; con Topograph elimina una fracción mayor.
-  \item Combinar área y persistencia (B2+P) deja los menores errores de
-  estructura de la comparación. Con Topograph lo consigue sin perder
-  precisión respecto a B2, y es la configuración más favorable desde el
-  punto de vista topológico, aunque las diferencias proceden de un único
-  entrenamiento por modelo.
-  \item Las barbas son la parte que peor se recupera, y ninguna pérdida
-  topológica las mejora; clDice reduce su precisión.
-  \item clDice necesita un término de solapamiento: sin Dice, el
-  entrenamiento colapsa.
-  \item La variación entre entrenamientos es del mismo orden que las
-  diferencias de PQ entre pérdidas, y el \emph{bootstrap} por días no la
-  recoge.
-  \item El ajuste de hiperparámetros mejora algo a Topograph y clDice,
-  pero no cambia la comparación.
-  \item En el test de la competición, el PQ baja a $0{,}27$--$0{,}30$, y
-  la causa no se ha podido determinar.
-\end{itemize}
+En el \emph{leaderboard} público de la competición, todos los modelos
+enviados obtienen un PQ entre $0{,}26$ y $0{,}30$, entre $0{,}06$ y
+$0{,}10$ por debajo de val~$B$. La caída es parecida en todas las
+configuraciones y el orden entre ellas se mantiene, con B2+P igual o
+algo por encima de B2 y E2 por debajo. La distribución de estaciones y de años es parecida en
+entrenamiento y test, así que no parece explicarla, y no es posible
+estudiarla más a fondo porque las anotaciones del test no son públicas. Con un solo envío por
+configuración y la mitad del test, las diferencias entre envíos no son
+concluyentes (Sección~\ref{sec:anx-test}).
