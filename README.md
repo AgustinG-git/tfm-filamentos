@@ -1,140 +1,134 @@
 # tfm-filamentos
 
-Segmentación de instancias de filamentos solares en imágenes H-alfa
-(MAGFiLO, *Filament Segmentation Challenge 2026*). Código del TFM del
-Máster en Lógica, Computación e Inteligencia Artificial (Universidad de
-Sevilla).
+Código del Trabajo de Fin de Máster **«Métodos topológicos en segmentación
+de imágenes»** (Máster Universitario en Lógica, Computación e Inteligencia
+Artificial, Universidad de Sevilla, 2026).
 
-Cada versión del modelo es un **pipeline completo** (preproceso,
-entrenamiento, post-proceso) definido por una configuración. Todas las
-versiones se evalúan con el **mismo evaluador** y bajo el mismo
-**contrato** (ver [CONTRACT.md](CONTRACT.md)).
+- **Autor:** Agustín Galiana Carballido
+- **Tutor:** Manuel Soriano Trigueros
+- **Memoria:** [`memoria/TFM_Agustin_Galiana.pdf`](memoria/TFM_Agustin_Galiana.pdf)
+- **Versión depositada:** etiqueta [`v1.0-deposito`](../../tree/v1.0-deposito)
 
-## Estado
+## De qué trata
 
-| Paso | Estado |
-|---|---|
-| 1. Contrato v1: split, GT oficial, métrica oficial, salidas | ✅ Hecho |
-| 2. Arquitectura mínima: datos, modelo, BCE+Dice, entrenamiento, post-proceso | Pendiente |
-| 3. Validación sin reentrenar: checkpoint viejo por el pipeline nuevo → 0,3819 | Pendiente |
-| 4. Baseline sólida con el contrato (B0, B1, B2) | Pendiente |
-| 5. Modo humo de todas las pérdidas | Pendiente |
-| 6. Experimentos: pérdidas → etiquetas → hiperparámetros → post-proceso topológico | Pendiente |
+El trabajo estudia qué aporta la topología computacional a la segmentación
+de estructuras finas, aplicada a los filamentos solares de las imágenes
+H-alfa de GONG (conjunto de datos MAGFiLO, *Solar Filament Segmentation
+Challenge 2026* en Kaggle).
+
+La topología se emplea de dos formas:
+
+1. **En el entrenamiento**, con pérdidas topológicas: clDice y
+   [Topograph](https://github.com/AlexanderHBerger/Topograph) (Lux et al.,
+   ICLR 2025).
+2. **En el post-proceso**, decidiendo qué componentes conservar por su
+   persistencia en el diagrama $H_0$ en lugar de por su tamaño (E2 y B2+P).
+
+Resultados principales (val B, detalle en el capítulo 6 y el anexo B de la
+memoria):
+
+- Sin post-proceso, Topograph da las predicciones más fiables: todas sus
+  variantes tienen más precisión y entre un 38 y un 63 % menos de
+  predicciones sin filamento que las pérdidas sin él.
+- Con el filtro de área (B2), el PQ de las distintas pérdidas apenas se
+  diferencia: Topograph y el filtro corrigen el mismo tipo de error.
+- El post-proceso por persistencia conserva los filamentos y reduce la
+  fragmentación. Combinado con el área (B2+P) en modelos entrenados con
+  Topograph, da menos errores de estructura y más precisión que B2.
 
 ## Estructura
 
 ```
 tfm-filamentos/
 ├── CONTRACT.md              # reglas comunes a todas las ejecuciones
-├── configs/base.yaml        # la baseline; los experimentos heredan de aquí
-├── splits/split_v1.json     # split congelado (se genera una vez)
-├── scripts/make_split.py
-├── src/filseg/
-│   ├── contract.py          # constantes del contrato v1
-│   ├── official_metric.py   # copia literal del notebook oficial
-│   ├── metrics.py           # evaluador: comprobaciones + PQ/SQ/RQ + gráficos
-│   ├── gt.py                # GT oficial desde el JSON COCO
-│   ├── split.py             # crear / cargar / verificar el split
-│   └── runs.py              # salidas de una ejecución y su validación
-├── tests/                   # los ejemplos del README de autoevaluación, ejecutables
-├── notebooks/
-└── memoria/
+├── configs/                 # un YAML por experimento (heredan de base.yaml)
+├── splits/split_v1.json     # partición congelada train / val_A / val_B
+├── src/filseg/              # biblioteca
+│   ├── contract.py          # decisiones congeladas del protocolo
+│   ├── split.py             # partición agrupada por días
+│   ├── gt.py                # referencia oficial desde el JSON COCO
+│   ├── data.py              # carga de imágenes y etiquetas
+│   ├── model.py             # U-Net con codificador ResNet-34
+│   ├── losses.py            # BCE, Dice, IoU, clDice y Topograph
+│   ├── train.py             # una ejecución completa
+│   ├── postproc.py          # B1, B2, E2 y B2+P
+│   ├── postrun.py           # ajuste de un post-proceso sin reentrenar
+│   ├── official_metric.py   # copia literal de la métrica oficial
+│   ├── metrics.py           # evaluador (PQ, SQ, RQ) y comprobaciones
+│   ├── compare.py           # conteos, relaciones 1:n / n:1, bootstrap
+│   └── runs.py              # identificadores, salidas y registro
+├── scripts/                 # experimentos (ver abajo)
+├── tests/                   # pruebas automáticas (pytest)
+├── registro.csv             # una fila por ejecución, con PQ en val_A y val_B
+├── conteos.csv              # conteos por par anotador-imagen
+├── barbas_runs.csv          # medidas de barbas por ejecución y post-proceso
+└── memoria/                 # fuentes LaTeX y PDF de la memoria
 ```
 
-## Uso
-
-### Instalación
+## Instalación
 
 ```bash
-pip install -e ".[dev]"
+pip install -e ".[train,dev]"
 pytest
 ```
 
-### En Kaggle
+Topograph se usa a través de su implementación oficial, con la extensión
+C++ compilada. La ruta al repositorio clonado se indica en
+`TOPOGRAPH_PATH`.
 
-```python
-!git clone https://github.com/<usuario>/tfm-filamentos.git
-!pip install -q -e tfm-filamentos
-import os, subprocess
-os.environ["FILSEG_COMMIT"] = subprocess.check_output(
-    ["git", "-C", "tfm-filamentos", "rev-parse", "HEAD"], text=True
-).strip()
-```
+Variables de entorno:
 
-Para fijar una versión concreta del código, clona y haz `git checkout <commit>`.
+| Variable | Contenido |
+|---|---|
+| `FILSEG_DATA` | carpeta `MAGFiLO_1.0_Kaggle_2026` de la competición |
+| `FILSEG_OUT` | carpeta de salidas (`runs/`, `logs/`, registro y conteos) |
+| `TOPOGRAPH_PATH` | repositorio oficial de Topograph |
 
-### En el servidor del grupo
+## Reproducir los experimentos
 
-Todo vive en una carpeta propia (`~/agustin-tfm`), sin tocar el sistema:
+Cada ejecución crea `runs/<run_id>` en `FILSEG_OUT`, con la configuración,
+la época elegida, las predicciones y logits de validación y el envío para
+Kaggle, y añade una fila a `registro.csv` y sus conteos a `conteos.csv`.
+El `run_id` combina fecha, configuración y commit del código.
 
-```
-~/agustin-tfm/
-├── activar.sh        # entorno + variables (no va a git: lleva el token)
-├── mamba/            # micromamba y el entorno «topo»
-├── tfm-filamentos/   # este repo
-├── Topograph/        # repo oficial, con la extensión C++ compilada
-├── data/MAGFiLO_1.0_Kaggle_2026/
-└── salidas/          # FILSEG_OUT: runs/, logs/, registro.csv, conteos.csv
-```
+| Paso | Comando | Memoria |
+|---|---|---|
+| Partición (una sola vez) | `python scripts/make_split.py --annotations <JSON de train>` | 5.1 |
+| Entrenar una pérdida | `python scripts/entrenar.py configs/loss_topograph.yaml` | 6.2 |
+| Varias en cola | `bash scripts/cola.sh "nota" configs/a.yaml configs/b.yaml` | 6.2 |
+| Post-proceso B1 y B2 | `python scripts/postproceso.py --filtro "_base_"` | 6.1 |
+| Post-proceso E2 | `python scripts/e2.py` | 6.3 |
+| Post-proceso B2+P | `python scripts/e2.py --config configs/b2p_area_persistencia.yaml` | 6.3 |
+| Ajuste de hiperparámetros | `python scripts/ajuste_hp.py --horas 9` | 6.4.2 |
+| Barbas | `python scripts/barbas.py gt` y `python scripts/barbas.py runs` | 6.4.1 |
+| Bootstrap y tipos de error | `python scripts/resultados.py conteos.csv` | 6.2, B.3 |
+| Figuras del capítulo 6 | `python scripts/figuras_cap6.py` | 6.1, 6.2 |
 
-`activar.sh` activa el entorno y define `FILSEG_DATA`, `FILSEG_OUT`,
-`TOPOGRAPH_PATH` y `KAGGLE_API_TOKEN`. Cada sesión empieza con:
+`entrenar.py` acepta `--humo` para una prueba rápida antes de una
+ejecución larga.
+
+El entrenamiento en GPU no es determinista: repetir una ejecución
+reproduce sus cifras con una diferencia del orden de 0,01–0,02 en PQ.
+
+### Configuraciones
+
+- `base.yaml`: baseline, BCE + Dice, semilla 42 (`base_s43.yaml`, semilla 43).
+- `loss_*.yaml`: las diez pérdidas comparadas (IoU, clDice, sus
+  combinaciones y cada una con Topograph; `_s43` para la segunda semilla).
+- `b1_*.yaml`, `b2_*.yaml`: post-proceso por umbral y por umbral y área.
+- `e2_persistencia.yaml`, `b2p_area_persistencia.yaml`: post-procesos por
+  persistencia.
+- `humo.yaml`: prueba rápida.
+
+## Compilar la memoria
 
 ```bash
-source ~/agustin-tfm/activar.sh && cd ~/agustin-tfm/tfm-filamentos && git pull
+cd memoria
+pdflatex main && bibtex main && pdflatex main && pdflatex main
 ```
 
-Una ejecución, o varias en cola (siguen aunque se corte la conexión):
+Necesita `sello.pdf` en la misma carpeta (incluido).
 
-```bash
-python scripts/entrenar.py configs/base.yaml --humo          # prueba rápida
-nohup bash scripts/cola.sh "servidor" configs/loss_iou.yaml configs/loss_cldice.yaml \
-    > "$FILSEG_OUT/logs/cola.log" 2>&1 &
-tail -f "$FILSEG_OUT/logs/cola.log"                          # Ctrl+C solo deja de mirar
-```
+## Licencia
 
-**Qué va a git y qué no.** El código de cada ejecución queda identificado por
-su commit (en `run_config.json` y en la columna `commit` del registro), así
-que basta con lanzar siempre desde un commit subido. Al terminar, se copian
-`$FILSEG_OUT/registro.csv` y `$FILSEG_OUT/conteos.csv` sobre los del repo y se
-hace commit. Los checkpoints y logits se quedan en `salidas/`.
-
-### Generar el split (una sola vez)
-
-```python
-from pathlib import Path
-DATA = Path("/kaggle/input/competitions/filament-segmentation-2026/MAGFiLO_1.0_Kaggle_2026")
-ANN = next((DATA / "train").glob("*.json"))
-!python tfm-filamentos/scripts/make_split.py --annotations "{ANN}" --out split_v1.json
-```
-
-Descarga `split_v1.json`, cópialo a `splits/` y haz commit.
-
-**Comprobación:** el split debe reproducir la baseline original. `val_A`
-y `val_B` juntos deben sumar **234 pares anotador-imagen de 132 días**, y
-`train`, **920 pares de 524 días**.
-
-### Evaluar predicciones
-
-```python
-from filseg.gt import load_coco, build_gt_df
-from filseg.split import load_split
-from filseg.metrics import evaluate, plot_official
-
-split = load_split("splits/split_v1.json", ANN)
-gt_B = build_gt_df(load_coco(ANN), split["subsets"]["val_B"])
-res = evaluate(gt_B, pred_df)        # pred_df: filament_id, segmentation_rle
-print(res.metrics)                   # pq, sq, rq, tp, fp, fn, ...
-plot_official(res.overlap_df, "figuras", tag="val_B")
-```
-
-## Rúbrica de la competición
-
-El leaderboard (PQ) es solo una parte:
-
-- **Cuantitativo (70 %):** PQ, distribución de Dice, distribución de IoU y
-  distribución de relaciones 1:n / n:1.
-- **Cualitativo (30 %):** descripción del pipeline, morfología de las
-  segmentaciones y calidad del código (modularidad y documentación).
-
-La evaluación depende de que el código fuente sea público.
+MIT. Ver [LICENSE](LICENSE).
