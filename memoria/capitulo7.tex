@@ -79,9 +79,9 @@ entre 334 y 358 errores de presencia y una precisión de $0{,}48$ a
 $0{,}51$, frente a 385--582 errores y $0{,}36$--$0{,}46$ de precisión sin
 él. La diferencia viene de las predicciones sin filamento, que bajan
 entre un 38 y un 63\,\% al añadir Topograph, a cambio de que el modelo
-encuentre algo menos filamentos. Los errores de estructura bajan con
-cualquiera de las dos pérdidas topológicas, de 104--136 en la baseline
-e IoU a 72--92 con clDice o Topograph. Topograph es además la pérdida
+encuentre algo menos filamentos. Los errores de estructura son también
+menores en todos los modelos con alguna pérdida topológica, entre 72 y
+92, frente a 104--136 en la baseline e IoU. Topograph es además la pérdida
 con mejor PQ, y mejora a la baseline en los tres entrenamientos en que
 se han comparado, las dos semillas y el reentrenamiento del ajuste de
 hiperparámetros. Sin post-proceso se confirma, por tanto, la hipótesis
@@ -108,7 +108,7 @@ barbas pesan muy poco en el esqueleto total y la pérdida optimiza sobre
 todo la continuidad de la espina.
 
 \paragraph{Post-proceso por persistencia.} El filtro por persistencia
-(E2) no pierde filamentos reales, conserva la cobertura de la espina y,
+(E2) no pierde filamentos reales en casi ningún modelo, conserva la cobertura de la espina y,
 con la fusión por collado, reduce los filamentos partidos. Lo que no
 consigue es eliminar las predicciones espurias mejor que el área. En la
 baseline, muchas espurias son manchas aisladas sobre un fondo cercano a
@@ -117,7 +117,8 @@ la confianza de su pico, que es tan alta como la de los aciertos. La
 hipótesis H2 se cumple, por tanto, solo en parte, en lo que se refiere a
 la fragmentación. La persistencia funciona mejor como complemento del
 área que como sustituto. Combinadas (B2+P) y aplicadas a los cinco
-modelos entrenados con Topograph, dan menos errores de estructura y
+modelos entrenados con Topograph, en un nuevo entrenamiento de cada
+pérdida (Sección~\ref{sec:anx-e2}), dan menos errores de estructura y
 mayor precisión que B2, con un PQ igual o algo mayor, mientras que sin
 Topograph la precisión baja en todos los casos. Es la configuración más
 favorable del trabajo desde el punto de vista topológico, aunque la

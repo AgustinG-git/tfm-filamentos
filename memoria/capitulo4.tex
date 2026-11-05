@@ -119,18 +119,18 @@ estrategia. El análisis sobre la validación muestra cuatro patrones:
   anotador de la misma imagen. Más que errores del modelo, son
   desacuerdos entre anotadores.
 \end{itemize}
-Los tres primeros patrones son los que motivan este trabajo. El filtro
-de área elimina filamentos reales, y la confianza no sirve para
-distinguir los espurios, así que hace falta otro criterio para decidir
-qué componentes conservar. Ese criterio puede
-ayudar también con los filamentos pequeños que se pierden por el filtro
-de área o por quedar bajo el umbral
-(Sección~\ref{sec:lectura-topologica}), aunque no todas las pérdidas
-del primer patrón se deben al post-proceso. Algunos filamentos el
-modelo no llega a detectarlos, posiblemente porque a la resolución de
-entrada ocupan pocos píxeles o porque cerca del limbo cambia su aspecto,
-y otros son casos dudosos que los propios anotadores no marcan de forma
-consistente.
+Los tres primeros patrones son los que motivan este trabajo, y los dos
+primeros están relacionados. Parte de la exhaustividad que se pierde en
+los filamentos pequeños se debe al post-proceso: el filtro de área
+elimina filamentos reales por su tamaño, y el umbral deja fuera los que
+el modelo detecta con poca confianza. El tercer patrón añade que la
+confianza tampoco sirve para distinguir los espurios. Hace falta, por
+tanto, otro criterio para decidir qué componentes conservar, y la
+persistencia es un candidato para los casos en los que fallan el área y
+el umbral (Sección~\ref{sec:lectura-topologica}). Las pérdidas en el
+limbo y en los filamentos que marca un solo anotador dependen más de la
+imagen y de la anotación, y son más difíciles de corregir desde el
+post-proceso.
 
 \subsection{El techo humano}
 \label{sec:techo-humano}
@@ -174,7 +174,7 @@ nunca, y le asignamos $d=-\infty$.
 
 \begin{proposicion}
 \label{prop:instancias}
-Para todo
+Supongamos que los valores de $p$ son distintos dos a dos. Para todo
 umbral $t$, el número de instancias de la baseline antes del
 filtro de área es
 \[
@@ -184,8 +184,7 @@ filtro de área es
 
 \begin{proof}[idea]
 Cada componente de $X_t$ contiene un único máximo más antiguo, el de
-valor más alto (los empates se deshacen con un orden fijo de los
-píxeles). Por la regla del mayor, la componente que nació en ese
+valor más alto. Por la regla del mayor, la componente que nació en ese
 máximo sigue viva en $t$: ya ha nacido, porque $b>t$, y todavía no ha
 muerto, porque cualquier componente con la que se haya fundido era más
 joven, así que $d\le t$. Las demás componentes nacidas dentro de esa
@@ -359,7 +358,7 @@ en unidades de probabilidad.
 \label{sec:estrategia}
 % ------------------------------------------------------------
 
-Del diagnóstico y de la lectura topológica se derivan tres líneas de
+Del diagnóstico y de la lectura topológica se derivan cuatro líneas de
 mejora, cada una dirigida a un tipo de error
 (Tabla~\ref{tab:estrategia}). Se ordenan de menor a mayor coste: primero
 las que no requieren reentrenar.
@@ -367,17 +366,18 @@ las que no requieren reentrenar.
 \begin{table}[ht]
 \centering
 \footnotesize
-\begin{tabular}{@{}llc@{}}
+\begin{tabular}{@{}lllc@{}}
 \toprule
-Línea & Error al que apunta & Reentrena\\
+Línea & Error al que apunta & Reentrena & Estado\\
 \midrule
-E1. Umbral y área mínima & Espurios pequeños & No\\
-E2. Post-proceso por persistencia & Fragmentación, espurios & No\\
-E3. Pérdidas (IoU, clDice, Topograph) & Espurios, fragmentación, barbas & Sí\\
+E1. Umbral y área mínima & Espurios pequeños & No & Hecha\\
+E2. Post-proceso por persistencia & Fragmentación, espurios & No & Hecha\\
+E3. Pérdidas (IoU, clDice, Topograph) & Espurios, fragmentación, barbas & Sí & Hecha\\
+E4. Etiquetas multianotador & Desacuerdo entre anotadores & Sí & Planteada\\
 \bottomrule
 \end{tabular}
-\caption{Líneas de mejora, error al que apunta cada una y si requiere
-reentrenar el modelo.}
+\caption{Líneas de mejora, error al que apunta cada una y si se ha
+desarrollado en este trabajo.}
 \label{tab:estrategia}
 \end{table}
 
@@ -446,6 +446,14 @@ alternativas a Dice:
   umbral y puede mirar el diagrama completo.
 \end{itemize}
 
+\paragraph{E4. Estrategias de etiquetas.} Con varias anotaciones por
+imagen, se comparan tres formas de construir la etiqueta de
+entrenamiento: cada anotación como un ejemplo independiente (la opción
+de la baseline), la media de las anotaciones como etiqueta blanda, y los
+filamentos marcados por la mayoría de anotadores. La referencia de
+evaluación no cambia con la estrategia: siempre se evalúa contra cada
+anotación original.
+
 \paragraph{Hipótesis.} Las líneas anteriores concretan cuatro hipótesis,
 que el Capítulo~\ref{cap:resultados} contrasta:
 \begin{enumerate}
@@ -462,10 +470,9 @@ que el Capítulo~\ref{cap:resultados} contrasta:
   la detección de las barbas (E3, clDice).
 \end{enumerate}
 
-\paragraph{Alcance.} El cuarto patrón del diagnóstico, el desacuerdo
-entre anotadores, no se aborda en este trabajo. Podría tratarse
-cambiando cómo se construye la etiqueta de entrenamiento a partir de las
-varias anotaciones de cada imagen, y se recoge como trabajo futuro en el
+\paragraph{Alcance.} Este trabajo desarrolla las líneas E1, E2 y E3,
+cuyos resultados se presentan en el Capítulo~\ref{cap:resultados}. La
+línea E4 queda planteada y se recoge como trabajo futuro en el
 Capítulo~\ref{cap:conclusiones}.
 
 % ------------------------------------------------------------
